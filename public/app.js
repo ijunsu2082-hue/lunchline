@@ -98,8 +98,11 @@
       return { date: `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`, hour: n.getHours(), minute: n.getMinutes() };
     }
   }
-  // School days only: on a weekend, show the coming week.
+  // Organizers plan ahead: on a weekend, open the coming week.
   const homeDay = today => (D.isWeekend(today) ? D.add(D.monday(today), 7) : today);
+  // Students rate what they ate: on a weekend, open this week's Friday.
+  const studentHome = today => (D.isWeekend(today) ? D.add(D.monday(today), 4) : today);
+  const RATE_DAYS = 7; // a dish can be rated on the day it's served and the 6 days after (matches the server)
 
   function timeAgo(iso) {
     const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
@@ -160,8 +163,8 @@
   const main = $("#main"), bar = $("#bar"), tabsEl = $("#tabs"), toastEl = $("#toast"), sheet = $("#sheet");
 
   const TABS = {
-    student: [["menu", "Menu", "utensils"], ["ideas", "Dream menu", "sparkles"], ["me", "Me", "user"]],
-    admin: [["insights", "Insights", "chart"], ["kitchen", "Menu", "calendar"], ["ideas", "Ideas", "sparkles"], ["school", "School", "school"]],
+    student: [["menu", "Menu", "utensils"], ["ideas", "Suggest", "sparkles"], ["me", "Me", "user"]],
+    admin: [["insights", "Insights", "chart"], ["kitchen", "Menu", "calendar"], ["ideas", "Suggestions", "sparkles"], ["school", "School", "school"]],
   };
   const currentTab = () => {
     const h = location.hash.slice(1), tabs = TABS[state.mode];
@@ -375,7 +378,7 @@
             <span class="check-box">${icon("check")}</span>
             <span class="check-text"><strong>Start with a sample menu</strong><span>Four weeks of breakfast and lunch, so you can try everything right away. Edit or delete any dish.</span></span>
           </label>
-          <p class="help">${icon("clock")}Time zone: ${esc(tz.replace(/_/g, " "))}. Students can rate a dish only on the day it's served.</p>`,
+          <p class="help">${icon("clock")}Time zone: ${esc(tz.replace(/_/g, " "))}. Students can rate a dish for ${RATE_DAYS} days after it's served.</p>`,
         cta: "Create school", ready: d.schoolName.trim().length >= 2,
       };
     },
@@ -427,7 +430,7 @@
       <div class="welcome-top">
         <div class="brand big">${mark(40)}<span class="brand-name">LunchLine</span></div>
         <h1 class="display">Better school lunch starts with you.</h1>
-        <p class="lede">See what's in every dish, rate today's food in one tap, and tell your cafeteria what to cook next.</p>
+        <p class="lede">See what's in every dish, rate what you ate in one tap, and tell your cafeteria what to cook next.</p>
       </div>
       <div class="preview" aria-hidden="true">
         <div class="pv-card">
@@ -439,7 +442,7 @@
       <div class="roles">
         <button class="role" data-act="role" data-role="student">
           <span class="role-ic">${icon("user")}</span>
-          <span class="role-text"><strong>I'm a student</strong><span>Join with your school code and rate today's food</span></span>${icon("chevR")}
+          <span class="role-text"><strong>I'm a student</strong><span>Join with your school code and rate your lunch</span></span>${icon("chevR")}
         </button>
         <button class="role" data-act="role" data-role="organizer">
           <span class="role-ic">${icon("chef")}</span>
@@ -599,8 +602,11 @@
   }
 
   // ================= STUDENT =================
+  const rateable = date => date <= state.today && date >= D.add(state.today, -(RATE_DAYS - 1));
+  const rateUntil = date => D.add(date, RATE_DAYS - 1);
+
   function initStudentWeek() {
-    const d = homeDay(state.today);
+    const d = studentHome(state.today);
     state.week = D.monday(d);
     state.day = d;
     state.meal = null;
@@ -656,7 +662,7 @@
   }
 
   function weekLabel(mon) {
-    const cur = D.monday(homeDay(state.today)), end = D.add(mon, 4);
+    const cur = D.monday(state.today), end = D.add(mon, 4);
     const same = D.fmt(mon, { month: "short" }) === D.fmt(end, { month: "short" });
     const range = `${D.fmt(mon, { month: "short", day: "numeric" })} – ${D.fmt(end, same ? { day: "numeric" } : { month: "short", day: "numeric" })}`;
     const name = mon === cur ? "This week" : mon === D.add(cur, 7) ? "Next week" : mon === D.add(cur, -7) ? "Last week" : "";
@@ -673,9 +679,9 @@
       <div class="days" role="group" aria-label="Choose a day">
         ${D.weekdays(mon).map(d => {
           const n = days && days[d] ? days[d].breakfast.length + days[d].lunch.length : 0;
-          const isT = d === state.today;
-          return `<button class="day${isT ? " is-today" : ""}" data-act="${prefix}day" data-date="${d}" aria-pressed="${d === sel}"
-            aria-label="${D.fmt(d, { weekday: "long", month: "long", day: "numeric" })}${isT ? ", today" : ""}${days ? `, ${plural(n, "dish", "dishes")}` : ""}">
+          const isT = d === state.today, canRate = prefix === "s-" && n > 0 && rateable(d);
+          return `<button class="day${isT ? " is-today" : ""}${canRate ? " can-rate" : ""}" data-act="${prefix}day" data-date="${d}" aria-pressed="${d === sel}"
+            aria-label="${D.fmt(d, { weekday: "long", month: "long", day: "numeric" })}${isT ? ", today" : ""}${days ? `, ${plural(n, "dish", "dishes")}` : ""}${canRate ? ", you can rate" : ""}">
             <span class="day-w">${isT ? "Today" : D.fmt(d, { weekday: "short" })}</span><span class="day-n">${D.fmt(d, { day: "numeric" })}</span>
             <span class="day-dot${n ? "" : " off"}"></span></button>`;
         }).join("")}
@@ -688,6 +694,52 @@
       `<button data-act="${act}" data-meal="${k}" aria-pressed="${k === sel}">${l}<span class="seg-n">${day ? day[k].length : 0}</span></button>`).join("")}</div>`;
   }
 
+  // The most recent day (within the rating window) that has food you could rate.
+  function lastRateableDay() {
+    for (let i = 0; i < RATE_DAYS; i++) {
+      const d = D.add(state.today, -i), wk = state.weeks[D.monday(d)];
+      const day = wk && wk.days && wk.days[d];
+      if (day && day.breakfast.length + day.lunch.length) return d;
+    }
+    return null;
+  }
+
+  function rateBanner(day, date) {
+    const items = day ? [...day.breakfast, ...day.lunch] : [];
+    if (!items.length) return "";
+    if (rateable(date)) {
+      const done = items.filter(it => state.mine[date + "|" + it.id]).length;
+      return `<div class="rate-banner open">
+        <span class="rb-ic">${icon("thumbUp")}</span>
+        <div class="rb-main"><p class="rb-t">${done === items.length ? "You rated everything. Thank you!" : "Rate what you ate"}</p>
+          <p class="rb-s">${done === items.length ? "You can still change a rating" : "Tap <strong>Good</strong>, <strong>Mid</strong>, or <strong>Bad</strong> under any dish"} until ${shortDay(rateUntil(date))}.</p></div>
+        <span class="rb-count" aria-label="${done} of ${items.length} rated">${done}/${items.length}</span>
+      </div>`;
+    }
+    const target = lastRateableDay();
+    const jump = target && target !== date
+      ? `<button class="btn primary sm" data-act="s-goto" data-date="${target}">Rate ${target === state.today ? "today's" : D.fmt(target, { weekday: "long" }) + "'s"} food${icon("arrowR")}</button>` : "";
+    if (date > state.today) {
+      return `<div class="rate-banner soon"><span class="rb-ic">${icon("clock")}</span>
+        <div class="rb-main"><p class="rb-t">Coming up ${D.fmt(date, { weekday: "long" })}</p><p class="rb-s">You can rate these after they're served.</p>${jump}</div></div>`;
+    }
+    return `<div class="rate-banner closed"><span class="rb-ic">${icon("lock")}</span>
+      <div class="rb-main"><p class="rb-t">Rating closed for this day</p><p class="rb-s">Food can be rated for ${RATE_DAYS} days after it's served.</p>${jump}</div></div>`;
+  }
+
+  function howItWorks() {
+    if (LS.get("ll_tips_done")) return "";
+    return `<section class="howto" aria-labelledby="howto-t">
+      <h2 id="howto-t">How LunchLine works</h2>
+      <ol>
+        <li><span class="howto-ic">${icon("utensils")}</span><span><strong>Check the menu.</strong> See what's served and what's in it.</span></li>
+        <li><span class="howto-ic">${icon("thumbUp")}</span><span><strong>Rate what you ate.</strong> Good, Mid, or Bad, for up to ${RATE_DAYS} days.</span></li>
+        <li><span class="howto-ic">${icon("sparkles")}</span><span><strong>Suggest a dish.</strong> Tell the cafeteria what to make next.</span></li>
+      </ol>
+      <button class="btn secondary sm" data-act="tips-done">Got it</button>
+    </section>`;
+  }
+
   function viewMenu() {
     const st = state.student;
     if (!state.week) initStudentWeek();
@@ -695,7 +747,8 @@
     const date = state.day;
     const isToday = date === state.today;
     const title = isToday ? "Today's menu" : D.fmt(date, { weekday: "long" }) + "'s menu";
-    const eyebrow = isToday ? D.fmt(date, { weekday: "long", month: "long", day: "numeric" }) : D.fmt(date, { month: "long", day: "numeric" });
+    const eyebrow = isToday ? D.fmt(date, { weekday: "long", month: "long", day: "numeric" })
+      : `${D.fmt(date, { month: "long", day: "numeric" })}${D.isWeekend(state.today) && D.monday(date) === D.monday(state.today) ? ` · Today is ${D.fmt(state.today, { weekday: "long" })}, no school lunch` : ""}`;
     let body;
     if (!wk) { loadWeek(state.week); body = skeleton(3); }
     else if (wk.error) body = errorBox(wk.error, "retry-week");
@@ -703,19 +756,15 @@
       const day = wk.days[date];
       if (!state.meal) state.meal = defaultMeal(day);
       const items = day ? day[state.meal] : [];
-      const status = isToday
-        ? `<p class="status live"><span class="pulse" aria-hidden="true"></span>Rating is open today. Tap how it was after you eat.</p>`
-        : date < state.today
-          ? `<p class="status">${icon("lock")}This day is over, so rating is closed.</p>`
-          : `<p class="status">${icon("clock")}Rating opens ${shortDay(date)}.</p>`;
       const flagged = [...st.allergies.map(a => ALLERGENS[a]), ...terms(st.allergyOther).map(cap)];
-      body = `${mealSeg(day, state.meal, "meal")}
-        ${items.length ? status : ""}
-        <div class="notice">${icon("info")}<p><strong>Allergen info is a guide only.</strong> Always confirm with cafeteria staff before eating.${flagged.length ? ` Flagging <strong>${esc(listJoin(flagged))}</strong> for you.` : ""}</p></div>
+      body = `${rateBanner(day, date)}
+        ${mealSeg(day, state.meal, "meal")}
         ${items.length ? `<div class="dishes">${items.map(it => dishCard(it, date)).join("")}</div>`
-          : `<div class="empty"><span class="empty-ic">${icon("utensils")}</span><p>${day ? `No ${state.meal} posted for ${D.fmt(date, { weekday: "long" })}.` : `The cafeteria hasn't posted a menu for ${D.fmt(date, { weekday: "long" })} yet.`}</p></div>`}`;
+          : `<div class="empty"><span class="empty-ic">${icon("utensils")}</span><p>${day ? `No ${state.meal} posted for ${D.fmt(date, { weekday: "long" })}.` : `The cafeteria hasn't posted a menu for ${D.fmt(date, { weekday: "long" })} yet.`}</p></div>`}
+        <div class="notice">${icon("info")}<p><strong>Allergen info is a guide only.</strong> Always confirm with cafeteria staff before eating.${flagged.length ? ` We flag <strong>${esc(listJoin(flagged))}</strong> in red for you.` : ""}</p></div>`;
     }
     return `${head(eyebrow, title, "")}
+      ${howItWorks()}
       ${weekStrip(state.week, date, wk && wk.days, "s-")}
       ${body}`;
   }
@@ -771,14 +820,14 @@
 
   function rateBlock(item, date) {
     const id = item.id, rec = state.mine[date + "|" + id];
-    if (date > state.today) return `<p class="rate-note">${icon("clock")}You can rate this on ${shortDay(date)}.</p>`;
-    if (date < state.today) {
+    if (date > state.today) return `<p class="rate-note">${icon("clock")}Rate it after it's served on ${shortDay(date)}.</p>`;
+    if (!rateable(date)) {
       return rec
-        ? `<p class="rate-note">${icon(RATINGS[rec.vote].icon)}You rated this <strong class="v-${rec.vote}">${RATINGS[rec.vote].label}</strong>. Rating is closed.</p>`
-        : `<p class="rate-note">${icon("lock")}Rating closed. Dishes can be rated only on the day they're served.</p>`;
+        ? `<p class="rate-note">${icon(RATINGS[rec.vote].icon)}You rated this <strong class="v-${rec.vote}">${RATINGS[rec.vote].label}</strong>.</p>`
+        : `<p class="rate-note">${icon("lock")}Rating closed for this dish.</p>`;
     }
     const v = rec?.vote;
-    return `<p class="rate-q" id="rq-${id}">${v ? "Thanks! You can change it until the end of today." : "Ate this? How was it?"}</p>
+    return `<p class="rate-q" id="rq-${id}">${v ? "Your rating. Tap another to change it." : "Ate this? Rate it:"}</p>
       <div class="rate-btns" role="group" aria-labelledby="rq-${id}">
         ${Object.entries(RATINGS).map(([k, r]) => `<button class="rate-btn r-${k}" data-act="rate" data-id="${id}" data-vote="${k}" aria-pressed="${v === k}">${icon(r.icon)}<span>${r.label}</span></button>`).join("")}
       </div>
@@ -811,12 +860,14 @@
     const item = day && [...day.breakfast, ...day.lunch].find(i => i.id === id);
     if (!item) return;
     box.innerHTML = rateBlock(item, state.day);
+    const banner = $(".rate-banner");
+    if (banner) banner.outerHTML = rateBanner(day, state.day);
     if (focusSel) box.querySelector(focusSel)?.focus();
   }
 
   async function rate(id, vote) {
     const date = state.day;
-    if (date !== state.today) return;
+    if (!rateable(date)) return;
     const key = date + "|" + id, prev = state.mine[key];
     if (prev?.vote === vote) return;
     state.mine[key] = { ...(prev || {}), item_id: id, date, vote, comment: prev?.comment || "" };
@@ -858,7 +909,7 @@
     }
   }
 
-  // ----- dream menu -----
+  // ----- suggestions (students' ideas for future dishes) -----
   async function loadIdeas() {
     if (state.loading.has("ideas")) return;
     state.loading.add("ideas");
@@ -877,22 +928,22 @@
     if (!ideas) { loadIdeas(); return skeleton(3); }
     if (ideas.error) return errorBox(ideas.error, "retry-ideas");
     if (!ideas.length) {
-      return `<div class="empty"><span class="empty-ic">${icon("sparkles")}</span><p>${admin ? "No ideas yet. Students can post dream dishes from their Dream menu tab." : "No ideas yet. Be the first to suggest something!"}</p></div>`;
+      return `<div class="empty"><span class="empty-ic">${icon("sparkles")}</span><p>${admin ? "No suggestions yet. Students can suggest dishes from their Suggest tab." : "No suggestions yet. Be the first!"}</p></div>`;
     }
     return `<ol class="ideas">${ideas.map((it, i) => `<li class="idea">
       <span class="idea-rank">${i + 1}</span>
-      <div class="idea-main"><p class="idea-text">${esc(it.text)}</p><p class="idea-meta">${it.own ? "Your idea · " : ""}${timeAgo(it.created_at)}</p></div>
+      <div class="idea-main"><p class="idea-text">${esc(it.text)}</p><p class="idea-meta">${it.own ? "Your suggestion · " : ""}${timeAgo(it.created_at)}</p></div>
       ${admin
         ? `<span class="idea-count" aria-label="${plural(it.count, "vote")}">${icon("arrowUp")}${it.count}</span>
-           <button class="icon-btn danger" data-act="idea-del" data-id="${it.id}" aria-label="Remove idea: ${esc(it.text)}">${icon("trash")}</button>`
+           <button class="icon-btn danger" data-act="idea-del" data-id="${it.id}" aria-label="Remove suggestion: ${esc(it.text)}">${icon("trash")}</button>`
         : `<button class="vote-btn" data-act="idea-vote" data-id="${it.id}" aria-pressed="${it.voted}" aria-label="Me too: ${esc(it.text)}. ${plural(it.count, "vote")}">${icon("arrowUp")}<span>${it.count}</span></button>`}
     </li>`).join("")}</ol>`;
   }
 
   function viewIdeasStudent() {
-    return `${head("Dream menu", "What should we eat next?", "Suggest a dish you'd love to see, or tap ↑ on ideas you agree with. The cafeteria sees the most popular ones first.")}
+    return `${head("Suggest", "Suggest a dish", "What should the cafeteria make? Type it below. If someone already suggested it, tap ↑ to agree. The most popular ones go to the top.")}
       <form class="idea-form" data-form="idea">
-        <label class="sr-only" for="idea-in">Your idea</label>
+        <label class="sr-only" for="idea-in">Your suggestion</label>
         <input class="input" id="idea-in" maxlength="${IDEA_MAX}" placeholder="e.g. Korean fried chicken on Fridays" autocomplete="off" enterkeyhint="send">
         <button class="btn primary" type="submit">${icon("plus")}Post</button>
       </form>
@@ -901,14 +952,14 @@
 
   async function postIdea(input) {
     const text = input.value.trim();
-    if (text.length < 2) { toast("Write a little more about your idea.", true); input.focus(); return; }
+    if (text.length < 2) { toast("Write a little more about the dish.", true); input.focus(); return; }
     const btn = input.form.querySelector("button");
     btn.disabled = true;
     try {
       const idea = await api("POST", "ideas", { school: state.student.school.id, voter_id: state.voter, text });
       if (Array.isArray(state.ideas)) { state.ideas.push(idea); sortIdeas(); }
       render();
-      toast("Idea posted");
+      toast("Suggestion posted");
       $("#idea-in")?.focus();
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   }
@@ -1097,7 +1148,7 @@
     const st = ins.stats;
     if (!st.total.total) {
       return `${top}<div class="empty big"><span class="empty-ic">${icon("chart")}</span>
-        <p><strong>No ratings ${state.range === "all" ? "yet" : "in this period"}.</strong><br>Share your join code so students can start rating today's food.</p>
+        <p><strong>No ratings ${state.range === "all" ? "yet" : "in this period"}.</strong><br>Share your join code so students can start rating their food.</p>
         <p class="big-code">${esc(s.code)}</p>
         <div class="row-btns center"><button class="btn secondary" data-act="copy" data-text="${esc(s.code)}" data-label="Join code">${icon("copy")}Copy code</button>
         <button class="btn secondary" data-act="copy" data-text="${esc(inviteLink(s.code))}" data-label="Invite link">${icon("link")}Copy invite link</button></div></div>
@@ -1160,14 +1211,14 @@
 
   function ideasCard(ideas) {
     return `<section class="card">
-      <div class="card-head"><h2>Top dream menu ideas</h2><a class="link" href="#ideas">See all</a></div>
+      <div class="card-head"><h2>Top student suggestions</h2><a class="link" href="#ideas">See all</a></div>
       <ol class="ideas compact">${ideas.slice(0, 3).map((it, i) => `<li class="idea"><span class="idea-rank">${i + 1}</span>
         <div class="idea-main"><p class="idea-text">${esc(it.text)}</p></div><span class="idea-count" aria-label="${plural(it.count, "vote")}">${icon("arrowUp")}${it.count}</span></li>`).join("")}</ol>
     </section>`;
   }
 
   function viewIdeasAdmin() {
-    return `${head(esc(state.admin.school.name), "Dream menu ideas", "Dishes students want, ranked by how many agree. Remove anything inappropriate.",
+    return `${head(esc(state.admin.school.name), "Student suggestions", "Dishes students want you to make, ranked by how many agree. Remove anything inappropriate.",
       `<button class="icon-btn outlined" data-act="retry-ideas" aria-label="Refresh">${icon("refresh")}</button>`)}${ideaList(true)}`;
   }
 
@@ -1557,6 +1608,13 @@
         state.meal = el.dataset.meal; state.openComment.clear();
         render(); $(`[data-act="meal"][data-meal="${state.meal}"]`)?.focus();
         break;
+      case "s-goto":
+        state.day = el.dataset.date; state.week = D.monday(state.day); state.meal = null; state.touched = true; state.openComment.clear();
+        render(); window.scrollTo(0, 0); $(".rate-banner")?.setAttribute("tabindex", "-1"); $(".rate-banner")?.focus({ preventScroll: true });
+        break;
+      case "tips-done":
+        LS.set("ll_tips_done", true); $(".howto")?.remove(); $("h1")?.focus();
+        break;
       case "retry-week":
         delete state.weeks[state.week]; render();
         break;
@@ -1570,9 +1628,9 @@
       case "retry-ideas": state.ideas = null; render(); break;
       case "idea-del": {
         const it = Array.isArray(state.ideas) && state.ideas.find(x => x.id === el.dataset.id);
-        if (!it || !confirm(`Remove this idea?\n\n“${it.text}”`)) break;
+        if (!it || !confirm(`Remove this suggestion?\n\n“${it.text}”`)) break;
         api("DELETE", `ideas/${it.id}?school=${state.admin.school.id}`, undefined, { admin: true })
-          .then(() => { state.ideas = state.ideas.filter(x => x !== it); state.insights = null; render(); toast("Idea removed"); })
+          .then(() => { state.ideas = state.ideas.filter(x => x !== it); state.insights = null; render(); toast("Suggestion removed"); })
           .catch(err => toast(err.message, true));
         break;
       }
