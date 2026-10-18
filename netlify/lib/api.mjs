@@ -7,7 +7,7 @@
 //   name/{slug}/{id}                 search index (key only)
 //   admin/{sha256(key)}              admin key -> school id
 //   day/{id}/{YYYY-MM-DD}            that day's breakfast + lunch
-//   vote/{id}/{date}/{voter}/{item}  one rating per device per dish
+//   vote/{id}/{date}/{voter}/{item}  one rating per device per dish (open 7 days)
 //   idea/{id}/{ideaId}               dream-menu idea
 //   ideavote/{id}/{ideaId}/{voter}   one +1 per device per idea
 //   photo/{id}/{photoId}             dish photo (binary)
@@ -29,6 +29,7 @@ const IDEA_MAX = 120;
 const PHOTO_MAX = 3 * 1024 * 1024;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const BATCH = 50;
+const RATE_DAYS = 7; // rating stays open this many days, counting the serving day
 
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -303,18 +304,21 @@ async function castVote(store, b) {
   if (!RATINGS.includes(b.vote)) fail(400, "Vote must be good, mid, or bad");
   if (!ID.test(b.item_id || "")) fail(400, "Invalid dish id");
 
+  // A dish can be rated on the day it's served and for the 6 days after.
   const today = todayIn(school.tz);
-  if (b.date !== today) fail(403, "You can only rate dishes on the day they're served.");
+  if (!validDate(b.date)) fail(400, "Invalid date");
+  if (b.date > today) fail(403, "You can rate this after it's served.");
+  if (b.date < addDays(today, -(RATE_DAYS - 1))) fail(403, `Rating closed. Dishes can be rated for ${RATE_DAYS} days after they're served.`);
 
-  const day = await store.get(`day/${school.id}/${today}`, { type: "json" });
+  const day = await store.get(`day/${school.id}/${b.date}`, { type: "json" });
   const meal = day && MEALS.find(ml => day[ml].some(i => i.id === b.item_id));
-  if (!meal) fail(404, "That dish isn't on today's menu.");
+  if (!meal) fail(404, "That dish isn't on the menu for that day.");
 
   const row = {
-    voter_id: voter, date: today, meal, item_id: b.item_id, vote: b.vote,
+    voter_id: voter, date: b.date, meal, item_id: b.item_id, vote: b.vote,
     comment: text(b.comment, COMMENT_MAX), updated_at: new Date().toISOString(),
   };
-  await store.setJSON(`vote/${school.id}/${today}/${voter}/${b.item_id}`, row);
+  await store.setJSON(`vote/${school.id}/${b.date}/${voter}/${b.item_id}`, row);
   const { voter_id, ...out } = row;
   return out;
 }

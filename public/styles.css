@@ -581,3 +581,27 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { box-shadow: none; out
 .opts-list .opt { min-height: 64px; }
 .opts-list .opt-ex { font-size: 14px; }
 @media (min-width: 560px) { .opts.opts-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- "where do I rate?" ---------- */
+.rate-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--r-lg); margin-bottom: 14px; border: 1.5px solid; outline: none; }
+.rate-banner.open { background: var(--good-soft); border-color: #9EDBB6; color: var(--good-ink); }
+.rate-banner.soon, .rate-banner.closed { background: var(--surface); border-color: var(--line); color: var(--ink-2); }
+.rb-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--good); color: #fff; }
+.rate-banner.soon .rb-ic, .rate-banner.closed .rb-ic { background: var(--fill-2); color: var(--ink-2); }
+.rb-main { flex: 1; min-width: 0; }
+.rb-t { font-size: 17px; font-weight: 750; letter-spacing: -.01em; color: var(--ink); }
+.rate-banner.open .rb-t { color: var(--good-ink); }
+.rb-s { font-size: 14.5px; margin-top: 2px; }
+.rb-main .btn { margin-top: 10px; }
+.rb-count { flex: none; align-self: center; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--good-ink); padding: 6px 10px; border-radius: 10px; }
+.day.can-rate .day-dot { background: var(--good); }
+.day[aria-pressed="true"].can-rate .day-dot { background: #5BE08F; }
+
+.howto { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+.howto h2 { margin-bottom: 10px; }
+.howto ol { display: grid; gap: 10px; margin-bottom: 14px; }
+.howto li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; color: var(--ink-2); }
+.howto-ic { width: 32px; height: 32px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand-ink); }
+.howto-ic .i { width: 18px; height: 18px; }
+.howto li strong { color: var(--ink); }
+.tab span { white-space: nowrap; }
