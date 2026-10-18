@@ -1,0 +1,6 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  # Only production (the main branch) ever builds. Deploy previews and
+  # branch deploys (e.g. development) are skipped: exit 0 = skip build.
+  ignore = '[ "$CONTEXT" != "production" ]'
