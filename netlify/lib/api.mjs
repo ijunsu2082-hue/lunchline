@@ -228,7 +228,8 @@ function cleanItem(raw, schoolId) {
   const allergens = pick(raw.allergens, ALLERGENS);
   const cuisine = CUISINES.includes(raw.cuisine) ? raw.cuisine : "";
   const cal = Number(raw.calories);
-  const photo = typeof raw.photo === "string" && new RegExp(`^/api/photos/${schoolId}/[a-z0-9]{6,24}$`).test(raw.photo) ? raw.photo : "";
+  // An uploaded photo for this school, or one of the bundled sample photos.
+  const photo = typeof raw.photo === "string" && (new RegExp(`^/api/photos/${schoolId}/[a-z0-9]{6,24}$`).test(raw.photo) || /^\/samples\/[a-z0-9-]{1,60}\.jpg$/.test(raw.photo)) ? raw.photo : "";
   return {
     id, name,
     desc: str(raw.desc, 200),
