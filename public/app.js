@@ -15,7 +15,7 @@
     healthy: ["Fresh & healthy", "Salads, bowls, fruit"],
   };
   const DIETS = { vegetarian: "Vegetarian", vegan: "Vegan", halal: "Halal", spicy: "Spicy" };
-  const MEALS = { breakfast: "Breakfast", lunch: "Lunch" };
+  const MEALS = { breakfast: "Breakfast/Snacks", lunch: "Lunch" };
   const RATINGS = { good: { label: "Good", icon: "thumbUp" }, mid: { label: "Mid", icon: "thumbMid" }, bad: { label: "Bad", icon: "thumbDown" } };
   const COMMENT_MAX = 280;
   const IDEA_MAX = 120;
@@ -267,6 +267,7 @@
       <span class="bar-sep" aria-hidden="true"></span>
       <span class="bar-school" title="${esc(s.name)}">${esc(s.name)}</span>
       ${state.mode === "admin" ? '<span class="role-tag">Organizer</span>' : ""}
+      <button class="bar-out" data-act="${state.mode === "admin" ? "signout" : "leave"}">${icon("logout")}<span>Sign out</span></button>
     </div>`;
   }
   const head = (eyebrow, title, sub, side = "") => `<header class="page-head">
@@ -376,7 +377,7 @@
           <label class="check">
             <input type="checkbox" class="sr-only" data-bind-check="sample"${d.sample ? " checked" : ""}>
             <span class="check-box">${icon("check")}</span>
-            <span class="check-text"><strong>Start with a sample menu</strong><span>Four weeks of breakfast and lunch, so you can try everything right away. Edit or delete any dish.</span></span>
+            <span class="check-text"><strong>Start with a sample menu</strong><span>Four weeks of breakfast/snacks and lunch, so you can try everything right away. Edit or delete any dish.</span></span>
           </label>
           <p class="help">${icon("clock")}Time zone: ${esc(tz.replace(/_/g, " "))}. Students can rate a dish for ${RATE_DAYS} days after it's served.</p>`,
         cta: "Create school", ready: d.schoolName.trim().length >= 2,
@@ -712,7 +713,7 @@
       return `<div class="rate-banner open">
         <span class="rb-ic">${icon("thumbUp")}</span>
         <div class="rb-main"><p class="rb-t">${done === items.length ? "You rated everything. Thank you!" : "Rate what you ate"}</p>
-          <p class="rb-s">${done === items.length ? "You can still change a rating" : "Tap <strong>Good</strong>, <strong>Mid</strong>, or <strong>Bad</strong> under any dish"} until ${shortDay(rateUntil(date))}.</p></div>
+          <p class="rb-s">${done === items.length ? `You can change a rating until ${shortDay(rateUntil(date))}.` : "Tap Good, Mid, or Bad under a dish."}</p></div>
         <span class="rb-count" aria-label="${done} of ${items.length} rated">${done}/${items.length}</span>
       </div>`;
     }
@@ -730,13 +731,12 @@
   function howItWorks() {
     if (LS.get("ll_tips_done")) return "";
     return `<section class="howto" aria-labelledby="howto-t">
-      <h2 id="howto-t">How LunchLine works</h2>
+      <div class="howto-head"><h2 id="howto-t">New here? It's 3 steps</h2><button class="btn secondary sm" data-act="tips-done">Got it</button></div>
       <ol>
-        <li><span class="howto-ic">${icon("utensils")}</span><span><strong>Check the menu.</strong> See what's served and what's in it.</span></li>
-        <li><span class="howto-ic">${icon("thumbUp")}</span><span><strong>Rate what you ate.</strong> Good, Mid, or Bad, for up to ${RATE_DAYS} days.</span></li>
-        <li><span class="howto-ic">${icon("sparkles")}</span><span><strong>Suggest a dish.</strong> Tell the cafeteria what to make next.</span></li>
+        <li><span class="howto-ic">1</span>Pick a day to see its food</li>
+        <li><span class="howto-ic">2</span>Rate what you ate</li>
+        <li><span class="howto-ic">3</span>Suggest a dish you want</li>
       </ol>
-      <button class="btn secondary sm" data-act="tips-done">Got it</button>
     </section>`;
   }
 
@@ -760,7 +760,7 @@
       body = `${rateBanner(day, date)}
         ${mealSeg(day, state.meal, "meal")}
         ${items.length ? `<div class="dishes">${items.map(it => dishCard(it, date)).join("")}</div>`
-          : `<div class="empty"><span class="empty-ic">${icon("utensils")}</span><p>${day ? `No ${state.meal} posted for ${D.fmt(date, { weekday: "long" })}.` : `The cafeteria hasn't posted a menu for ${D.fmt(date, { weekday: "long" })} yet.`}</p></div>`}
+          : `<div class="empty"><span class="empty-ic">${icon("utensils")}</span><p>${day ? `No ${MEALS[state.meal].toLowerCase()} posted for ${D.fmt(date, { weekday: "long" })}.` : `The cafeteria hasn't posted a menu for ${D.fmt(date, { weekday: "long" })} yet.`}</p></div>`}
         <div class="notice">${icon("info")}<p><strong>Allergen info is a guide only.</strong> Always confirm with cafeteria staff before eating.${flagged.length ? ` We flag <strong>${esc(listJoin(flagged))}</strong> in red for you.` : ""}</p></div>`;
     }
     return `${head(eyebrow, title, "")}
@@ -777,7 +777,6 @@
     const badges = [];
     if (picked) badges.push(`<span class="badge brand">${icon("sparkles")}Picked for you</span>`);
     const cl = cuisineLabel(item);
-    if (cl) badges.push(`<span class="badge">${esc(cl)}</span>`);
     item.diet.forEach(k => badges.push(`<span class="badge${k === "spicy" ? " hot" : k === "vegan" || k === "vegetarian" ? " veg" : ""}">${DIETS[k]}</span>`));
     if (item.calories) badges.push(`<span class="badge plain">${item.calories} cal</span>`);
 
@@ -797,7 +796,7 @@
         ${badges.length ? `<div class="badges">${badges.join("")}</div>` : ""}
         <h3 class="dish-name" id="dn-${id}">${esc(item.name)}</h3>
         ${item.desc ? `<p class="dish-desc">${esc(item.desc)}</p>` : ""}
-        ${warn ? `<div class="alert danger">${icon("alert")}<p><strong>Contains ${esc(listJoin(hits.contains))}.</strong> That's on your allergy list.${hits.may.length ? ` May also contain ${esc(listJoin(hits.may))}.` : ""}</p></div>` : ""}
+        ${warn ? `<div class="alert danger">${icon("alert")}<p><strong>Has ${esc(listJoin(hits.contains))}</strong>, which you're allergic to.${hits.may.length ? ` May also have ${esc(listJoin(hits.may))}.` : ""}</p></div>` : ""}
         ${caution ? `<div class="alert caution">${icon("alert")}<p><strong>May contain ${esc(listJoin(hits.may))}.</strong> Ask staff before eating.</p></div>` : ""}
         <div class="contains">
           <span class="mini-label">Contains</span>
@@ -810,6 +809,7 @@
             <div><dt>Contains</dt><dd>${esc(listJoin([...item.allergens.map(a => ALLERGENS[a]), ...terms(item.allergens_other).map(cap)])) || "No major allergens listed"}</dd></div>
             <div><dt>May contain</dt><dd>${mayList.length || item.may_other ? esc([listJoin(mayList), item.may_other].filter(Boolean).join(". ")) : "No cross-contact warnings listed"}</dd></div>
             ${item.calories ? `<div><dt>Calories</dt><dd>About ${item.calories}</dd></div>` : ""}
+            ${cl ? `<div><dt>Cuisine</dt><dd>${esc(cl)}</dd></div>` : ""}
             ${item.diet.length ? `<div><dt>Diet</dt><dd>${item.diet.map(k => DIETS[k]).join(", ")}</dd></div>` : ""}
           </dl>
         </details>
@@ -1013,7 +1013,7 @@
       <p class="fine left">${icon("lock")}Your name and allergies are saved only on this device. Ratings and comments are sent without your name.</p>
       <div class="group">
         ${state.admin ? `<button class="cell" data-act="to-admin"><span class="cell-ic">${icon("chef")}</span><div class="cell-main"><p class="cell-t">Organizer view</p><p class="cell-s">${esc(state.admin.school.name)}</p></div>${icon("chevR")}</button>` : ""}
-        <button class="cell" data-act="leave"><span class="cell-ic">${icon("logout")}</span><div class="cell-main"><p class="cell-t">Switch school</p><p class="cell-s">Leave ${esc(s.name)} on this device</p></div>${icon("chevR")}</button>
+        <button class="cell" data-act="leave"><span class="cell-ic">${icon("logout")}</span><div class="cell-main"><p class="cell-t">Sign out</p><p class="cell-s">Leave ${esc(s.name)} on this device</p></div>${icon("chevR")}</button>
       </div>`;
   }
 
@@ -1184,7 +1184,7 @@
         <section class="card"><div class="card-head"><h2>Needs work</h2></div>${rankList(needs, "bad")}</section>
       </div>
       <div class="grid2">
-        <section class="card"><div class="card-head"><h2>Breakfast vs. lunch</h2></div>
+        <section class="card"><div class="card-head"><h2>Breakfast/snacks vs. lunch</h2></div>
           <ul class="hbars">${Object.entries(MEALS).map(([m, l]) => {
             const t = st.byMeal[m];
             return `<li><div class="hbar-top"><span>${l}</span><span>${t.total ? `<strong>${pct(t)}%</strong> liked · ${t.total}` : "No ratings"}</span></div>${stackBar(t, l)}</li>`;
@@ -1264,14 +1264,14 @@
                 <span class="edit-s">${it.allergens.length || it.allergens_other ? "Contains " + esc(listJoin([...it.allergens.map(a => ALLERGENS[a]), ...terms(it.allergens_other).map(cap)])) : "No major allergens"}${it.photo ? "" : " · No photo"}</span></span>
               <span class="edit-go">${icon("pencil")}<span class="sr-only">Edit</span></span>
             </button>`).join("")
-            : `<div class="empty slim"><p>No ${state.aMeal} for ${D.fmt(date, { weekday: "long" })} yet.</p></div>`}
+            : `<div class="empty slim"><p>No ${MEALS[state.aMeal].toLowerCase()} for ${D.fmt(date, { weekday: "long" })} yet.</p></div>`}
         </div>
         <div class="row-btns">
-          <button class="btn primary" data-act="add-dish">${icon("plus")}Add ${state.aMeal} dish</button>
+          <button class="btn primary" data-act="add-dish">${icon("plus")}Add to ${MEALS[state.aMeal]}</button>
           ${weekEmpty ? `<button class="btn secondary" data-act="fill-sample">${icon("sparkles")}Fill this week with sample dishes</button>` : ""}
         </div>`;
     }
-    return `${head(esc(state.admin.school.name), "Menu", "Add breakfast and lunch dishes with photos and allergen details. Students see changes right away.")}
+    return `${head(esc(state.admin.school.name), "Menu", "Pick a day, then add or edit its food. Students see changes right away.")}
       ${weekStrip(state.aWeek, date, wk && wk.days, "a-")}
       ${body}`;
   }
@@ -1323,7 +1323,7 @@
     return `<form class="editor" data-form="editor" novalidate>
       <header class="sheet-head">
         <button type="button" class="icon-btn" id="ed-close" data-act="ed-close" aria-label="Close without saving">${icon("x")}</button>
-        <div class="sheet-title"><h2 id="sheet-title">${e.id ? "Edit dish" : `New ${e.meal} dish`}</h2>
+        <div class="sheet-title"><h2 id="sheet-title">${e.id ? "Edit dish" : "New dish"}</h2>
           <p class="sheet-sub">${MEALS[e.meal]} · ${D.fmt(e.date, { weekday: "long", month: "long", day: "numeric" })}</p></div>
         <button type="submit" class="btn primary sm" id="ed-save"${e.uploading ? " disabled" : ""}>Save</button>
       </header>
@@ -1638,9 +1638,10 @@
       // profile
       case "edit": startFlow("edit", {}, { steps: [el.dataset.step], exit: "app" }); break;
       case "leave":
-        if (!confirm(`Leave ${state.student.school.name} on this device? Your past ratings stay with the school, and you can rejoin with the code.`)) break;
+        if (!confirm(`Sign out of ${state.student.school.name}?\n\nTo come back, tap "I'm a student" and enter the school code ${state.student.school.code}.`)) break;
         LS.del("ll_student"); state.student = null;
-        if (state.admin) setMode("admin"); else { leaveToWelcome(); startFlow("student"); }
+        if (state.admin) setMode("admin"); else leaveToWelcome();
+        toast("Signed out");
         break;
       case "to-admin": setMode("admin"); break;
 
@@ -1686,9 +1687,10 @@
         else startFlow("student", { school: state.admin.school }, { steps: ["name", "allergies", "food"], exit: "app" });
         break;
       case "signout":
-        if (!confirm("Sign out of the organizer view on this device? Make sure you've saved your admin key first.")) break;
+        if (!confirm("Sign out of the organizer view?\n\nYou'll need your admin key to sign back in, so make sure you've saved it.")) break;
         LS.del("ll_admin"); state.admin = null;
         if (state.student) setMode("student"); else leaveToWelcome();
+        toast("Signed out");
         break;
       case "delete-school": deleteSchool(); break;
     }

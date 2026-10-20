@@ -1,109 +1,34 @@
 // Sample week an organizer can load to try LunchLine. Index 0 = Monday.
-// Allergen info here is illustrative only.
-window.SAMPLE_WEEK = [
-  {
-    breakfast: [
-      { name: "Buttermilk Pancakes", desc: "Two pancakes with maple syrup and a side of fruit.", cuisine: "american", diet: ["vegetarian"], calories: 420,
-        ingredients: "Enriched wheat flour, buttermilk, eggs, sugar, baking powder, butter, maple-flavored syrup, seasonal fruit",
-        allergens: ["gluten", "dairy", "eggs"], may: ["tree_nuts", "soy"], may_other: "Made on a shared griddle" },
-      { name: "Yogurt Parfait", desc: "Vanilla yogurt layered with granola and berries.", cuisine: "healthy", diet: ["vegetarian"], calories: 280,
-        ingredients: "Low-fat vanilla yogurt, oat granola (oats, honey, canola oil, almonds), strawberries, blueberries",
-        allergens: ["dairy", "tree_nuts", "gluten"], may: ["peanuts"] },
-    ],
-    lunch: [
-      { name: "Chicken Tenders & Fries", desc: "Crispy breaded tenders with seasoned fries and BBQ sauce.", cuisine: "american", calories: 690,
-        ingredients: "Chicken breast, wheat flour breading, egg wash, soybean oil, potatoes, salt, paprika, BBQ sauce (tomato, molasses, vinegar)",
-        allergens: ["gluten", "eggs", "soy"], may: ["fish"], may_other: "Fried in a shared fryer" },
-      { name: "Beef Bulgogi Rice Bowl", desc: "Sweet soy-marinated beef over rice with kimchi and sesame.", cuisine: "korean", calories: 610,
-        ingredients: "Beef, soy sauce (soybeans, wheat), pear, garlic, sesame oil, sugar, steamed rice, kimchi (napa cabbage, chili, garlic, fish sauce), green onion, sesame seeds",
-        allergens: ["soy", "gluten", "sesame", "fish"] },
-      { name: "Cheese Pizza", desc: "Whole-grain crust, tomato sauce, and mozzarella.", cuisine: "italian", diet: ["vegetarian"], calories: 540,
-        ingredients: "Whole wheat flour, water, yeast, olive oil, tomato sauce, mozzarella cheese, oregano, basil",
-        allergens: ["gluten", "dairy"], may: ["soy"] },
-      { name: "Garden Salad Bar", desc: "Build-your-own greens with ranch or vinaigrette.", cuisine: "healthy", diet: ["vegetarian"], calories: 210,
-        ingredients: "Romaine, spinach, cherry tomatoes, cucumber, carrots, chickpeas, sunflower seeds, ranch dressing (soybean oil, buttermilk, egg yolk), balsamic vinaigrette",
-        allergens: ["dairy", "eggs", "soy"], may_other: "Shared serving utensils" },
-    ],
-  },
-  {
-    breakfast: [
-      { name: "Breakfast Burrito", desc: "Scrambled eggs, cheese, and potatoes in a flour tortilla.", cuisine: "mexican", diet: ["vegetarian"], calories: 450,
-        ingredients: "Flour tortilla (wheat), eggs, cheddar cheese, diced potatoes, salsa, canola oil",
-        allergens: ["gluten", "eggs", "dairy"], may: ["soy"] },
-      { name: "Fresh Fruit Cup", desc: "Melon, grapes, and pineapple.", cuisine: "healthy", diet: ["vegan", "vegetarian"], calories: 90,
-        ingredients: "Cantaloupe, honeydew, red grapes, pineapple", allergens: [] },
-    ],
-    lunch: [
-      { name: "Beef Street Tacos", desc: "Three corn tortillas with seasoned beef, pico, and lime.", cuisine: "mexican", diet: ["spicy"], calories: 560,
-        ingredients: "Corn tortillas, ground beef, chili powder, cumin, onion, tomato, cilantro, lime, cotija cheese",
-        allergens: ["dairy"], may: ["gluten"], may_other: "Spices packed in a facility with wheat" },
-      { name: "Bean & Cheese Quesadilla", desc: "Grilled flour tortilla with black beans and cheese.", cuisine: "mexican", diet: ["vegetarian"], calories: 520,
-        ingredients: "Flour tortilla (wheat), black beans, Monterey Jack cheese, cheddar cheese, butter, sour cream",
-        allergens: ["gluten", "dairy"], may: ["soy"] },
-      { name: "Teriyaki Chicken", desc: "Glazed chicken thighs, steamed rice, and broccoli.", cuisine: "japanese", calories: 590,
-        ingredients: "Chicken thighs, teriyaki sauce (soy sauce, wheat, mirin, sugar, ginger), steamed rice, broccoli, sesame seeds",
-        allergens: ["soy", "gluten", "sesame"] },
-    ],
-  },
-  {
-    breakfast: [
-      { name: "French Toast Sticks", desc: "Cinnamon sticks with syrup.", cuisine: "american", diet: ["vegetarian"], calories: 390,
-        ingredients: "Enriched wheat bread, eggs, milk, cinnamon, sugar, soybean oil, syrup",
-        allergens: ["gluten", "eggs", "dairy", "soy"] },
-      { name: "Sausage Egg Biscuit", desc: "Turkey sausage and egg on a buttermilk biscuit.", cuisine: "american", calories: 470,
-        ingredients: "Wheat flour biscuit, buttermilk, butter, turkey sausage, eggs, American cheese",
-        allergens: ["gluten", "dairy", "eggs"], may: ["soy"] },
-    ],
-    lunch: [
-      { name: "Spaghetti & Meatballs", desc: "Marinara, beef meatballs, and parmesan.", cuisine: "italian", calories: 640,
-        ingredients: "Spaghetti (durum wheat), beef, breadcrumbs (wheat), egg, marinara (tomato, garlic, olive oil, basil), parmesan cheese",
-        allergens: ["gluten", "eggs", "dairy"] },
-      { name: "Chicken Caesar Wrap", desc: "Grilled chicken, romaine, parmesan, and Caesar dressing.", cuisine: "american", calories: 520,
-        ingredients: "Flour tortilla (wheat), grilled chicken, romaine, parmesan, Caesar dressing (soybean oil, egg yolk, anchovy, lemon)",
-        allergens: ["gluten", "dairy", "eggs", "fish", "soy"] },
-      { name: "Chana Masala", desc: "Chickpea curry with basmati rice and naan.", cuisine: "indian", diet: ["vegetarian", "spicy"], calories: 580,
-        ingredients: "Chickpeas, tomato, onion, garlic, ginger, garam masala, turmeric, cumin, basmati rice, naan (wheat flour, yogurt, butter)",
-        allergens: ["gluten", "dairy"], may: ["tree_nuts"] },
-    ],
-  },
-  {
-    breakfast: [
-      { name: "Blueberry Muffin & Milk", desc: "Bakery muffin with a carton of 1% milk.", cuisine: "american", diet: ["vegetarian"], calories: 410,
-        ingredients: "Wheat flour, sugar, blueberries, eggs, canola oil, milk, baking powder",
-        allergens: ["gluten", "eggs", "dairy"], may: ["tree_nuts", "peanuts"], may_other: "Bakery also handles nuts" },
-      { name: "Oatmeal Bar", desc: "Hot oatmeal with brown sugar, raisins, and cinnamon.", cuisine: "healthy", diet: ["vegan", "vegetarian"], calories: 230,
-        ingredients: "Rolled oats, water, brown sugar, raisins, cinnamon", allergens: [], may: ["gluten"], may_other: "Oats may be processed with wheat" },
-    ],
-    lunch: [
-      { name: "Orange Chicken", desc: "Crispy chicken in sweet orange glaze with fried rice.", cuisine: "chinese", calories: 650,
-        ingredients: "Chicken, wheat flour batter, egg, orange sauce (sugar, orange juice, soy sauce, vinegar), fried rice (rice, egg, peas, carrots, soy sauce, sesame oil)",
-        allergens: ["gluten", "eggs", "soy", "sesame"] },
-      { name: "Vegetable Lo Mein", desc: "Stir-fried egg noodles with cabbage and carrots.", cuisine: "chinese", diet: ["vegetarian"], calories: 480,
-        ingredients: "Egg noodles (wheat, egg), cabbage, carrots, bell pepper, soy sauce, sesame oil, garlic",
-        allergens: ["gluten", "eggs", "soy", "sesame"], may: ["shellfish"], may_other: "Cooked in a shared wok" },
-      { name: "Kimbap", desc: "Seaweed rice rolls with egg, carrot, spinach, and pickled radish.", cuisine: "korean", calories: 420,
-        ingredients: "Rice, seaweed, egg, carrot, spinach, pickled radish, imitation crab (pollock, wheat starch), sesame oil, sesame seeds",
-        allergens: ["eggs", "fish", "gluten", "sesame"], may: ["shellfish"] },
-    ],
-  },
-  {
-    breakfast: [
-      { name: "Bagel & Cream Cheese", desc: "Toasted plain or everything bagel.", cuisine: "american", diet: ["vegetarian"], calories: 360,
-        ingredients: "Wheat flour, water, yeast, malt, salt, cream cheese, everything seasoning (sesame, poppy seed, garlic, onion)",
-        allergens: ["gluten", "dairy", "sesame"] },
-      { name: "Banana & Apple", desc: "Grab-and-go whole fruit.", cuisine: "healthy", diet: ["vegan", "vegetarian"], calories: 180,
-        ingredients: "Banana, apple", allergens: [] },
-    ],
-    lunch: [
-      { name: "Cheeseburger & Fries", desc: "Beef patty, American cheese, pickles on a brioche bun.", cuisine: "american", calories: 760,
-        ingredients: "Beef patty, American cheese, brioche bun (wheat, eggs, butter, sesame seeds), pickles, ketchup, potatoes, soybean oil",
-        allergens: ["gluten", "dairy", "eggs", "sesame", "soy"], may: ["fish"], may_other: "Fries share a fryer with fish" },
-      { name: "Chicken Gyro", desc: "Pita with chicken, tomato, onion, and tzatziki.", cuisine: "mediterranean", calories: 590,
-        ingredients: "Pita (wheat), chicken thigh, oregano, lemon, tomato, red onion, tzatziki (Greek yogurt, cucumber, garlic, dill)",
-        allergens: ["gluten", "dairy"], diet: ["halal"] },
-      { name: "Baked Fish Sandwich", desc: "Breaded pollock with tartar sauce on a bun.", cuisine: "american", calories: 520,
-        ingredients: "Pollock, breadcrumbs (wheat), egg, tartar sauce (soybean oil, egg yolk, pickle relish), wheat bun, lettuce",
-        allergens: ["fish", "gluten", "eggs", "soy"] },
-    ],
-  },
+// Every sample dish has a photo in public/samples/; leave out any dish without one.
+// The snacks (listed under Breakfast/Snacks) are real packaged items; their
+// calories, ingredients, and allergens come from the product labels.
+const SAMPLE_SNACKS = [
+  { name: "Powdered Mini Donuts", photo: "/samples/powdered-mini-donuts.jpg", desc: "Goody Man whole-grain mini donuts dusted with powdered sugar. 3 oz pack.", cuisine: "american", diet: ["vegetarian"], calories: 270,
+    ingredients: "Whole wheat flour, enriched wheat flour (wheat flour, malted barley flour, niacin, iron, thiamine mononitrate, riboflavin, folic acid), sugar, palm oil, water, dextrose, soybean oil, eggs, soy flour, nonfat dry milk, modified corn starch, modified wheat starch, dry honey solids, leavening (sodium bicarbonate, sodium acid pyrophosphate, sodium aluminum phosphate, glucono delta-lactone), mono- and diglycerides, soy lecithin, salt, cinnamon, natural and artificial flavor, titanium dioxide (color), calcium propionate (preservative)",
+    allergens: ["gluten", "eggs", "dairy", "soy"] },
+  { name: "Cheesy Pull-Aparts", photo: "/samples/cheesy-pull-aparts.jpg", desc: "Pillsbury oven-baked whole-grain bread filled with real cheese. Italian Cheeses & Garlic.", cuisine: "italian", diet: ["vegetarian"], calories: 300,
+    ingredients: "Reduced fat mozzarella cheese (part skim milk, nonfat milk, modified food starch, cultures, salt, vitamin A palmitate, enzymes), whole wheat flour, enriched wheat flour (wheat flour, malted barley flour, wheat starch, niacin, iron, thiamin mononitrate, riboflavin, folic acid), water, soybean oil, sugar. 2% or less of: yeast, parmesan cheese (milk, cultures, salt, enzymes), salt, natural flavor",
+    allergens: ["gluten", "dairy"] },
+  { name: "Banana Bread", photo: "/samples/banana-bread.jpg", desc: "Super Bakery whole-grain banana bread slice with a hint of cinnamon and honey.", cuisine: "american", diet: ["vegetarian"], calories: 260,
+    ingredients: "Water, whole wheat flour, enriched wheat flour (wheat flour, malted barley flour, niacin, iron, thiamine mononitrate, riboflavin, folic acid), sugar, soybean oil, bananas, egg whites, defatted soy flour, sodium acid pyrophosphate, wheat gluten, sodium bicarbonate, modified corn starch, modified wheat starch, dextrose, mono- and diglycerides, dry honey solids, corn starch, natural flavor, salt, guar gum, xanthan gum, cinnamon, monocalcium phosphate, soy lecithin, whey",
+    allergens: ["gluten", "eggs", "soy", "dairy"] },
+  { name: "Oatmeal Chocolate Chip Bar", photo: "/samples/oatmeal-chocolate-chip-bar.jpg", desc: "BeneFIT soft-baked oatmeal bar with chocolate chips. 3 g fiber.", cuisine: "american", diet: ["vegetarian"], calories: 280,
+    ingredients: "Wheat flour (whole wheat flour, enriched wheat flour [wheat flour, niacin, reduced iron, thiamine mononitrate, riboflavin, folic acid]), sugar, oats, chocolate chips (sugar, chocolate liquor, cocoa butter, dextrose, soy lecithin, vanilla flavor), eggs, soybean oil, invert sugar, canola oil, sugarcane molasses. 2% or less of: whey, natural flavor, baking soda, inulin, baking powder (sodium acid pyrophosphate, sodium bicarbonate, corn starch, monocalcium phosphate), xanthan gum, salt, soy lecithin",
+    allergens: ["gluten", "eggs", "dairy", "soy"] },
 ];
+
+// Typical school pizza slices; ingredients and allergens are illustrative.
+// Photo credits are in public/samples/CREDITS.md.
+const SAMPLE_LUNCH = [
+  { name: "Cheese Pizza", photo: "/samples/cheese-pizza.jpg", desc: "Slice of cheese pizza with tomato sauce and mozzarella.", cuisine: "italian", diet: ["vegetarian"], calories: 290,
+    ingredients: "Crust (enriched wheat flour, whole wheat flour, water, soybean oil, yeast, sugar, salt), tomato sauce (tomato paste, water, garlic, oregano, basil), low-moisture part-skim mozzarella cheese (milk, cultures, salt, enzymes)",
+    allergens: ["gluten", "dairy"], may: ["soy"] },
+  { name: "Pepperoni Pizza", photo: "/samples/pepperoni-pizza.jpg", desc: "Slice of cheese pizza topped with pepperoni. Contains pork.", cuisine: "italian", calories: 330,
+    ingredients: "Crust (enriched wheat flour, whole wheat flour, water, soybean oil, yeast, sugar, salt), tomato sauce (tomato paste, water, garlic, oregano, basil), low-moisture part-skim mozzarella cheese (milk, cultures, salt, enzymes), pepperoni (pork, beef, salt, spices, dextrose, paprika, garlic, sodium nitrite)",
+    allergens: ["gluten", "dairy"], may: ["soy"] },
+];
+
+window.SAMPLE_WEEK = Array.from({ length: 5 }, () => ({
+  breakfast: [...SAMPLE_SNACKS],
+  lunch: [...SAMPLE_LUNCH],
+}));
