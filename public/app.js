@@ -244,6 +244,7 @@
       bar.innerHTML = ""; tabsEl.innerHTML = "";
       main.className = "";
       main.innerHTML = renderOb();
+      startWelcomeMotion();
       if (focus) { focusTitle(); window.scrollTo(0, 0); }
       return;
     }
@@ -277,7 +278,7 @@
   const skeleton = n => `<div class="skel-list" aria-busy="true" aria-label="Loading">${'<div class="skel"></div>'.repeat(n)}</div>`;
 
   // ================= ONBOARDING =================
-  const FLOWS = { welcome: ["welcome"], student: ["school", "name", "allergies", "food"], organizer: ["create", "ready"], signin: ["key"] };
+  const FLOWS = { welcome: ["welcome"], student: ["school", "allergies"], organizer: ["create", "ready"], signin: ["key"] };
 
   function startFlow(flow, data = {}, opts = {}) {
     const st = state.student;
@@ -346,16 +347,16 @@
         lede: "A first name or nickname is fine. It stays on this device, and your ratings are anonymous.",
         body: `${schoolChip(d)}<label class="label" for="in-name">Your name</label>
           <input class="input lg" id="in-name" data-bind="name" value="${esc(d.name)}" maxlength="24" placeholder="e.g. Sam" autocomplete="given-name" enterkeyhint="next">`,
-        cta: state.ob.flow === "edit" ? "Save" : "Continue", ready: d.name.trim().length > 0,
+        cta: "Save", ready: true,
       };
     },
     allergies(d) {
       const none = !d.allergies.length && !(d.allergyOtherOn && d.allergyOther.trim());
       return {
         title: "Do you have any food allergies?",
-        lede: "We'll flag dishes that contain them, or might, in red. Tap all that apply.",
-        body: optGrid("allergies", Object.entries(ALLERGENS), d.allergies, d.allergyOtherOn, d.allergyOther, "Other allergies", "e.g. kiwi, mustard, coconut"),
-        cta: state.ob.flow === "edit" ? "Save" : none ? "I don't have allergies" : "Continue", ready: true,
+        lede: "We'll flag dishes that contain them, or might, in red. Tap all that apply, or skip if you have none.",
+        body: (state.ob.flow === "student" ? schoolChip(d) : "") + optGrid("allergies", Object.entries(ALLERGENS), d.allergies, d.allergyOtherOn, d.allergyOther, "Other allergies", "e.g. kiwi, mustard, coconut"),
+        cta: state.ob.flow === "edit" ? "Save" : none ? "I don't have allergies" : "Show me the menu", ready: true,
       };
     },
     food(d) {
@@ -426,32 +427,177 @@
       <span class="result-ic">${icon("school")}</span><span class="result-t">${esc(s.name)}</span>${icon("chevR")}</button></li>`).join("")}</ul>`;
   }
 
+  // The welcome screen shows real dishes from the sample menu (sample.js).
+  const sampleDish = k => (window.SAMPLE_DISHES || {})[k] || { name: "", photo: "" };
+  const photo = (k, cls = "") => `<img class="${cls}" src="${esc(sampleDish(k).photo)}" alt="" decoding="async">`;
+  const fakeRate = pressed => `<div class="rate-btns">${Object.entries(RATINGS).map(([k, r]) =>
+    `<span class="rate-btn r-${k}" aria-pressed="${k === pressed}">${icon(r.icon)}<span>${r.label}</span></span>`).join("")}</div>`;
+
+  // Each word gets its own span so the headline can rise in word by word.
+  const words = (text, from = 0) => text.split(" ").map((w, i) => `<span class="w-w" style="--i:${from + i}">${w}</span>`).join(" ");
+
+  // The hero demo cycles through these: a student rates a dish, the kitchen's tally moves.
+  // The counts are made up for the demo and labelled "Example" on the page.
+  const DEMO = [
+    { k: "tenders", pick: "good", good: 31, total: 40 },
+    { k: "tacos", pick: "good", good: 22, total: 30 },
+    { k: "spaghetti", pick: "mid", good: 12, total: 28 },
+  ];
+
   function welcomeHTML() {
+    const pct = d => Math.round(100 * d.good / d.total);
     return `<div class="welcome">
-      <div class="welcome-top">
-        <div class="brand big">${mark(40)}<span class="brand-name">LunchLine</span></div>
-        <h1 class="display">Better school lunch starts with you.</h1>
-        <p class="lede">See what's in every dish, rate what you ate in one tap, and tell your cafeteria what to cook next.</p>
-      </div>
-      <div class="preview" aria-hidden="true">
-        <div class="pv-card">
-          <div class="pv-row"><span class="pv-name">Beef Bulgogi Bowl</span><span class="pv-pct">92% liked</span></div>
-          <div class="stack"><span class="s-good" style="width:84%"></span><span class="s-mid" style="width:10%"></span><span class="s-bad" style="width:6%"></span></div>
-          <ul class="chips"><li class="chip">Soy</li><li class="chip hit">${icon("alert")}Sesame</li><li class="chip">Gluten</li></ul>
+      <header class="w-nav">
+        <div class="brand big">${mark(36)}<span class="brand-name">LunchLine</span></div>
+        <button class="link" data-act="role" data-role="signin">Staff sign in</button>
+      </header>
+
+      <section class="w-hero">
+        <div class="w-hero-text">
+          <h1 class="display w-title">${words("Reduce")} <span class="w-mark">${words("food waste", 1)}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 12c40-6 92-9 148-8 52 1 104 4 146 2"/></svg></span> ${words("and get the lunch you actually want.", 3)}</h1>
+          <p class="lede w-rise" style="--i:6">Rate each lunch in one tap. The cafeteria cooks more of what students eat, wastes less of what they don't, and hears when it gets something right.</p>
+          <div class="w-go w-rise" style="--i:7">
+            <button class="btn primary lg" data-act="role" data-role="student">I'm a student${icon("arrowR")}</button>
+            <button class="btn secondary lg" data-act="role" data-role="organizer">I work in a cafeteria${icon("arrowR")}</button>
+          </div>
         </div>
-      </div>
-      <div class="roles">
-        <button class="role" data-act="role" data-role="student">
-          <span class="role-ic">${icon("user")}</span>
-          <span class="role-text"><strong>I'm a student</strong><span>Join with your school code and rate your lunch</span></span>${icon("chevR")}
-        </button>
-        <button class="role" data-act="role" data-role="organizer">
-          <span class="role-ic">${icon("chef")}</span>
-          <span class="role-text"><strong>I work at a school</strong><span>Post menus, add photos, and see what students think</span></span>${icon("chevR")}
-        </button>
-      </div>
-      <p class="fine">Already set up your school? <button class="link" data-act="role" data-role="signin">Sign in with your admin key</button></p>
+
+        <div class="w-demo w-rise" style="--i:4" aria-hidden="true">
+          <div class="w-card">
+            <div class="w-card-photo">
+              ${DEMO.map((d, i) => photo(d.k, i ? "" : "on")).join("")}
+              <span class="w-tag">Today's lunch</span>
+            </div>
+            <div class="w-card-body">
+              <p class="w-card-name">${esc(sampleDish(DEMO[0].k).name)}</p>
+              <p class="w-card-q">How was it?</p>
+              ${fakeRate("")}
+              <p class="w-sent">${icon("check")}Sent to the kitchen</p>
+            </div>
+          </div>
+          <div class="w-kitchen">
+            <p class="w-k-head"><span>Kitchen view</span><span>Example</span></p>
+            <ul>${DEMO.map((d, i) => `<li data-i="${i}">
+              <span class="w-k-name">${esc(sampleDish(d.k).name)}</span>
+              <span class="w-k-pct">${pct(d)}%</span>
+              <span class="w-k-bar"><span style="width:${pct(d)}%"></span></span>
+            </li>`).join("")}</ul>
+            <p class="w-k-foot">rated Good today</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="w-mission" aria-labelledby="w-mission-t" data-reveal>
+        <h2 id="w-mission-t" class="w-h2">School lunch should get eaten.</h2>
+        <dl class="w-goals">
+          <div style="--i:1"><dt>Less food in the trash</dt><dd>A tray that comes back full is food, money and cooking time thrown out. Ratings show the kitchen which dishes get left, so it can make less of them.</dd></div>
+          <div style="--i:2"><dt>Credit for the people who cook</dt><dd>Cooks rarely hear that lunch went well. Good ratings and thank-you notes go straight to them.</dd></div>
+          <div style="--i:3"><dt>Better food every week</dt><dd>A dish that keeps getting Bad is one to fix or drop. A dish that keeps getting Good comes back.</dd></div>
+          <div style="--i:4"><dt>Food students ask for</dt><dd>Suggest a dish. If classmates agree, it moves to the top of the list the cafeteria sees.</dd></div>
+        </dl>
+      </section>
+
+      <section class="w-steps" aria-labelledby="w-how" data-reveal>
+        <h2 id="w-how" class="w-h2">How a rating reaches the kitchen</h2>
+        <ol class="w-step-list">
+          <li class="w-step" data-reveal>
+            <p class="w-num">1</p>
+            <div class="w-step-text">
+              <h3>Look up today's lunch</h3>
+              <p>Every dish has a photo and an ingredient list, with your allergies flagged in red.</p>
+            </div>
+            <div class="w-vis w-grid" aria-hidden="true">${["cheesePizza", "tacos", "spaghetti", "burger"].map(k => photo(k)).join("")}</div>
+          </li>
+          <li class="w-step" data-reveal>
+            <p class="w-num">2</p>
+            <div class="w-step-text">
+              <h3>Tap Good, Mid, or Bad</h3>
+              <p>One tap after you eat. Add a comment if you want. Your name is never shown with a rating.</p>
+            </div>
+            <div class="w-vis w-rate" aria-hidden="true">${photo("tacos", "w-rate-img")}${fakeRate("")}</div>
+          </li>
+          <li class="w-step" data-reveal>
+            <p class="w-num">3</p>
+            <div class="w-step-text">
+              <h3>The cafeteria reads it</h3>
+              <p>Staff see which dishes students finished and which came back on the tray, along with notes like this one.</p>
+            </div>
+            <div class="w-vis w-loved" aria-hidden="true">${photo("spaghetti")}
+              <span class="w-bubble">“The spaghetti was so good today. Thank you!”</span></div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="w-end" data-reveal>
+        <h2 class="w-h2">Rate today's lunch.</h2>
+        <div class="w-end-act">
+          <button class="btn lg" data-act="role" data-role="student">I'm a student${icon("arrowR")}</button>
+          <p class="fine">Already set up your school? <button class="link" data-act="role" data-role="signin">Sign in with your admin key</button></p>
+        </div>
+      </section>
     </div>`;
+  }
+
+  // Welcome-page motion: scroll reveals plus the looping hero demo.
+  // Everything stops on its own once the welcome screen is replaced.
+  function startWelcomeMotion() {
+    const root = main.querySelector(".welcome");
+    if (!root) return;
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const shown = root.querySelectorAll("[data-reveal]");
+    if (still || !("IntersectionObserver" in window)) shown.forEach(el => el.classList.add("in"));
+    else {
+      const io = new IntersectionObserver(es => es.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      }), { rootMargin: "0px 0px -12% 0px" });
+      shown.forEach(el => io.observe(el));
+    }
+    void root.offsetWidth; // commit the hidden state first so the entrance transitions run
+    root.classList.add("ready");
+
+    const demo = root.querySelector(".w-demo");
+    const imgs = demo.querySelectorAll(".w-card-photo img");
+    const name = demo.querySelector(".w-card-name");
+    const btns = demo.querySelectorAll(".rate-btn");
+    const rows = demo.querySelectorAll(".w-kitchen li");
+    const counts = DEMO.map(d => ({ ...d }));
+    let i = 0;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const alive = () => root.isConnected;
+
+    async function loop() {
+      await wait(1600);
+      while (alive()) {
+        const d = counts[i];
+        if (document.hidden) { await wait(500); continue; }
+        // the tap
+        const btn = [...btns].find(b => b.classList.contains("r-" + d.pick));
+        btn.classList.add("tap"); btn.setAttribute("aria-pressed", "true");
+        await wait(380);
+        demo.classList.add("is-sent");
+        // the kitchen sees it
+        d.total++; if (d.pick === "good") d.good++;
+        const p = Math.round(100 * d.good / d.total);
+        rows[i].classList.add("hit");
+        rows[i].querySelector(".w-k-pct").textContent = p + "%";
+        rows[i].querySelector(".w-k-bar span").style.width = p + "%";
+        await wait(2100);
+        if (!alive()) return;
+        // next dish
+        btn.classList.remove("tap"); btn.setAttribute("aria-pressed", "false");
+        demo.classList.remove("is-sent"); rows[i].classList.remove("hit");
+        imgs[i].classList.remove("on");
+        i = (i + 1) % counts.length;
+        imgs[i].classList.add("on");
+        name.classList.add("swap");
+        await wait(180);
+        name.textContent = sampleDish(counts[i].k).name;
+        name.classList.remove("swap");
+        await wait(1500);
+      }
+    }
+    if (!still) loop();
+    else { btns[0].setAttribute("aria-pressed", "true"); demo.classList.add("is-sent"); }
   }
 
   function renderOb() {
@@ -559,7 +705,7 @@
     if (flow === "organizer") { setMode("admin"); return; }
     const profile = {
       school: d.school || state.student?.school,
-      name: d.name.trim(),
+      name: (d.name || "").trim(),
       allergies: d.allergies,
       allergyOther: d.allergyOtherOn ? d.allergyOther.trim() : "",
       cuisines: d.cuisines,
@@ -728,18 +874,6 @@
       <div class="rb-main"><p class="rb-t">Rating closed for this day</p><p class="rb-s">Food can be rated for ${RATE_DAYS} days after it's served.</p>${jump}</div></div>`;
   }
 
-  function howItWorks() {
-    if (LS.get("ll_tips_done")) return "";
-    return `<section class="howto" aria-labelledby="howto-t">
-      <div class="howto-head"><h2 id="howto-t">New here? It's 3 steps</h2><button class="btn secondary sm" data-act="tips-done">Got it</button></div>
-      <ol>
-        <li><span class="howto-ic">1</span>Pick a day to see its food</li>
-        <li><span class="howto-ic">2</span>Rate what you ate</li>
-        <li><span class="howto-ic">3</span>Suggest a dish you want</li>
-      </ol>
-    </section>`;
-  }
-
   function viewMenu() {
     const st = state.student;
     if (!state.week) initStudentWeek();
@@ -764,7 +898,6 @@
         <div class="notice">${icon("info")}<p><strong>Allergen info is a guide only.</strong> Always confirm with cafeteria staff before eating.${flagged.length ? ` We flag <strong>${esc(listJoin(flagged))}</strong> in red for you.` : ""}</p></div>`;
     }
     return `${head(eyebrow, title, "")}
-      ${howItWorks()}
       ${weekStrip(state.week, date, wk && wk.days, "s-")}
       ${body}`;
   }
@@ -827,7 +960,7 @@
         : `<p class="rate-note">${icon("lock")}Rating closed for this dish.</p>`;
     }
     const v = rec?.vote;
-    return `<p class="rate-q" id="rq-${id}">${v ? "Your rating. Tap another to change it." : "Ate this? Rate it:"}</p>
+    return `<p class="rate-q" id="rq-${id}">${v ? "Your rating. Tap another to change it." : "How was it?"}</p>
       <div class="rate-btns" role="group" aria-labelledby="rq-${id}">
         ${Object.entries(RATINGS).map(([k, r]) => `<button class="rate-btn r-${k}" data-act="rate" data-id="${id}" data-vote="${k}" aria-pressed="${v === k}">${icon(r.icon)}<span>${r.label}</span></button>`).join("")}
       </div>
@@ -838,8 +971,8 @@
     if (state.openComment.has(id)) {
       const val = state.cDraft[id] ?? rec.comment ?? "";
       return `<div class="comment">
-        <label class="label" for="c-${id}">Tell the cafeteria why <span class="muted">(optional)</span></label>
-        <textarea class="input" id="c-${id}" data-comment="${id}" maxlength="${COMMENT_MAX}" rows="3" placeholder="e.g. The fries were cold, but the sauce was great">${esc(val)}</textarea>
+        <label class="label" for="c-${id}">${rec.vote === "good" ? "Say thanks to the cooks" : "Tell the cafeteria why"} <span class="muted">(optional)</span></label>
+        <textarea class="input" id="c-${id}" data-comment="${id}" maxlength="${COMMENT_MAX}" rows="3" placeholder="${rec.vote === "good" ? "e.g. This was so good, thank you!" : "e.g. The fries were cold, but the sauce was great"}">${esc(val)}</textarea>
         <div class="comment-foot">
           <span class="count" id="cc-${id}">${val.length}/${COMMENT_MAX}</span>
           <button class="btn ghost sm" data-act="c-cancel" data-id="${id}">Not now</button>
@@ -990,7 +1123,7 @@
     const st = state.student, s = st.school;
     const allergies = [...st.allergies.map(a => ALLERGENS[a]), ...terms(st.allergyOther).map(cap)];
     const foods = [...st.cuisines.map(c => CUISINES[c][0]), ...terms(st.cuisineOther).map(cap)];
-    return `${head("Your profile", `Hi, ${esc(st.name)}`, "")}
+    return `${head("Your profile", st.name ? `Hi, ${esc(st.name)}` : "Me", "")}
       <div class="group">
         <div class="cell">
           <span class="cell-ic">${icon("school")}</span>
@@ -1007,7 +1140,7 @@
         </button>
         <button class="cell" data-act="edit" data-step="name">
           <span class="cell-ic">${icon("user")}</span>
-          <div class="cell-main"><p class="cell-t">Name</p><p class="cell-s">${esc(st.name)}</p></div>${icon("chevR")}
+          <div class="cell-main"><p class="cell-t">Name</p><p class="cell-s">${st.name ? esc(st.name) : "Not set"}</p></div>${icon("chevR")}
         </button>
       </div>
       <p class="fine left">${icon("lock")}Your name and allergies are saved only on this device. Ratings and comments are sent without your name.</p>
@@ -1612,9 +1745,6 @@
         state.day = el.dataset.date; state.week = D.monday(state.day); state.meal = null; state.touched = true; state.openComment.clear();
         render(); window.scrollTo(0, 0); $(".rate-banner")?.setAttribute("tabindex", "-1"); $(".rate-banner")?.focus({ preventScroll: true });
         break;
-      case "tips-done":
-        LS.set("ll_tips_done", true); $(".howto")?.remove(); $("h1")?.focus();
-        break;
       case "retry-week":
         delete state.weeks[state.week]; render();
         break;
@@ -1684,7 +1814,7 @@
       }
       case "as-student":
         if (state.student?.school.id === state.admin.school.id) setMode("student");
-        else startFlow("student", { school: state.admin.school }, { steps: ["name", "allergies", "food"], exit: "app" });
+        else startFlow("student", { school: state.admin.school }, { steps: ["allergies"], exit: "app" });
         break;
       case "signout":
         if (!confirm("Sign out of the organizer view?\n\nYou'll need your admin key to sign back in, so make sure you've saved it.")) break;
