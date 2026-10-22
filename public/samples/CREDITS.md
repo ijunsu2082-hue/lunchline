@@ -6,5 +6,22 @@
 - `oatmeal-chocolate-chip-bar.jpg`: Readi-Bake BeneFIT Bar product image, J&J Snack Foods sell sheet.
 - `pepperoni-pizza.jpg`: "Pepperoni pizza (Los Angeles) July 2022" by Benoît Prieur, CC0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Pepperoni_pizza_(Los_Angeles)_July_2022.jpg (cropped)
 - `cheese-pizza.jpg`: "Slice of cheese pizza" by ShakataGaNai, CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/), via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Slice_of_cheese_pizza.jpg (cropped and brightened)
+- `pancakes.jpg`: "Slicing Pancakes with Fork 374819.jpg" by Shared Food, CC0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Slicing_Pancakes_with_Fork_374819.jpg (cropped)
+- `breakfast-burrito.jpg`: "Bacon Kale Breakfast Burrito (8429773809).jpg" by Cajsa Lilliehook from Portland, CC BY-SA 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Bacon_Kale_Breakfast_Burrito_(8429773809).jpg (cropped)
+- `french-toast.jpg`: "French toast 001.jpg" by Ocdp, CC0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:French_toast_001.jpg (cropped)
+- `blueberry-muffin.jpg`: "Muffin NIH.jpg" by National Cancer Institute, Renee Comet (photographer), Public domain, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Muffin_NIH.jpg (cropped)
+- `chicken-tenders.jpg`: "Black Bear Diner - December 2024 - Sarah Stierch 02.jpg" by Missvain, CC0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Black_Bear_Diner_-_December_2024_-_Sarah_Stierch_02.jpg (cropped)
+- `beef-tacos.jpg`: "001 Tacos de carnitas, carne asada y al pastor.jpg" by Larry Miller, CC BY-SA 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:001_Tacos_de_carnitas,_carne_asada_y_al_pastor.jpg (cropped)
+- `quesadilla.jpg`: "Quesadilla 2.jpg" by Popo le Chien, CC BY-SA 3.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Quesadilla_2.jpg (cropped)
+- `spaghetti-meatballs.jpg`: "Spaghetti and meatballs 1.jpg" by jeffreyw, CC BY 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Spaghetti_and_meatballs_1.jpg (cropped)
+- `chicken-caesar-wrap.jpg`: "Crispy Chick'n Caesar Wrap.jpg" by Mx. Granger, CC0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Crispy_Chick%27n_Caesar_Wrap.jpg (cropped)
+- `teriyaki-chicken-bowl.jpg`: "Teriyaki Chicken Rice Bowl from Botejyu (2024-12-21).jpg" by Wide Awake!, CC BY 4.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Teriyaki_Chicken_Rice_Bowl_from_Botejyu_(2024-12-21).jpg (cropped)
+- `chicken-fried-rice.jpg`: "Orange chicken with bacon fried rice (16241424778).jpg" by jeffreyw, CC BY 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Orange_chicken_with_bacon_fried_rice_(16241424778).jpg (cropped)
+- `mac-and-cheese.jpg`: "Flickr stuart spivack 173603796--Macaroni and cheese.jpg" by Stuart Spivack from Cleveland, Ohio, USA, CC BY-SA 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Flickr_stuart_spivack_173603796--Macaroni_and_cheese.jpg (cropped)
+- `cheeseburger.jpg`: "Cheeseburger and fries.jpg" by jeffreyw, CC BY 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Cheeseburger_and_fries.jpg (cropped)
+- `yogurt-parfait.jpg`: "Yogurt parfait with granola and blueberries in shot glasses with silverware spoons (17098581522).jpg" by Personal Creations, CC BY 2.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Yogurt_parfait_with_granola_and_blueberries_in_shot_glasses_with_silverware_spoons_(17098581522).jpg (cropped)
+- `caesar-salad.jpg`: "Caesar Salad from Tony Roma Restaurant- March 2024 02.jpg" by Banej, CC BY-SA 4.0, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Caesar_Salad_from_Tony_Roma_Restaurant-_March_2024_02.jpg (cropped)
+- `chef-salad.jpg`: "Chef Salad.JPG" by Gesalbte, Public domain, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Chef_Salad.JPG (cropped)
+- `fruit-cup.jpg`: "Food Portions (Team Nutrition) (20210902-FNS-UNC-0006).jpg" by USDAgov, Public domain, via Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Food_Portions_(Team_Nutrition)_(20210902-FNS-UNC-0006).jpg (cropped)
 
 The product images belong to their brands and are used here only to show the sample menu.
