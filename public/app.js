@@ -39,9 +39,7 @@
     copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
     link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-    chef: '<path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/>',
     utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
-    sparkles: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>',
     chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
     calendar: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
     school: '<path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
@@ -56,6 +54,9 @@
     lock: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     arrowUp: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
     image: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+    pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+    play: '<path d="M6 3.5v17a1 1 0 0 0 1.5.86l14-8.5a1 1 0 0 0 0-1.72l-14-8.5A1 1 0 0 0 6 3.5z"/>',
+    lightbulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   };
   const icon = (n, cls = "") => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[n]}</svg>`;
   const mark = (s = 28) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="18" fill="#FF5A1F"/><g fill="#fff"><rect x="19" y="11" width="5" height="20" rx="2.5"/><rect x="29.5" y="11" width="5" height="20" rx="2.5"/><rect x="40" y="11" width="5" height="20" rx="2.5"/><path d="M19 27h26v2a11 11 0 0 1-11 11h-4a11 11 0 0 1-11-11z"/><rect x="29" y="36" width="6" height="18" rx="3"/></g><circle cx="47" cy="46" r="9" fill="#0B0B0D"/><path d="M43 46.5l2.6 2.6 5-5.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -163,8 +164,8 @@
   const main = $("#main"), bar = $("#bar"), tabsEl = $("#tabs"), toastEl = $("#toast"), sheet = $("#sheet");
 
   const TABS = {
-    student: [["menu", "Menu", "utensils"], ["ideas", "Suggest", "sparkles"], ["me", "Me", "user"]],
-    admin: [["insights", "Insights", "chart"], ["kitchen", "Menu", "calendar"], ["ideas", "Suggestions", "sparkles"], ["school", "School", "school"]],
+    student: [["menu", "Menu", "utensils"], ["ideas", "Suggest", "lightbulb"], ["me", "Me", "user"]],
+    admin: [["insights", "Insights", "chart"], ["kitchen", "Menu", "calendar"], ["ideas", "Suggestions", "lightbulb"], ["school", "School", "school"]],
   };
   const currentTab = () => {
     const h = location.hash.slice(1), tabs = TABS[state.mode];
@@ -267,15 +268,15 @@
       <a class="brand" href="#${TABS[state.mode][0][0]}" aria-label="LunchLine home">${mark(30)}<span class="brand-name">LunchLine</span></a>
       <span class="bar-sep" aria-hidden="true"></span>
       <span class="bar-school" title="${esc(s.name)}">${esc(s.name)}</span>
-      ${state.mode === "admin" ? '<span class="role-tag">Organizer</span>' : ""}
+      ${state.mode === "admin" ? '<span class="role-tag">Staff</span>' : ""}
       <button class="bar-out" data-act="${state.mode === "admin" ? "signout" : "leave"}">${icon("logout")}<span>Sign out</span></button>
     </div>`;
   }
   const head = (eyebrow, title, sub, side = "") => `<header class="page-head">
       <div class="page-head-main">${eyebrow ? `<p class="eyebrow">${eyebrow}</p>` : ""}<h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ""}</div>${side}
     </header>`;
-  const errorBox = (msg, act) => `<div class="empty"><span class="empty-ic">${icon("alert")}</span><p>${esc(msg)}</p><button class="btn secondary" data-act="${act}">${icon("refresh")}Try again</button></div>`;
-  const skeleton = n => `<div class="skel-list" aria-busy="true" aria-label="Loading">${'<div class="skel"></div>'.repeat(n)}</div>`;
+  const errorBox = (msg, act) => `<div class="empty"><p>${esc(msg)}</p><button class="btn secondary" data-act="${act}">${icon("refresh")}Try again</button></div>`;
+  const skeleton = n => `<div class="skel-list" aria-busy="true"><span class="sr-only">Loading</span>${'<div class="skel"></div>'.repeat(n)}</div>`;
 
   // ================= ONBOARDING =================
   const FLOWS = { welcome: ["welcome"], student: ["school", "allergies"], organizer: ["create", "ready"], signin: ["key"] };
@@ -316,7 +317,7 @@
   }
 
   function schoolChip(d) {
-    return d.school ? `<div class="joining">${icon("school")}<span>Joining <strong>${esc(d.school.name)}</strong></span></div>` : "";
+    return d.school ? `<p class="joining">Joining <strong>${esc(d.school.name)}</strong></p>` : "";
   }
 
   const STEPS = {
@@ -372,7 +373,7 @@
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Chicago";
       return {
         title: "Set up your school",
-        lede: "You'll get a join code for students and a private admin key for staff.",
+        lede: "You'll get a join code to share with students and a private staff key for your kitchen team.",
         body: `<label class="label" for="in-sn">School name</label>
           <input class="input lg" id="in-sn" data-bind="schoolName" value="${esc(d.schoolName)}" maxlength="60" placeholder="e.g. Lincoln High School" autocomplete="organization">
           <label class="check">
@@ -389,7 +390,7 @@
       return {
         noBack: true,
         title: `${esc(s.name)} is ready`,
-        lede: "Share the join code with students. Keep the admin key private.",
+        lede: "Share the join code with students. Keep the staff key private.",
         body: `<div class="code-card">
             <p class="label">Student join code</p>
             <p class="big-code">${esc(s.code)}</p>
@@ -399,19 +400,19 @@
             </div>
           </div>
           <div class="key-card">
-            <p class="label">${icon("key")}Your admin key</p>
+            <p class="label">${icon("key")}Your staff key</p>
             <p class="key">${esc(fmtKey(adminKey))}</p>
             <p class="help">Save this somewhere safe. It's how you manage ${esc(s.name)} from another device, and anyone with it can edit your menu.</p>
-            <button type="button" class="btn secondary" data-act="copy" data-text="${esc(fmtKey(adminKey))}" data-label="Admin key">${icon("copy")}Copy admin key</button>
+            <button type="button" class="btn secondary" data-act="copy" data-text="${esc(fmtKey(adminKey))}" data-label="Staff key">${icon("copy")}Copy staff key</button>
           </div>`,
         cta: "Open my dashboard", ready: true,
       };
     },
     key(d) {
       return {
-        title: "Sign in as an organizer",
-        lede: "Enter the admin key you got when you set up your school.",
-        body: `<label class="label" for="in-key">Admin key</label>
+        title: "Staff sign in",
+        lede: "Enter the staff key you got when you set up your school.",
+        body: `<label class="label" for="in-key">Staff key</label>
           <input class="input lg mono" id="in-key" data-bind="key" value="${esc(d.key)}" maxlength="20" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="ob-err">
           <p class="help">Lost it? Ask whoever set up your school.</p>`,
         cta: "Sign in", ready: normCode(d.key).length >= 12,
@@ -424,7 +425,7 @@
     if (d.results === null) return '<p class="help">Searching…</p>';
     if (!d.results.length) return `<p class="help">No schools match “${esc(d.q.trim())}”. Check the spelling, or ask for your school code.</p>`;
     return `<ul class="result-list">${d.results.map((s, i) => `<li><button type="button" class="result" data-act="ob-pick" data-i="${i}">
-      <span class="result-ic">${icon("school")}</span><span class="result-t">${esc(s.name)}</span>${icon("chevR")}</button></li>`).join("")}</ul>`;
+      <span class="result-t">${esc(s.name)}</span>${icon("chevR")}</button></li>`).join("")}</ul>`;
   }
 
   // The welcome screen shows real dishes from the sample menu (sample.js).
@@ -433,9 +434,6 @@
   const fakeRate = pressed => `<div class="rate-btns">${Object.entries(RATINGS).map(([k, r]) =>
     `<span class="rate-btn r-${k}" aria-pressed="${k === pressed}">${icon(r.icon)}<span>${r.label}</span></span>`).join("")}</div>`;
 
-  // Each word gets its own span so the headline can rise in word by word.
-  const words = (text, from = 0) => text.split(" ").map((w, i) => `<span class="w-w" style="--i:${from + i}">${w}</span>`).join(" ");
-
   // The hero demo cycles through these: a student rates a dish, the kitchen's tally moves.
   // The counts are made up for the demo and labelled "Example" on the page.
   const DEMO = [
@@ -443,27 +441,84 @@
     { k: "tacos", pick: "good", good: 22, total: 30 },
     { k: "spaghetti", pick: "mid", good: 12, total: 28 },
   ];
+  // The sample menu's lunches, Monday to Friday, for the photo strip.
+  const WEEK_STRIP = [["Mon", "tenders"], ["Tue", "tacos"], ["Wed", "spaghetti"], ["Thu", "teriyaki"], ["Fri", "burger"]];
+  const WWF_URL = "https://www.worldwildlife.org/publications/food-waste-warrior-report-2019/";
+  const REPO_URL = "https://github.com/ijunsu2082-hue/lunchline";
+
+  // What a student sees: a dish they rated, and one flagged for their allergy (sesame).
+  function demoStudent() {
+    const tacos = sampleDish("tacos"), burger = sampleDish("burger");
+    return `<figure class="w-fig">
+      <div class="w-fig-body" aria-hidden="true">
+        <div class="dish">
+          <div class="dish-photo">${photo("tacos")}</div>
+          <div class="dish-body">
+            <p class="dish-meta"><span>${tacos.calories} cal</span></p>
+            <p class="dish-name">${esc(tacos.name)}</p>
+            <div class="contains"><span class="mini-label">Contains</span><span class="none">None of the 9 major allergens listed</span></div>
+          </div>
+          <div class="rate">
+            <p class="rate-q">Your rating</p>
+            ${fakeRate("good")}
+            <div class="sent"><p>${icon("message")}<span>“Tacos were really good today, thank you!”</span></p></div>
+          </div>
+        </div>
+        <div class="dish is-warn w-flagged">
+          ${photo("burger", "w-flag-img")}
+          <div>
+            <p class="dish-name">${esc(burger.name)}</p>
+            <p class="w-flag">${icon("alert")}<span><strong>Has sesame</strong>, which you're allergic to.</span></p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Example: what a student with a sesame allergy sees.</figcaption>
+    </figure>`;
+  }
+
+  // What the cafeteria sees after a week of ratings.
+  function demoKitchen() {
+    const row = (k, p, n, bad) => `<li>${photo(k, "rank-img")}
+      <div class="rank-main"><p class="rank-t">${esc(sampleDish(k).name)}</p></div>
+      <p class="rank-p ${bad ? "v-bad" : "v-good"}"><strong>${p}%</strong><span>${bad ? "disliked" : "liked"} · ${n}</span></p></li>`;
+    return `<figure class="w-fig">
+      <div class="w-fig-body w-board" aria-hidden="true">
+        <p class="w-board-head"><span>Demo High School</span><span>Last 7 days</span></p>
+        <p class="w-board-lead"><strong>62%</strong> of 417 ratings were Good</p>
+        <div class="w-board-cols">
+          <div><p class="w-board-h">Make more of these</p><ol class="rank">${row("tenders", 86, 22)}${row("tacos", 86, 21)}${row("orangeChicken", 81, 21)}</ol></div>
+          <div><p class="w-board-h">Fix or drop these</p><ol class="rank">${row("chefSalad", 39, 23, true)}${row("caesar", 36, 25, true)}${row("wrap", 33, 19, true)}</ol></div>
+        </div>
+        <div class="w-board-quote">
+          <span class="pill v-bad">${icon("thumbDown")}Bad</span>
+          <div><p class="feed-q">“The salad was mostly lettuce, I threw most of it out.”</p><p class="feed-m"><strong>Chef Salad</strong> · Lunch · Wed</p></div>
+        </div>
+      </div>
+      <figcaption>Example: the staff dashboard after one week of ratings.</figcaption>
+    </figure>`;
+  }
 
   function welcomeHTML() {
     const pct = d => Math.round(100 * d.good / d.total);
     return `<div class="welcome">
       <header class="w-nav">
-        <div class="brand big">${mark(36)}<span class="brand-name">LunchLine</span></div>
+        <div class="brand">${mark(30)}<span class="brand-name">LunchLine</span></div>
         <button class="link" data-act="role" data-role="signin">Staff sign in</button>
       </header>
 
       <section class="w-hero">
         <div class="w-hero-text">
-          <h1 class="display w-title">${words("Reduce")} <span class="w-mark">${words("food waste", 1)}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 12c40-6 92-9 148-8 52 1 104 4 146 2"/></svg></span> ${words("and get the lunch you actually want.", 3)}</h1>
-          <p class="lede w-rise" style="--i:6">Rate each lunch in one tap. The cafeteria cooks more of what students eat, wastes less of what they don't, and hears when it gets something right.</p>
-          <div class="w-go w-rise" style="--i:7">
+          <h1 class="w-title">Tell the kitchen what you actually ate.</h1>
+          <p class="w-lede">A lot of school lunch ends up in the trash, and the people who cook it rarely find out why. LunchLine puts Good, Mid, and Bad under every dish, so the cafeteria can make more of what students eat and less of what they throw away.</p>
+          <div class="w-go">
             <button class="btn primary lg" data-act="role" data-role="student">I'm a student${icon("arrowR")}</button>
-            <button class="btn secondary lg" data-act="role" data-role="organizer">I work in a cafeteria${icon("arrowR")}</button>
+            <button class="btn secondary lg" data-act="role" data-role="organizer">Set up my school's cafeteria${icon("arrowR")}</button>
           </div>
+          <p class="w-note">No app to download and no account. Students join with the 6-character code their school shares.</p>
         </div>
 
-        <div class="w-demo w-rise" style="--i:4" aria-hidden="true">
-          <div class="w-card">
+        <div class="w-demo">
+          <div class="w-card" aria-hidden="true">
             <div class="w-card-photo">
               ${DEMO.map((d, i) => photo(d.k, i ? "" : "on")).join("")}
               <span class="w-tag">Today's lunch</span>
@@ -475,7 +530,7 @@
               <p class="w-sent">${icon("check")}Sent to the kitchen</p>
             </div>
           </div>
-          <div class="w-kitchen">
+          <div class="w-kitchen" aria-hidden="true">
             <p class="w-k-head"><span>Kitchen view</span><span>Example</span></p>
             <ul>${DEMO.map((d, i) => `<li data-i="${i}">
               <span class="w-k-name">${esc(sampleDish(d.k).name)}</span>
@@ -484,92 +539,104 @@
             </li>`).join("")}</ul>
             <p class="w-k-foot">rated Good today</p>
           </div>
+          <button type="button" class="w-pause" data-act="demo-pause" aria-pressed="false">${icon("pause")}<span class="sr-only">Pause the example animation</span></button>
         </div>
       </section>
 
-      <section class="w-mission" aria-labelledby="w-mission-t" data-reveal>
-        <h2 id="w-mission-t" class="w-h2">School lunch should get eaten.</h2>
-        <dl class="w-goals">
-          <div style="--i:1"><dt>Less food in the trash</dt><dd>A tray that comes back full is food, money and cooking time thrown out. Ratings show the kitchen which dishes get left, so it can make less of them.</dd></div>
-          <div style="--i:2"><dt>Credit for the people who cook</dt><dd>Cooks rarely hear that lunch went well. Good ratings and thank-you notes go straight to them.</dd></div>
-          <div style="--i:3"><dt>Better food every week</dt><dd>A dish that keeps getting Bad is one to fix or drop. A dish that keeps getting Good comes back.</dd></div>
-          <div style="--i:4"><dt>Food students ask for</dt><dd>Suggest a dish. If classmates agree, it moves to the top of the list the cafeteria sees.</dd></div>
-        </dl>
+      <section class="w-week" aria-labelledby="w-week-t">
+        <p class="w-week-t" id="w-week-t">A week of lunch on the sample menu</p>
+        <ul class="w-strip">${WEEK_STRIP.map(([d, k]) => `<li>${photo(k)}<p><span>${d}</span>${esc(sampleDish(k).name)}</p></li>`).join("")}</ul>
       </section>
 
-      <section class="w-steps" aria-labelledby="w-how" data-reveal>
-        <h2 id="w-how" class="w-h2">How a rating reaches the kitchen</h2>
-        <ol class="w-step-list">
-          <li class="w-step" data-reveal>
-            <p class="w-num">1</p>
-            <div class="w-step-text">
-              <h3>Look up today's lunch</h3>
-              <p>Every dish has a photo and an ingredient list, with your allergies flagged in red.</p>
-            </div>
-            <div class="w-vis w-grid" aria-hidden="true">${["cheesePizza", "tacos", "spaghetti", "burger"].map(k => photo(k)).join("")}</div>
-          </li>
-          <li class="w-step" data-reveal>
-            <p class="w-num">2</p>
-            <div class="w-step-text">
-              <h3>Tap Good, Mid, or Bad</h3>
-              <p>One tap after you eat. Add a comment if you want. Your name is never shown with a rating.</p>
-            </div>
-            <div class="w-vis w-rate" aria-hidden="true">${photo("tacos", "w-rate-img")}${fakeRate("")}</div>
-          </li>
-          <li class="w-step" data-reveal>
-            <p class="w-num">3</p>
-            <div class="w-step-text">
-              <h3>The cafeteria reads it</h3>
-              <p>Staff see which dishes students finished and which came back on the tray, along with notes like this one.</p>
-            </div>
-            <div class="w-vis w-loved" aria-hidden="true">${photo("spaghetti")}
-              <span class="w-bubble">“The spaghetti was so good today. Thank you!”</span></div>
-          </li>
-        </ol>
-      </section>
-
-      <section class="w-end" data-reveal>
-        <h2 class="w-h2">Rate today's lunch.</h2>
-        <div class="w-end-act">
-          <button class="btn lg" data-act="role" data-role="student">I'm a student${icon("arrowR")}</button>
-          <p class="fine">Already set up your school? <button class="link" data-act="role" data-role="signin">Sign in with your admin key</button></p>
+      <section class="w-problem" aria-labelledby="w-problem-t">
+        <p class="w-stat" aria-hidden="true">39<span>lb</span></p>
+        <div class="w-problem-text">
+          <h2 class="w-h2" id="w-problem-t"><span class="sr-only">39 pounds. </span>That's how much food each student wasted in a school year, on average, at 46 U.S. schools.</h2>
+          <p>The figure is from a 2019 World Wildlife Fund audit that weighed cafeteria trash at schools in nine cities. From it, WWF estimates that U.S. schools could be wasting about 530,000 tons of food a year.</p>
+          <p>Cafeteria staff see the full trash cans at the end of lunch. They can't see which dish was in them, or why it got left: cold fries, a soggy wrap, or a dish nobody likes. So next month's menu usually gets planned without that information.</p>
+          <p class="w-src">Source: <a class="link" href="${WWF_URL}" target="_blank" rel="noopener">WWF, Food Waste Warriors report (2019)</a></p>
         </div>
       </section>
+
+      <section class="w-side" aria-labelledby="w-students-t">
+        <div class="w-side-text">
+          <p class="w-label">For students</p>
+          <h2 class="w-h2" id="w-students-t">See what's for lunch, then say how it was.</h2>
+          <ul class="w-points">
+            <li><strong>The week's menu.</strong> Breakfast and lunch, with photos and ingredient lists, posted by your cafeteria.</li>
+            <li><strong>Your allergies, flagged in red.</strong> Tell LunchLine once. Any dish that contains them, or might, gets a warning.</li>
+            <li><strong>One tap to rate.</strong> Good, Mid, or Bad, and a note if you want to add one. Your name is never attached.</li>
+            <li><strong>Ask for food you'd eat.</strong> Suggest a dish. When classmates agree, it moves up the list the cafeteria sees.</li>
+          </ul>
+        </div>
+        ${demoStudent()}
+      </section>
+
+      <section class="w-side" aria-labelledby="w-staff-t">
+        <div class="w-side-text">
+          <p class="w-label">For cafeteria staff</p>
+          <h2 class="w-h2" id="w-staff-t">Know which dishes came back on the tray.</h2>
+          <div class="w-prose">
+            <p>Post the week's menu once, with a photo and the allergens for each dish, or start from the sample menu and edit it. Students see changes right away.</p>
+            <p>As ratings come in, the dashboard puts the dishes students liked most next to the ones to fix or drop, along with what students wrote about them. A note like “the fries were cold” says what went wrong. The thank-you notes are there too, for the cooks, who rarely hear when lunch went well.</p>
+          </div>
+        </div>
+        ${demoKitchen()}
+      </section>
+
+      <section class="w-access" aria-labelledby="w-access-t">
+        <h2 class="w-h2" id="w-access-t">Works on the phone or laptop a student already has.</h2>
+        <div class="w-prose">
+          <p>LunchLine runs in the web browser, so there's nothing to install, and students never make an account or give an email address. A student's name and allergies stay on their own device. Ratings reach the cafeteria without a name attached.</p>
+          <p>Buttons are big enough to tap with a thumb, text meets the WCAG AA contrast standard, every control has a label for screen readers, and everything works from a keyboard. If a device is set to reduce motion, nothing on the page moves.</p>
+        </div>
+      </section>
+
+      <section class="w-end" aria-labelledby="w-end-t">
+        <h2 class="w-h2" id="w-end-t">Try it at your school.</h2>
+        <ul class="w-start">
+          <li><span class="w-start-who">Students</span><button class="btn primary" data-act="role" data-role="student">Join your school${icon("arrowR")}</button></li>
+          <li><span class="w-start-who">Cafeteria staff</span><button class="btn secondary" data-act="role" data-role="organizer">Set up your school${icon("arrowR")}</button></li>
+        </ul>
+        <p class="w-note">Already set up? <button class="link" data-act="role" data-role="signin">Sign in with your staff key</button></p>
+      </section>
+
+      <footer class="w-foot">
+        <p>LunchLine is a student project built for Neighborhood Hacks 2026.</p>
+        <p><a class="link" href="${REPO_URL}" target="_blank" rel="noopener">Source code</a><a class="link" href="${REPO_URL}/blob/main/public/samples/CREDITS.md" target="_blank" rel="noopener">Photo credits</a></p>
+      </footer>
     </div>`;
   }
 
-  // Welcome-page motion: scroll reveals plus the looping hero demo.
-  // Everything stops on its own once the welcome screen is replaced.
+  // Welcome-page motion: the looping hero demo, nothing else. It waits while
+  // paused, while the tab is hidden, or while the demo is scrolled out of view,
+  // and stops for good once the welcome screen is replaced.
+  let demoPaused = false;
   function startWelcomeMotion() {
     const root = main.querySelector(".welcome");
     if (!root) return;
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const shown = root.querySelectorAll("[data-reveal]");
-    if (still || !("IntersectionObserver" in window)) shown.forEach(el => el.classList.add("in"));
-    else {
-      const io = new IntersectionObserver(es => es.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
-      }), { rootMargin: "0px 0px -12% 0px" });
-      shown.forEach(el => io.observe(el));
-    }
-    void root.offsetWidth; // commit the hidden state first so the entrance transitions run
-    root.classList.add("ready");
-
     const demo = root.querySelector(".w-demo");
     const imgs = demo.querySelectorAll(".w-card-photo img");
     const name = demo.querySelector(".w-card-name");
     const btns = demo.querySelectorAll(".rate-btn");
     const rows = demo.querySelectorAll(".w-kitchen li");
+    if (still) { demo.querySelector(".w-pause").hidden = true; btns[0].setAttribute("aria-pressed", "true"); demo.classList.add("is-sent"); return; }
+
+    demoPaused = false;
+    let onScreen = true;
+    if ("IntersectionObserver" in window) new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(demo);
     const counts = DEMO.map(d => ({ ...d }));
     let i = 0;
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const alive = () => root.isConnected;
+    const idle = async () => { while (alive() && (demoPaused || document.hidden || !onScreen)) await wait(300); };
 
-    async function loop() {
+    (async () => {
       await wait(1600);
       while (alive()) {
+        await idle();
         const d = counts[i];
-        if (document.hidden) { await wait(500); continue; }
         // the tap
         const btn = [...btns].find(b => b.classList.contains("r-" + d.pick));
         btn.classList.add("tap"); btn.setAttribute("aria-pressed", "true");
@@ -582,6 +649,7 @@
         rows[i].querySelector(".w-k-pct").textContent = p + "%";
         rows[i].querySelector(".w-k-bar span").style.width = p + "%";
         await wait(2100);
+        await idle();
         if (!alive()) return;
         // next dish
         btn.classList.remove("tap"); btn.setAttribute("aria-pressed", "false");
@@ -595,9 +663,7 @@
         name.classList.remove("swap");
         await wait(1500);
       }
-    }
-    if (!still) loop();
-    else { btns[0].setAttribute("aria-pressed", "true"); demo.classList.add("is-sent"); }
+    })();
   }
 
   function renderOb() {
@@ -715,7 +781,7 @@
     LS.set("ll_student", profile);
     if (flow === "edit") { state.ob = null; render(true); toast("Saved"); return; }
     setMode("student");
-    toast(`Welcome to ${profile.school.name}!`);
+    toast(`You joined ${profile.school.name}`);
   }
 
   let searchTimer, searchSeq = 0;
@@ -794,7 +860,7 @@
   function schoolGone() {
     LS.del("ll_student"); state.student = null;
     if (state.admin) { setMode("admin"); toast("That school no longer exists.", true); }
-    else { leaveToWelcome(); startFlow("student"); obError("This school was removed by its organizer. Join with a new code."); }
+    else { leaveToWelcome(); startFlow("student"); obError("This school was removed by its cafeteria staff. Join with a new code."); }
   }
 
   function defaultMeal(day) {
@@ -855,23 +921,23 @@
     const items = day ? [...day.breakfast, ...day.lunch] : [];
     if (!items.length) return "";
     if (rateable(date)) {
-      const done = items.filter(it => state.mine[date + "|" + it.id]).length;
+      const done = items.filter(it => state.mine[date + "|" + it.id]).length, all = done === items.length;
       return `<div class="rate-banner open">
-        <span class="rb-ic">${icon("thumbUp")}</span>
-        <div class="rb-main"><p class="rb-t">${done === items.length ? "You rated everything. Thank you!" : "Rate what you ate"}</p>
-          <p class="rb-s">${done === items.length ? `You can change a rating until ${shortDay(rateUntil(date))}.` : "Tap Good, Mid, or Bad under a dish."}</p></div>
-        <span class="rb-count" aria-label="${done} of ${items.length} rated">${done}/${items.length}</span>
+        <div class="rb-main"><p class="rb-t">${all ? "You rated everything. Thank you." : "Rate what you ate"}</p>
+          <p class="rb-s">${all ? `You can change a rating until ${shortDay(rateUntil(date))}.` : "Tap Good, Mid, or Bad under each dish."}</p></div>
+        <p class="rb-count"><strong>${done}</strong> of ${items.length}<span class="sr-only"> rated</span></p>
+        <span class="rb-bar" aria-hidden="true"><span style="width:${(100 * done) / items.length}%"></span></span>
       </div>`;
     }
     const target = lastRateableDay();
     const jump = target && target !== date
       ? `<button class="btn primary sm" data-act="s-goto" data-date="${target}">Rate ${target === state.today ? "today's" : D.fmt(target, { weekday: "long" }) + "'s"} food${icon("arrowR")}</button>` : "";
     if (date > state.today) {
-      return `<div class="rate-banner soon"><span class="rb-ic">${icon("clock")}</span>
-        <div class="rb-main"><p class="rb-t">Coming up ${D.fmt(date, { weekday: "long" })}</p><p class="rb-s">You can rate these after they're served.</p>${jump}</div></div>`;
+      return `<div class="rate-banner soon">
+        <div class="rb-main"><p class="rb-t">Coming up ${D.fmt(date, { weekday: "long" })}</p><p class="rb-s">You can rate these after they're served.</p></div>${jump}</div>`;
     }
-    return `<div class="rate-banner closed"><span class="rb-ic">${icon("lock")}</span>
-      <div class="rb-main"><p class="rb-t">Rating closed for this day</p><p class="rb-s">Food can be rated for ${RATE_DAYS} days after it's served.</p>${jump}</div></div>`;
+    return `<div class="rate-banner closed">
+      <div class="rb-main"><p class="rb-t">Rating is closed for this day</p><p class="rb-s">Food can be rated for ${RATE_DAYS} days after it's served.</p></div>${jump}</div>`;
   }
 
   function viewMenu() {
@@ -894,7 +960,7 @@
       body = `${rateBanner(day, date)}
         ${mealSeg(day, state.meal, "meal")}
         ${items.length ? `<div class="dishes">${items.map(it => dishCard(it, date)).join("")}</div>`
-          : `<div class="empty"><span class="empty-ic">${icon("utensils")}</span><p>${day ? `No ${MEALS[state.meal].toLowerCase()} posted for ${D.fmt(date, { weekday: "long" })}.` : `The cafeteria hasn't posted a menu for ${D.fmt(date, { weekday: "long" })} yet.`}</p></div>`}
+          : `<div class="empty"><p>${day ? `No ${MEALS[state.meal].toLowerCase()} posted for ${D.fmt(date, { weekday: "long" })}.` : `The cafeteria hasn't posted a menu for ${D.fmt(date, { weekday: "long" })} yet.`}</p></div>`}
         <div class="notice">${icon("info")}<p><strong>Allergen info is a guide only.</strong> Always confirm with cafeteria staff before eating.${flagged.length ? ` We flag <strong>${esc(listJoin(flagged))}</strong> in red for you.` : ""}</p></div>`;
     }
     return `${head(eyebrow, title, "")}
@@ -907,11 +973,11 @@
     const hits = allergyHits(item, st);
     const warn = hits.contains.length > 0, caution = !warn && hits.may.length > 0;
     const picked = pickedFor(item, st, hits);
-    const badges = [];
-    if (picked) badges.push(`<span class="badge brand">${icon("sparkles")}Picked for you</span>`);
     const cl = cuisineLabel(item);
-    item.diet.forEach(k => badges.push(`<span class="badge${k === "spicy" ? " hot" : k === "vegan" || k === "vegetarian" ? " veg" : ""}">${DIETS[k]}</span>`));
-    if (item.calories) badges.push(`<span class="badge plain">${item.calories} cal</span>`);
+    const meta = [];
+    if (picked) meta.push(`<span class="dm-pick">${item.cuisine && st.cuisines.includes(item.cuisine) ? `You like ${esc(cl)}` : "Picked for you"}</span>`);
+    item.diet.forEach(k => meta.push(`<span${k === "spicy" ? ' class="dm-hot"' : k === "vegan" || k === "vegetarian" ? ' class="dm-veg"' : ""}>${DIETS[k]}</span>`));
+    if (item.calories) meta.push(`<span>${item.calories} cal</span>`);
 
     const mine = new Set(st.allergies);
     const otherTerms = terms(st.allergyOther);
@@ -926,11 +992,11 @@
     return `<article class="dish${warn ? " is-warn" : caution ? " is-caution" : ""}" id="dish-${id}" aria-labelledby="dn-${id}">
       ${item.photo ? `<div class="dish-photo"><img src="${esc(item.photo)}" alt="Photo of ${esc(item.name)}" loading="lazy" decoding="async"></div>` : ""}
       <div class="dish-body">
-        ${badges.length ? `<div class="badges">${badges.join("")}</div>` : ""}
+        ${meta.length ? `<p class="dish-meta">${meta.join("")}</p>` : ""}
         <h3 class="dish-name" id="dn-${id}">${esc(item.name)}</h3>
         ${item.desc ? `<p class="dish-desc">${esc(item.desc)}</p>` : ""}
-        ${warn ? `<div class="alert danger">${icon("alert")}<p><strong>Has ${esc(listJoin(hits.contains))}</strong>, which you're allergic to.${hits.may.length ? ` May also have ${esc(listJoin(hits.may))}.` : ""}</p></div>` : ""}
-        ${caution ? `<div class="alert caution">${icon("alert")}<p><strong>May contain ${esc(listJoin(hits.may))}.</strong> Ask staff before eating.</p></div>` : ""}
+        ${warn ? `<div class="alert danger">${icon("alert")}<p><strong>Has ${esc(listJoin(hits.contains).toLowerCase())}</strong>, which you're allergic to.${hits.may.length ? ` May also have ${esc(listJoin(hits.may).toLowerCase())}.` : ""}</p></div>` : ""}
+        ${caution ? `<div class="alert caution">${icon("alert")}<p><strong>May contain ${esc(listJoin(hits.may).toLowerCase())}.</strong> Ask staff before eating.</p></div>` : ""}
         <div class="contains">
           <span class="mini-label">Contains</span>
           ${containsChips.length ? `<ul class="chips">${containsChips.join("")}</ul>` : '<span class="none">None of the 9 major allergens listed</span>'}
@@ -1011,7 +1077,7 @@
         school: state.student.school.id, voter_id: state.voter, date, item_id: id, vote, comment: state.mine[key]?.comment || "",
       }));
       if (state.mine[key]?.vote === vote) state.mine[key] = { ...state.mine[key], ...saved, comment: state.mine[key].comment };
-      toast(prev ? "Rating updated" : "Thanks! The cafeteria will see your rating.");
+      toast(prev ? "Rating updated" : "Sent. The cafeteria will see your rating.");
     } catch (e) {
       if (state.mine[key]?.vote === vote) {
         if (prev) state.mine[key] = prev; else { delete state.mine[key]; state.openComment.delete(id); }
@@ -1061,20 +1127,20 @@
     if (!ideas) { loadIdeas(); return skeleton(3); }
     if (ideas.error) return errorBox(ideas.error, "retry-ideas");
     if (!ideas.length) {
-      return `<div class="empty"><span class="empty-ic">${icon("sparkles")}</span><p>${admin ? "No suggestions yet. Students can suggest dishes from their Suggest tab." : "No suggestions yet. Be the first!"}</p></div>`;
+      return `<div class="empty"><p>${admin ? "No suggestions yet. Students can suggest dishes from their Suggest tab." : "No suggestions yet. Add the first one above."}</p></div>`;
     }
     return `<ol class="ideas">${ideas.map((it, i) => `<li class="idea">
       <span class="idea-rank">${i + 1}</span>
       <div class="idea-main"><p class="idea-text">${esc(it.text)}</p><p class="idea-meta">${it.own ? "Your suggestion · " : ""}${timeAgo(it.created_at)}</p></div>
       ${admin
-        ? `<span class="idea-count" aria-label="${plural(it.count, "vote")}">${icon("arrowUp")}${it.count}</span>
+        ? `<span class="idea-count">${icon("arrowUp")}${it.count}<span class="sr-only"> ${it.count === 1 ? "vote" : "votes"}</span></span>
            <button class="icon-btn danger" data-act="idea-del" data-id="${it.id}" aria-label="Remove suggestion: ${esc(it.text)}">${icon("trash")}</button>`
         : `<button class="vote-btn" data-act="idea-vote" data-id="${it.id}" aria-pressed="${it.voted}" aria-label="Me too: ${esc(it.text)}. ${plural(it.count, "vote")}">${icon("arrowUp")}<span>${it.count}</span></button>`}
     </li>`).join("")}</ol>`;
   }
 
   function viewIdeasStudent() {
-    return `${head("Suggest", "Suggest a dish", "What should the cafeteria make? Type it below. If someone already suggested it, tap ↑ to agree. The most popular ones go to the top.")}
+    return `${head("", "Suggest a dish", "What should the cafeteria make? If someone already suggested it, tap ↑ to agree. The cafeteria sees this list, most popular first.")}
       <form class="idea-form" data-form="idea">
         <label class="sr-only" for="idea-in">Your suggestion</label>
         <input class="input" id="idea-in" maxlength="${IDEA_MAX}" placeholder="e.g. Korean fried chicken on Fridays" autocomplete="off" enterkeyhint="send">
@@ -1123,30 +1189,26 @@
     const st = state.student, s = st.school;
     const allergies = [...st.allergies.map(a => ALLERGENS[a]), ...terms(st.allergyOther).map(cap)];
     const foods = [...st.cuisines.map(c => CUISINES[c][0]), ...terms(st.cuisineOther).map(cap)];
-    return `${head("Your profile", st.name ? `Hi, ${esc(st.name)}` : "Me", "")}
+    return `${head("", st.name ? `Hi, ${esc(st.name)}` : "Your profile", "")}
       <div class="group">
         <div class="cell">
-          <span class="cell-ic">${icon("school")}</span>
           <div class="cell-main"><p class="cell-t">${esc(s.name)}</p><p class="cell-s">School code <span class="mono">${esc(s.code)}</span></p></div>
           <button class="btn secondary sm" data-act="copy" data-text="${esc(inviteLink(s.code))}" data-label="Invite link">${icon("link")}Invite</button>
         </div>
         <button class="cell" data-act="edit" data-step="allergies">
-          <span class="cell-ic danger">${icon("alert")}</span>
           <div class="cell-main"><p class="cell-t">Allergies</p><p class="cell-s">${allergies.length ? esc(listJoin(allergies)) : "None"}</p></div>${icon("chevR")}
         </button>
         <button class="cell" data-act="edit" data-step="food">
-          <span class="cell-ic brand">${icon("sparkles")}</span>
           <div class="cell-main"><p class="cell-t">Food you like</p><p class="cell-s">${foods.length ? esc(listJoin(foods)) : "Not set"}</p></div>${icon("chevR")}
         </button>
         <button class="cell" data-act="edit" data-step="name">
-          <span class="cell-ic">${icon("user")}</span>
           <div class="cell-main"><p class="cell-t">Name</p><p class="cell-s">${st.name ? esc(st.name) : "Not set"}</p></div>${icon("chevR")}
         </button>
       </div>
       <p class="fine left">${icon("lock")}Your name and allergies are saved only on this device. Ratings and comments are sent without your name.</p>
       <div class="group">
-        ${state.admin ? `<button class="cell" data-act="to-admin"><span class="cell-ic">${icon("chef")}</span><div class="cell-main"><p class="cell-t">Organizer view</p><p class="cell-s">${esc(state.admin.school.name)}</p></div>${icon("chevR")}</button>` : ""}
-        <button class="cell" data-act="leave"><span class="cell-ic">${icon("logout")}</span><div class="cell-main"><p class="cell-t">Sign out</p><p class="cell-s">Leave ${esc(s.name)} on this device</p></div>${icon("chevR")}</button>
+        ${state.admin ? `<button class="cell" data-act="to-admin"><div class="cell-main"><p class="cell-t">Staff view</p><p class="cell-s">${esc(state.admin.school.name)}</p></div>${icon("chevR")}</button>` : ""}
+        <button class="cell" data-act="leave"><div class="cell-main"><p class="cell-t">Sign out</p><p class="cell-s">Leave ${esc(s.name)} on this device</p></div>${icon("chevR")}</button>
       </div>`;
   }
 
@@ -1195,7 +1257,7 @@
 
   function adminGone() {
     LS.del("ll_admin"); state.admin = null;
-    toast("You were signed out: that school was deleted or the admin key no longer works.", true);
+    toast("You were signed out: that school was deleted or the staff key no longer works.", true);
     if (state.student) setMode("student"); else leaveToWelcome();
   }
 
@@ -1223,7 +1285,7 @@
     return { total, byDate, byMeal, byCuisine, dishes: Object.values(byDish), students: who.size, comments };
   }
 
-  const stackBar = (t, label) => `<div class="stack${t.total ? "" : " empty"}" role="img" aria-label="${esc(label ? label + ": " : "")}${t.good} good, ${t.mid} mid, ${t.bad} bad">${
+  const stackBar = (t, label) => `<div class="stack${t.total ? "" : " is-empty"}" role="img" aria-label="${esc(label ? label + ": " : "")}${t.good} good, ${t.mid} mid, ${t.bad} bad">${
     ["good", "mid", "bad"].map(k => (t[k] ? `<span class="s-${k}" style="width:${(100 * t[k]) / t.total}%"></span>` : "")).join("")}</div>`;
   const legend = `<ul class="legend" aria-hidden="true"><li><span class="s-good"></span>Good</li><li><span class="s-mid"></span>Mid</li><li><span class="s-bad"></span>Bad</li></ul>`;
 
@@ -1273,14 +1335,14 @@
   function viewInsights() {
     const s = state.admin.school, ins = state.insights;
     const ranges = [["7", "7 days"], ["30", "30 days"], ["all", "All time"]];
-    const top = `${head(esc(s.name), "Insights", "What students think of the food, from their ratings and comments.",
+    const top = `${head("", "Insights", "What students think of the food, from their ratings and comments.",
       `<button class="icon-btn outlined" data-act="refresh-ins" aria-label="Refresh">${icon("refresh")}</button>`)}
       <div class="seg narrow" role="group" aria-label="Time range">${ranges.map(([k, l]) => `<button data-act="range" data-range="${k}" aria-pressed="${state.range === k}">${l}</button>`).join("")}</div>`;
     if (!ins || ins.range !== state.range) { loadInsights(); return top + skeleton(4); }
     if (ins.error) return top + errorBox(ins.error, "refresh-ins");
     const st = ins.stats;
     if (!st.total.total) {
-      return `${top}<div class="empty big"><span class="empty-ic">${icon("chart")}</span>
+      return `${top}<div class="empty big">
         <p><strong>No ratings ${state.range === "all" ? "yet" : "in this period"}.</strong><br>Share your join code so students can start rating their food.</p>
         <p class="big-code">${esc(s.code)}</p>
         <div class="row-btns center"><button class="btn secondary" data-act="copy" data-text="${esc(s.code)}" data-label="Join code">${icon("copy")}Copy code</button>
@@ -1302,19 +1364,22 @@
     const long = D.span(ins.from, ins.to) > 31;
 
     return `${top}
-      <div class="kpis">
-        <div class="kpi hl"><p class="kpi-l">Liked it</p><p class="kpi-v">${pct(st.total)}%</p><p class="kpi-s">of ratings were Good</p></div>
-        <div class="kpi"><p class="kpi-l">Ratings</p><p class="kpi-v">${st.total.total}</p><p class="kpi-s">${st.total.good} good · ${st.total.mid} mid · ${st.total.bad} bad</p></div>
-        <div class="kpi"><p class="kpi-l">Students</p><p class="kpi-v">${st.students}</p><p class="kpi-s">different devices</p></div>
-        <div class="kpi"><p class="kpi-l">Comments</p><p class="kpi-v">${commentCount}</p><p class="kpi-s">written feedback</p></div>
-      </div>
+      <section class="summary" aria-label="Summary">
+        <p class="sum-lead"><strong>${pct(st.total)}%</strong> of ratings were Good</p>
+        ${stackBar(st.total, "All ratings")}
+        <dl class="sum-stats">
+          <div><dt>Ratings</dt><dd>${st.total.total}</dd><dd class="sum-s">${st.total.good} good · ${st.total.mid} mid · ${st.total.bad} bad</dd></div>
+          <div><dt>Students</dt><dd>${st.students}</dd><dd class="sum-s">different phones</dd></div>
+          <div><dt>Comments</dt><dd>${commentCount}</dd><dd class="sum-s">written by students</dd></div>
+        </dl>
+      </section>
       <section class="card">
         <div class="card-head"><h2>Ratings by ${long ? "week" : "day"}</h2>${legend}</div>
         ${dailyChart(st, ins.from, ins.to)}
       </section>
       <div class="grid2">
-        <section class="card"><div class="card-head"><h2>Most loved</h2></div>${rankList(loved, "good")}</section>
-        <section class="card"><div class="card-head"><h2>Needs work</h2></div>${rankList(needs, "bad")}</section>
+        <section class="card"><div class="card-head"><h2>Make more of these</h2><span class="muted small">Most liked</span></div>${rankList(loved, "good")}</section>
+        <section class="card"><div class="card-head"><h2>Fix or drop these</h2><span class="muted small">Most disliked</span></div>${rankList(needs, "bad")}</section>
       </div>
       <div class="grid2">
         <section class="card"><div class="card-head"><h2>Breakfast/snacks vs. lunch</h2></div>
@@ -1346,12 +1411,12 @@
     return `<section class="card">
       <div class="card-head"><h2>Top student suggestions</h2><a class="link" href="#ideas">See all</a></div>
       <ol class="ideas compact">${ideas.slice(0, 3).map((it, i) => `<li class="idea"><span class="idea-rank">${i + 1}</span>
-        <div class="idea-main"><p class="idea-text">${esc(it.text)}</p></div><span class="idea-count" aria-label="${plural(it.count, "vote")}">${icon("arrowUp")}${it.count}</span></li>`).join("")}</ol>
+        <div class="idea-main"><p class="idea-text">${esc(it.text)}</p></div><span class="idea-count">${icon("arrowUp")}${it.count}<span class="sr-only"> ${it.count === 1 ? "vote" : "votes"}</span></span></li>`).join("")}</ol>
     </section>`;
   }
 
   function viewIdeasAdmin() {
-    return `${head(esc(state.admin.school.name), "Student suggestions", "Dishes students want you to make, ranked by how many agree. Remove anything inappropriate.",
+    return `${head("", "Student suggestions", "Dishes students want you to make, ranked by how many agree. Remove anything inappropriate.",
       `<button class="icon-btn outlined" data-act="retry-ideas" aria-label="Refresh">${icon("refresh")}</button>`)}${ideaList(true)}`;
   }
 
@@ -1401,10 +1466,10 @@
         </div>
         <div class="row-btns">
           <button class="btn primary" data-act="add-dish">${icon("plus")}Add to ${MEALS[state.aMeal]}</button>
-          ${weekEmpty ? `<button class="btn secondary" data-act="fill-sample">${icon("sparkles")}Fill this week with sample dishes</button>` : ""}
+          ${weekEmpty ? `<button class="btn secondary" data-act="fill-sample">Fill this week with sample dishes</button>` : ""}
         </div>`;
     }
-    return `${head(esc(state.admin.school.name), "Menu", "Pick a day, then add or edit its food. Students see changes right away.")}
+    return `${head("", "Menu", "Pick a day, then add or edit its food. Students see changes right away.")}
       ${weekStrip(state.aWeek, date, wk && wk.days, "a-")}
       ${body}`;
   }
@@ -1620,7 +1685,7 @@
   // ----- school settings -----
   function viewSchool() {
     const a = state.admin, s = a.school;
-    return `${head("Organizer settings", esc(s.name), "")}
+    return `${head("Settings", esc(s.name), "")}
       <div class="grid2">
         <section class="card">
           <div class="card-head"><h2>Student join code</h2></div>
@@ -1632,26 +1697,22 @@
           </div>
         </section>
         <section class="card">
-          <div class="card-head"><h2>Admin key</h2></div>
+          <div class="card-head"><h2>Staff key</h2></div>
           <p class="key" id="admin-key" data-shown="false">••••-••••-••••</p>
           <p class="muted small">Use it to sign in on another device. Anyone with it can edit your menu, so keep it private.</p>
           <div class="row-btns">
             <button class="btn secondary" data-act="show-key">${icon("eye")}Show</button>
-            <button class="btn secondary" data-act="copy" data-text="${esc(fmtKey(a.key))}" data-label="Admin key">${icon("copy")}Copy key</button>
+            <button class="btn secondary" data-act="copy" data-text="${esc(fmtKey(a.key))}" data-label="Staff key">${icon("copy")}Copy key</button>
           </div>
         </section>
       </div>
       <div class="group">
-        <button class="cell" data-act="as-student"><span class="cell-ic">${icon("user")}</span>
-          <div class="cell-main"><p class="cell-t">Open student view</p><p class="cell-s">See and rate the menu the way students do</p></div>${icon("chevR")}</button>
-        <div class="cell"><span class="cell-ic">${icon("clock")}</span>
-          <div class="cell-main"><p class="cell-t">Time zone</p><p class="cell-s">${esc(s.tz.replace(/_/g, " "))} · Today is ${shortDay(state.today)}</p></div></div>
+        <button class="cell" data-act="as-student"><div class="cell-main"><p class="cell-t">Open student view</p><p class="cell-s">See and rate the menu the way students do</p></div>${icon("chevR")}</button>
+        <div class="cell"><div class="cell-main"><p class="cell-t">Time zone</p><p class="cell-s">${esc(s.tz.replace(/_/g, " "))} · Today is ${shortDay(state.today)}</p></div></div>
       </div>
       <div class="group">
-        <button class="cell" data-act="signout"><span class="cell-ic">${icon("logout")}</span>
-          <div class="cell-main"><p class="cell-t">Sign out on this device</p><p class="cell-s">You'll need the admin key to sign back in</p></div>${icon("chevR")}</button>
-        <button class="cell danger" data-act="delete-school"><span class="cell-ic danger">${icon("trash")}</span>
-          <div class="cell-main"><p class="cell-t">Delete school</p><p class="cell-s">Permanently removes menus, photos, ratings, and ideas</p></div>${icon("chevR")}</button>
+        <button class="cell" data-act="signout"><div class="cell-main"><p class="cell-t">Sign out on this device</p><p class="cell-s">You'll need the staff key to sign back in</p></div>${icon("chevR")}</button>
+        <button class="cell danger" data-act="delete-school"><div class="cell-main"><p class="cell-t">Delete school</p><p class="cell-s">Permanently removes menus, photos, ratings, and ideas</p></div>${icon("chevR")}</button>
       </div>`;
   }
 
@@ -1724,6 +1785,11 @@
       }
       case "copy":
         copy(el.dataset.text, el.dataset.label);
+        break;
+      case "demo-pause":
+        demoPaused = !demoPaused;
+        el.setAttribute("aria-pressed", String(demoPaused));
+        el.querySelector(".i").outerHTML = icon(demoPaused ? "play" : "pause");
         break;
 
       // student menu
@@ -1817,7 +1883,7 @@
         else startFlow("student", { school: state.admin.school }, { steps: ["allergies"], exit: "app" });
         break;
       case "signout":
-        if (!confirm("Sign out of the organizer view?\n\nYou'll need your admin key to sign back in, so make sure you've saved it.")) break;
+        if (!confirm("Sign out of the staff view?\n\nYou'll need your staff key to sign back in, so make sure you've saved it.")) break;
         LS.del("ll_admin"); state.admin = null;
         if (state.student) setMode("student"); else leaveToWelcome();
         toast("Signed out");
