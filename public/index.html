@@ -6,20 +6,22 @@
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#FFFFFF">
   <title>LunchLine</title>
-  <meta name="description" content="School lunch menus with full allergen info. Students rate today's food; cafeterias see what's working.">
+  <meta name="description" content="Students rate each school lunch in one tap, with allergens flagged. Cafeteria staff see what gets eaten and what gets thrown away.">
+  <meta property="og:title" content="LunchLine">
+  <meta property="og:description" content="Tell the kitchen what you actually ate. Students rate each school lunch in one tap; cafeteria staff see what gets eaten and what gets thrown away.">
   <link rel="icon" href="logo.svg" type="image/svg+xml">
-  <link rel="preload" href="fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="preload" href="fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header id="bar" class="bar"></header>
-  <main id="main" tabindex="-1"></main>
+  <main id="main" tabindex="-1"><noscript><p>LunchLine needs JavaScript turned on to show your school's menu.</p></noscript></main>
   <nav id="tabs" class="tabs" aria-label="Sections"></nav>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <dialog id="sheet" class="sheet" aria-labelledby="sheet-title"></dialog>
 
-  <script src="sample.js?v=17"></script>
-  <script src="app.js?v=17"></script>
+  <script src="sample.js?v=19"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

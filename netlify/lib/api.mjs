@@ -149,15 +149,15 @@ async function loadSchool(store, id) {
 
 async function adminSchool(store, req) {
   const key = normCode(req.headers.get("x-admin-key"));
-  if (key.length < 12) fail(401, "Admin key required");
+  if (key.length < 12) fail(401, "Staff key required");
   const ref = await store.get(`admin/${sha(key)}`, { type: "json" });
-  if (!ref) fail(401, "That admin key isn't valid");
+  if (!ref) fail(401, "That staff key isn't valid");
   return loadSchool(store, ref.school);
 }
 
 async function requireAdmin(store, req, schoolId) {
   const s = await adminSchool(store, req);
-  if (s.id !== schoolId) fail(403, "This admin key belongs to a different school");
+  if (s.id !== schoolId) fail(403, "This staff key belongs to a different school");
   return s;
 }
 
