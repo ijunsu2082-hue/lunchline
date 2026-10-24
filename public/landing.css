@@ -342,9 +342,6 @@
 .welcome .w-start li { display: grid; gap: 10px; padding: 16px 0; border-bottom: 1px solid var(--line); }
 .welcome .w-start-who { font-size: 18px; font-weight: 700; }
 .welcome .w-start .btn { justify-content: space-between; }
-.welcome .w-foot { display: grid; gap: 6px; margin-top: 56px; padding: 20px 0 calc(28px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
-.welcome .w-foot p:last-child { display: flex; flex-wrap: wrap; gap: 4px 18px; }
-.welcome .w-foot .link { font-size: 14px; font-weight: 500; color: var(--ink-2); }
 @media (min-width: 640px) {
 .welcome .w-start li { grid-template-columns: minmax(0, 1fr) 240px; align-items: center; }
 .welcome .w-strip { grid-auto-flow: row; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; margin: 0; padding: 0; }
@@ -642,7 +639,7 @@
 @media (pointer: coarse), (max-width: 899px) {
 .welcome .btn.sm, .welcome .bar-out, .welcome .toggle, .welcome .add-comment, .welcome .seg button { min-height: 44px; }
 .welcome .week-head .icon-btn, .welcome .w-pause { width: 44px; height: 44px; }
-.welcome .sent .link, .welcome .card-head .link, .welcome .w-nav .link, .welcome .w-foot .link, .welcome .w-src .link, .welcome .w-end .w-note .link { min-height: 44px; }
+.welcome .sent .link, .welcome .card-head .link, .welcome .w-nav .link, .welcome .w-src .link, .welcome .w-end .w-note .link { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
 .welcome *, .welcome *::before, .welcome *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
