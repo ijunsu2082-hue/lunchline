@@ -1,0 +1,14 @@
+{
+  "name": "LunchLine",
+  "short_name": "LunchLine",
+  "description": "Tell the kitchen what you actually ate.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFF6EA",
+  "theme_color": "#2B1D14",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
