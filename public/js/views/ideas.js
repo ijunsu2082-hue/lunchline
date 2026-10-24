@@ -1,0 +1,255 @@
+// Suggestions: a leaderboard students vote on, "did you mean" matching so
+// "noodle" / "noodels" / "NOOdLEs" become one idea, and staff tools to set a
+// status, reply, merge near-duplicates, and remove.
+import { $, esc, plural, timeAgo, D } from "../util.js";
+import { state, school, IDEA_MAX, IDEA_STATUSES } from "../state.js";
+import { api, enqueue } from "../api.js";
+import { icon } from "../icons.js";
+import { t } from "../i18n.js";
+import { render, toast, registerActions, head, errorBox, skeleton, currentTab, askConfirm, openSheet, closeSheet, hooks } from "../ui.js";
+
+export async function loadIdeas() {
+  if (state.loading.has("ideas")) return;
+  state.loading.add("ideas");
+  const s = school(), mode = state.mode;
+  try {
+    const ideas = (await api("GET", `ideas?school=${s.id}`, undefined, mode === "student" ? { student: s.id } : {})).ideas;
+    if (state.mode === mode) state.ideas = ideas;
+    if (mode === "admin") {
+      try { state.dupes = (await api("GET", `ideas/dupes?school=${s.id}`)).pairs; } catch { state.dupes = []; }
+    }
+  } catch (e) { if (state.mode === mode) state.ideas = { error: e.message }; }
+  state.loading.delete("ideas");
+  if (state.mode && !state.ob && ["ideas", "menu", "insights"].includes(currentTab())) {
+    // On the menu only the banners and "you asked for this" tags depend on ideas. Refresh just the
+    // banners so the dish cards aren't torn down while they're animating in.
+    const needsCards = Array.isArray(state.ideas) && state.ideas.some(i => i.dish);
+    if (currentTab() === "menu" && !needsCards && hooks.ideasLoaded) hooks.ideasLoaded(); else render();
+  }
+}
+
+const statusChip = i => i.status && i.status !== "new" ? `<span class="status s-${i.status}">${esc(t("status." + i.status))}</span>` : "";
+const sorted = list => [...list].sort((a, b) => b.count - a.count || b.created_at.localeCompare(a.created_at));
+
+// ---------- student ----------
+function matchesHTML() {
+  const ms = state.ideaMatches;
+  if (!ms.length) return "";
+  return `<div class="dym" role="region" aria-label="${esc(t("ideas.dym"))}">
+    <p class="dym-k">${icon("sparkles")}${esc(ms.some(m => m.same) ? t("ideas.dym") : t("ideas.similar"))}</p>
+    <ul>${ms.map(m => `<li><span class="dym-t">${esc(m.text)}<em>${esc(plural(m.count, t("ideas.vote"), t("ideas.votes")))}</em></span>
+      <button type="button" class="btn secondary sm" data-act="idea-join" data-id="${m.id}">${icon("arrowUp")}${esc(t("ideas.addVote"))}</button></li>`).join("")}</ul>
+    <button type="button" class="link" data-act="idea-new">${esc(t("ideas.postNew"))}</button>
+  </div>`;
+}
+
+function board(admin) {
+  const ideas = state.ideas;
+  if (!ideas) { loadIdeas(); return skeleton(3); }
+  if (ideas.error) return errorBox(ideas.error, "retry-ideas");
+  let list = sorted(ideas.filter(i => !(admin && false)));
+  if (!admin && state.ideaView === "week") list = list.filter(i => i.fresh);
+  if (!list.length) return `<div class="empty"><p>${esc(admin ? "No suggestions yet. Students can post ideas from the Ideas tab." : t(state.ideaView === "week" ? "ideas.emptyWeek" : "ideas.empty"))}</p></div>`;
+  return `<ol class="board">${list.map((it, i) => `<li class="bd${i < 3 ? " top t" + (i + 1) : ""}">
+    <span class="bd-rank" aria-hidden="true">${i + 1}</span>
+    <div class="bd-main">
+      <p class="bd-text">${esc(it.text)}</p>
+      <p class="bd-meta">${statusChip(it)}${it.own ? `<span>${esc(t("ideas.yours"))}</span>` : ""}<span>${esc(timeAgo(it.created_at, k => t("ago." + k)))}</span>${it.dish ? `<span>${icon("calendar")}${esc(D.fmt(it.dish.date, { weekday: "short" }))}</span>` : ""}</p>
+      ${it.reply ? `<p class="bd-reply">${icon("megaphone")}<span><strong>${esc(admin ? "Your reply" : t("ideas.kitchen"))}:</strong> ${esc(it.reply)}</span></p>` : ""}
+      ${admin ? staffControls(it) : ""}
+    </div>
+    ${admin
+      ? `<span class="bd-count">${icon("arrowUp")}${it.count}<span class="sr-only"> ${esc(it.count === 1 ? t("ideas.vote") : t("ideas.votes"))}</span></span>`
+      : `<button class="vote-btn" data-act="idea-vote" data-id="${it.id}" aria-pressed="${it.voted}" aria-label="${esc(t("ideas.meToo", { text: it.text, n: plural(it.count, t("ideas.vote"), t("ideas.votes")) }))}">${icon("arrowUp")}<span>${it.count}</span></button>`}
+  </li>`).join("")}</ol>`;
+}
+
+export function viewIdeasStudent() {
+  const week = state.ideaView === "week";
+  return `${head("", esc(t("ideas.title")), esc(t("ideas.lede")))}
+    <form class="idea-form" data-form="idea">
+      <label class="sr-only" for="idea-in">${esc(t("ideas.label"))}</label>
+      <input class="input" id="idea-in" maxlength="${IDEA_MAX}" value="${esc(state.ideaDraft)}" placeholder="${esc(t("ideas.ph"))}" autocomplete="off" enterkeyhint="send" data-idea-input>
+      <button class="btn primary" type="submit">${icon("plus")}${esc(t("ideas.post"))}</button>
+    </form>
+    <div id="idea-matches" aria-live="polite">${matchesHTML()}</div>
+    <div class="seg narrow" role="group" aria-label="${esc(t("ideas.title"))}">
+      <button data-act="idea-view" data-view="all" aria-pressed="${!week}">${esc(t("ideas.leaderboard"))}</button>
+      <button data-act="idea-view" data-view="week" aria-pressed="${week}">${esc(t("ideas.thisWeek"))}</button>
+    </div>
+    ${board(false)}`;
+}
+
+let simTimer, simSeq = 0;
+export function onIdeaInput(input) {
+  state.ideaDraft = input.value;
+  state.ideaForce = false;
+  clearTimeout(simTimer);
+  const q = input.value.trim(), seq = ++simSeq;
+  if (q.length < 3) { state.ideaMatches = []; const b = $("#idea-matches"); if (b) b.innerHTML = ""; return; }
+  simTimer = setTimeout(async () => {
+    try {
+      const out = await api("GET", `ideas/similar?school=${school().id}&q=${encodeURIComponent(q)}`);
+      if (seq !== simSeq) return;
+      state.ideaMatches = out.matches;
+      const b = $("#idea-matches"); if (b) b.innerHTML = matchesHTML();
+    } catch { /* matching is a nicety; posting still works */ }
+  }, 260);
+}
+
+async function postIdea() {
+  const input = $("#idea-in");
+  const text = input.value.trim();
+  if (text.length < 2) { toast(t("ideas.tooShort"), true); input.focus(); return; }
+  if (!state.ideaForce && state.ideaMatches.some(m => m.same)) {
+    $("#idea-matches")?.scrollIntoView({ block: "nearest" });
+    toast(t("ideas.checkFirst"));
+    return;
+  }
+  const btn = input.form.querySelector("button[type=submit]");
+  btn.disabled = true;
+  try {
+    const out = await api("POST", "ideas", { school: school().id, text }, { student: school().id });
+    if (Array.isArray(state.ideas)) {
+      const i = state.ideas.findIndex(x => x.id === out.idea.id);
+      if (i >= 0) state.ideas[i] = { ...state.ideas[i], ...out.idea }; else state.ideas.push(out.idea);
+    }
+    state.ideaDraft = ""; state.ideaMatches = []; state.ideaForce = false;
+    render();
+    toast(out.merged ? t("ideas.merged") : t("ideas.posted"));
+    $("#idea-in")?.focus();
+  } catch (e) { btn.disabled = false; toast(e.message, true); }
+}
+
+async function voteIdea(id, forceOn) {
+  const it = Array.isArray(state.ideas) && state.ideas.find(x => x.id === id);
+  if (!it) return;
+  const on = forceOn ?? !it.voted, before = { voted: it.voted, count: it.count };
+  if (on === it.voted) return;
+  it.voted = on; it.count += on ? 1 : -1;
+  render();
+  document.querySelector(`[data-act="idea-vote"][data-id="${id}"]`)?.focus();
+  try {
+    const r = await enqueue("idea-" + id, () => api("POST", `ideas/${id}/vote`, { school: school().id, on }, { student: school().id }));
+    if (it.voted === on) it.count = r.count;
+  } catch (e) {
+    if (it.voted === on) Object.assign(it, before);
+    toast(e.message, true);
+    if (e.status === 404) state.ideas = null;
+  }
+  render();
+  document.querySelector(`[data-act="idea-vote"][data-id="${id}"]`)?.focus();
+}
+
+// ---------- staff ----------
+function staffControls(it) {
+  return `<div class="bd-tools">
+    <div class="seg mini" role="group" aria-label="Status for ${esc(it.text)}">
+      ${IDEA_STATUSES.map(s => `<button data-act="idea-status" data-id="${it.id}" data-status="${s}" aria-pressed="${(it.status || "new") === s}">${esc(t("status." + s))}</button>`).join("")}
+    </div>
+    <button class="btn ghost sm" data-act="idea-reply" data-id="${it.id}">${icon("megaphone")}${it.reply ? "Edit reply" : "Reply"}</button>
+    <button class="icon-btn danger" data-act="idea-del" data-id="${it.id}" aria-label="Remove suggestion: ${esc(it.text)}">${icon("trash")}</button>
+  </div>`;
+}
+
+function dupesCard() {
+  const pairs = state.dupes || [], ideas = Array.isArray(state.ideas) ? state.ideas : [];
+  const by = Object.fromEntries(ideas.map(i => [i.id, i]));
+  const rows = pairs.map(p => ({ ...p, A: by[p.a], B: by[p.b] })).filter(p => p.A && p.B).slice(0, 5);
+  if (!rows.length) return "";
+  return `<section class="card dupes"><div class="card-head"><h2>${icon("merge")}Possible duplicates</h2><span class="muted small">Merge to combine their votes</span></div>
+    <ul class="dupe-list">${rows.map(({ A, B, score }) => {
+      const [keep, drop] = A.count >= B.count ? [A, B] : [B, A];
+      return `<li><p><strong>${esc(drop.text)}</strong> <span class="muted">(${drop.count})</span> looks like <strong>${esc(keep.text)}</strong> <span class="muted">(${keep.count})</span></p>
+        <button class="btn secondary sm" data-act="idea-merge" data-from="${drop.id}" data-into="${keep.id}">${icon("merge")}Merge into “${esc(keep.text)}”</button></li>`;
+    }).join("")}</ul></section>`;
+}
+
+export function viewIdeasAdmin() {
+  return `${head("", "Student ideas", "Dishes students want, ranked by how many agree. Mark what's planned and tell them what you decided.",
+    `<button class="icon-btn outlined" data-act="retry-ideas" aria-label="Refresh">${icon("refresh")}</button>`)}
+    ${state.ideas && !state.ideas.error ? dupesCard() : ""}
+    ${board(true)}`;
+}
+
+export function ideasCard(ideas) {
+  return `<section class="card">
+    <div class="card-head"><h2>${icon("lightbulb")}Top student ideas</h2><a class="link" href="#ideas">See all</a></div>
+    <ol class="board compact">${ideas.slice(0, 3).map((it, i) => `<li class="bd"><span class="bd-rank">${i + 1}</span>
+      <div class="bd-main"><p class="bd-text">${esc(it.text)}</p></div><span class="bd-count">${icon("arrowUp")}${it.count}<span class="sr-only"> ${it.count === 1 ? "vote" : "votes"}</span></span></li>`).join("")}</ol>
+  </section>`;
+}
+
+async function patchIdea(id, patch, msg) {
+  try {
+    await api("PATCH", `ideas/${id}`, { school: school().id, ...patch });
+    const it = state.ideas.find(x => x.id === id);
+    if (it) Object.assign(it, patch);
+    state.insights = null;
+    render();
+    toast(msg);
+  } catch (e) { toast(e.message, true); }
+}
+
+registerActions({
+  "idea-vote"(el) { voteIdea(el.dataset.id); },
+  "idea-join"(el) { voteIdea(el.dataset.id, true); state.ideaDraft = ""; state.ideaMatches = []; render(); toast(t("ideas.voteAdded")); },
+  "idea-new"() { state.ideaForce = true; state.ideaMatches = []; const b = $("#idea-matches"); if (b) b.innerHTML = ""; postIdea(); },
+  "idea-view"(el) { state.ideaView = el.dataset.view; render(); document.querySelector(`[data-act="idea-view"][data-view="${state.ideaView}"]`)?.focus(); },
+  "retry-ideas"() { state.ideas = null; render(); },
+
+  "idea-status"(el) {
+    const id = el.dataset.id, status = el.dataset.status;
+    if (status === "on_menu") {
+      openSheet(`<form class="sheet-form" data-form="idea-menu" data-id="${id}">
+        <h2 id="sheet-title">Which day is it on the menu?</h2>
+        <p class="muted">Students who asked for it will see a “You asked for this” tag on that day's matching dish.</p>
+        <label class="label" for="idea-date">Date</label>
+        <input class="input" id="idea-date" type="date" value="${esc(state.today || "")}" required>
+        <div class="modal-btns"><button type="button" class="btn secondary" data-act="sheet-close">Cancel</button><button class="btn primary" type="submit">Save</button></div>
+      </form>`);
+      return;
+    }
+    patchIdea(id, { status, served_on: "" }, `Marked “${t("status." + status)}”`);
+  },
+  "idea-reply"(el) {
+    const it = state.ideas.find(x => x.id === el.dataset.id);
+    openSheet(`<form class="sheet-form" data-form="idea-reply" data-id="${it.id}">
+      <h2 id="sheet-title">Reply to students</h2>
+      <p class="muted">Everyone sees this under “${esc(it.text)}”. Keep it short and kind.</p>
+      <label class="label" for="idea-reply-in">Your reply</label>
+      <input class="input" id="idea-reply-in" maxlength="160" value="${esc(it.reply || "")}" placeholder="e.g. Trying this the first week of November">
+      <div class="modal-btns"><button type="button" class="btn secondary" data-act="sheet-close">Cancel</button><button class="btn primary" type="submit">Save reply</button></div>
+    </form>`);
+    $("#idea-reply-in")?.focus();
+  },
+  async "idea-del"(el) {
+    const it = state.ideas.find(x => x.id === el.dataset.id);
+    if (!it || !(await askConfirm({ title: "Remove this suggestion?", body: `“${esc(it.text)}” and its votes will be deleted.`, ok: "Remove", danger: true }))) return;
+    try {
+      await api("DELETE", `ideas/${it.id}?school=${school().id}`);
+      state.ideas = state.ideas.filter(x => x !== it); state.insights = null; render(); toast("Suggestion removed");
+    } catch (e) { toast(e.message, true); }
+  },
+  async "idea-merge"(el) {
+    try {
+      await api("POST", `ideas/${el.dataset.from}/merge`, { school: school().id, into: el.dataset.into });
+      state.ideas = null; state.dupes = null; state.insights = null; render(); toast("Merged. Their votes now count together.");
+    } catch (e) { toast(e.message, true); }
+  },
+});
+
+export async function submitIdeaForm(f) {
+  if (f.dataset.form === "idea") return postIdea();
+  const id = f.dataset.id;
+  if (f.dataset.form === "idea-menu") {
+    const date = $("#idea-date").value;
+    closeSheet();
+    return patchIdea(id, { status: "on_menu", served_on: date }, "Marked “On the menu”");
+  }
+  if (f.dataset.form === "idea-reply") {
+    const reply = $("#idea-reply-in").value.trim();
+    closeSheet();
+    return patchIdea(id, { reply }, reply ? "Reply saved" : "Reply removed");
+  }
+}

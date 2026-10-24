@@ -3,25 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#2B1D14">
   <title>LunchLine</title>
-  <meta name="description" content="Students rate each school lunch in one tap, with allergens flagged. Cafeteria staff see what gets eaten and what gets thrown away.">
+  <meta name="description" content="Scan the code on the tray line and tap Good, Mid or Bad under each dish. Cafeteria staff finally learn what gets eaten and what gets thrown away.">
   <meta property="og:title" content="LunchLine">
-  <meta property="og:description" content="Tell the kitchen what you actually ate. Students rate each school lunch in one tap; cafeteria staff see what gets eaten and what gets thrown away.">
-  <link rel="icon" href="logo.svg" type="image/svg+xml">
-  <link rel="preload" href="fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=19">
+  <meta property="og:description" content="Tell the kitchen what you actually ate. One scan, one tap, no account.">
+  <meta property="og:image" content="/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css?v=26">
+  <link rel="stylesheet" href="/landing.css?v=26">
+  <link rel="stylesheet" href="/flat.css?v=26">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header id="bar" class="bar"></header>
-  <main id="main" tabindex="-1"><noscript><p>LunchLine needs JavaScript turned on to show your school's menu.</p></noscript></main>
-  <nav id="tabs" class="tabs" aria-label="Sections"></nav>
+  <main id="main" tabindex="-1"><noscript><p class="boot">LunchLine needs JavaScript turned on to show your school's menu.</p></noscript></main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <dialog id="sheet" class="sheet" aria-labelledby="sheet-title"></dialog>
+  <dialog id="modal" class="modal" aria-labelledby="modal-title"></dialog>
 
-  <script src="sample.js?v=19"></script>
-  <script src="app.js?v=19"></script>
+  <script src="/sample.js?v=26"></script>
+  <script type="module" src="/js/main.js?v=26"></script>
 </body>
 </html>

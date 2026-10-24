@@ -2,3 +2,6 @@ node_modules
 .netlify
 .claude
 .DS_Store
+.env
+.env.*
+!.env.example
