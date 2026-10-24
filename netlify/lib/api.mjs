@@ -272,7 +272,9 @@ async function deleteSchool(store, req, id) {
 }
 
 // ---------- staff login ----------
-const originOf = req => process.env.SITE_URL || new URL(req.url).origin;
+// Local dev always links back to itself, even when .env carries the production SITE_URL:
+// a dev sign-in token only exists in the local blob store.
+const originOf = req => (!globalThis.__LL_DEV && process.env.SITE_URL) || new URL(req.url).origin;
 
 async function authRequest(store, req) {
   const secret = await getSecret(store);
@@ -882,8 +884,12 @@ async function sendReportNow(store, req) {
   const report = await buildWeeklyReport(store, school);
   let emailed = false;
   if (user.email && b.email !== false) {
-    const r = await emailReportTo(store, school, user.email, report, originOf(req));
-    emailed = !!r.sent; // false in demo mode, where nothing was actually mailed
+    try {
+      const r = await emailReportTo(store, school, user.email, report, originOf(req));
+      emailed = !!r.sent; // false in demo mode, where nothing was actually mailed
+    } catch (e) {
+      if (!(e instanceof HttpError)) throw e; // the report is built and saved either way; the email is a courtesy
+    }
   }
   return { report, emailed };
 }

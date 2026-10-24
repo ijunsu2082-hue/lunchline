@@ -17,7 +17,11 @@ export default async () => {
       if (!to.length) continue;
       const report = await buildWeeklyReport(store, school);
       if (!report.ratings) continue;
-      for (const m of to) { await emailReportTo(store, school, m.email, report, origin); sent++; }
+      for (const m of to) {
+        // One bad address shouldn't stop the rest of the team getting theirs.
+        try { await emailReportTo(store, school, m.email, report, origin); sent++; }
+        catch (e) { console.error(`weekly report email failed for ${school.id}`, e); }
+      }
     } catch (e) {
       console.error(`weekly report failed for ${school.id}`, e);
     }
