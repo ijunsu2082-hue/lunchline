@@ -45,6 +45,9 @@ const DEFAULT_GRADES = ["9", "10", "11", "12"];
 const DEFAULT_COLOR = "#FF5A1F";
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+// A page loaded before sign-in moved to passwords can still call the old email routes. Tell it to reload.
+const updated = () => fail(410, "LunchLine was just updated. Reload this page to sign in with your email and password.", { code: "update" });
+
 export async function handle(req, store) {
   try {
     const url = new URL(req.url);
@@ -68,6 +71,7 @@ export async function handle(req, store) {
         if (m === "POST" && id === "setup-info") return json(await authSetupInfo(store, req));
         if (m === "POST" && id === "setup") return await authSetup(store, req);
         if (m === "POST" && id === "master") return await authMaster(store, req);
+        if (m === "POST" && (id === "request" || id === "verify")) updated(); // old email sign-in
         if (m === "GET" && id === "me") return json(await authMe(store, req));
         if (m === "POST" && id === "logout") { await endSession(store, req); return json({ ok: true }, 200, { "Set-Cookie": sessionCookie("", req, 0) }); }
         break;
@@ -80,6 +84,7 @@ export async function handle(req, store) {
         if (m === "GET" && !id) return json(await getStaff(store, req, q));
         if (m === "POST" && !id) return json(await inviteStaff(store, req), 201);
         if (m === "POST" && id && action === "link") return json(await memberLink(store, req, id, q));
+        if (m === "PATCH" && id === "me") updated(); // old weekly-email toggle
         if (m === "DELETE" && id && !action) return json(await dropStaff(store, req, id, q));
         break;
 
@@ -134,6 +139,7 @@ export async function handle(req, store) {
       case "reports":
         if (m === "GET" && !id) return json(await getReports(store, req, q));
         if (m === "POST" && id === "build") return json(await buildReportNow(store, req));
+        if (m === "POST" && id === "send") updated(); // old "email me this week's report"
         break;
 
       case "audit":

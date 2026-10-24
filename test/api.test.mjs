@@ -430,3 +430,17 @@ test("demo schools: seeded once, menus fill with photos, and the master school's
   assert.equal((await old("GET", `staff?school=${irvine.id}`)).status, 200);
   delete process.env.MASTER_CODE; delete process.env.MASTER_EMAIL;
 });
+
+test("a page from before passwords gets a clear reload message, not a dead end", async () => {
+  const { staff, school } = await setup();
+  for (const [method, path, body] of [
+    ["POST", "auth/request", { email: "a@b.edu", mode: "create", name: "Old Page School" }],
+    ["POST", "auth/verify", { token: "x".repeat(32) }],
+    ["POST", "reports/send", { school: school.id }],
+    ["PATCH", "staff/me", { school: school.id, reports: true }],
+  ]) {
+    const r = await staff(method, path, body);
+    assert.equal(r.status, 410, path);
+    assert.match(r.body.error, /reload this page/i, path);
+  }
+});

@@ -1,5 +1,5 @@
-// The weekly kitchen report: aggregate numbers, an AI-written summary (with a
-// plain fallback when there's no API key), and the email to staff.
+// The weekly kitchen report: aggregate numbers and an AI-written summary (with a
+// plain fallback when there's no API key).
 
 import { addDays } from "./util.mjs";
 import { pctGood, pctBad } from "./insights.mjs";
