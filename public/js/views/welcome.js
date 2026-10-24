@@ -12,7 +12,6 @@ const plan = () => window.SAMPLE_PLAN || [];
 const featured = i => (plan()[i] && plan()[i].lunch[0]) || { name: "", photo: "" };
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const WWF_URL = "https://www.worldwildlife.org/publications/food-waste-warrior-report-2019/";
-const REPO_URL = "https://github.com/ijunsu2082-hue/lunchline";
 
 export function welcomeHTML() {
   return `<div class="welcome-bg"><div class="welcome">
@@ -64,11 +63,6 @@ export function welcomeHTML() {
         <li><span class="w-start-who">Cafeteria staff</span><button class="btn secondary" data-act="role" data-role="create">Set up your school${icon("arrowR")}</button></li>
       </ul>
     </section>
-
-    <footer class="w-foot">
-      <p>LunchLine is a student project built for Neighborhood Hacks 2026.</p>
-      <p><a class="link" href="${REPO_URL}" target="_blank" rel="noopener">Source code</a><a class="link" href="${REPO_URL}/blob/main/public/samples/CREDITS.md" target="_blank" rel="noopener">Photo credits</a></p>
-    </footer>
   </div></div>`;
 }
 
