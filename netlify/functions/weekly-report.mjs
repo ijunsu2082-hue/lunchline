@@ -1,32 +1,24 @@
-// Every Monday morning: build each school's weekly report and email it to the
-// staff who haven't turned it off. Schools with no ratings that week are skipped.
+// Every Monday morning: build each school's weekly report so it's waiting in the
+// Reports tab. Schools with no staff are skipped.
 
 import { getStore } from "@netlify/blobs";
-import { buildWeeklyReport, emailReportTo } from "../lib/api.mjs";
+import { buildWeeklyReport } from "../lib/api.mjs";
 import { listKeys, getAll } from "../lib/util.mjs";
 
 export default async () => {
   const store = getStore({ name: "lunchline", consistency: "strong" });
-  const origin = process.env.SITE_URL || process.env.URL || "";
   const schoolKeys = (await listKeys(store, "school/"));
-  let sent = 0;
+  let built = 0;
   for (const school of await getAll(store, schoolKeys)) {
     try {
-      const members = await getAll(store, await listKeys(store, `staff/${school.id}/`));
-      const to = members.filter(m => m.reports !== false && m.email);
-      if (!to.length) continue;
-      const report = await buildWeeklyReport(store, school);
-      if (!report.ratings) continue;
-      for (const m of to) {
-        // One bad address shouldn't stop the rest of the team getting theirs.
-        try { await emailReportTo(store, school, m.email, report, origin); sent++; }
-        catch (e) { console.error(`weekly report email failed for ${school.id}`, e); }
-      }
+      if (!(await listKeys(store, `staff/${school.id}/`)).length) continue;
+      await buildWeeklyReport(store, school);
+      built++;
     } catch (e) {
       console.error(`weekly report failed for ${school.id}`, e);
     }
   }
-  console.log(`weekly reports: ${sent} emails sent`);
+  console.log(`weekly reports: ${built} built`);
 };
 
 export const config = { schedule: "0 13 * * 1" }; // Mondays 13:00 UTC

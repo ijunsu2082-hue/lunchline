@@ -1,11 +1,11 @@
 // LunchLine service worker. Goal: the app opens and this week's menu shows
 // even with no signal on the lunch line. Votes, sign-in and staff data are
 // never cached; they always go to the network.
-const CACHE = "ll-v27";
+const CACHE = "ll-v28";
 
 // The app shell: every file the page needs to start.
 const SHELL = [
-  "/", "/styles.css?v=27", "/landing.css?v=27", "/flat.css?v=27", "/sample.js?v=27", "/js/main.js?v=27",
+  "/", "/styles.css?v=28", "/landing.css?v=28", "/flat.css?v=28", "/sample.js?v=28", "/js/main.js?v=28",
   "/js/api.js", "/js/i18n.js", "/js/icons.js", "/js/pow-worker.js", "/js/session.js",
   "/js/state.js", "/js/theme.js", "/js/ui.js", "/js/util.js",
   "/js/views/flows.js", "/js/views/ideas.js", "/js/views/me.js", "/js/views/menu-editor.js",

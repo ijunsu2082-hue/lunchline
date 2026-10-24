@@ -3,10 +3,9 @@
 //   node scripts/dev.mjs            (today = real date)
 //   LL_TODAY=2026-10-19 node scripts/dev.mjs
 //   LL_LAN=1 node scripts/dev.mjs   (also reachable from your phone on the same wifi)
-// Sign-in emails are printed here instead of sent, unless RESEND_API_KEY is set.
 import http from "node:http";
-// Local settings (email keys etc.) live in .env, which git ignores. See .env.example.
-try { process.loadEnvFile(new URL("../.env", import.meta.url)); } catch { /* no .env: sign-in links print here instead */ }
+// Local settings (master code etc.) live in .env, which git ignores. See .env.example.
+try { process.loadEnvFile(new URL("../.env", import.meta.url)); } catch { /* no .env: everything still works with defaults */ }
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
@@ -35,7 +34,7 @@ const { port } = await blobs.start();
 const edge = `http://localhost:${port}`;
 globalThis.netlifyBlobsContext = Buffer.from(JSON.stringify({ edgeURL: edge, uncachedEdgeURL: edge, siteID: "dev-site", token: "dev" })).toString("base64");
 if (process.env.LL_TODAY) globalThis.__LL_TODAY = process.env.LL_TODAY;
-globalThis.__LL_DEV = true; // sign-in links print to this console and come back to the page
+globalThis.__LL_DEV = true; // setup links point back at this server, not SITE_URL
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);

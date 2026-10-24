@@ -502,12 +502,12 @@ const FAVORITES = [
 
 // One week, Monday to Friday. Breakfast offers all three morning categories; snack is the quick picks and
 // bakery. Lunch is that day's featured entree or entrees plus the daily favorites. Later weeks repeat it.
-window.SAMPLE_PLAN = FEATURED.map(featured => ({
+export const SAMPLE_PLAN = FEATURED.map(featured => ({
   breakfast: [...HOT, ...QUICK, ...BAKERY],
   snack: [...QUICK, ...BAKERY],
   lunch: [...featured, ...FAVORITES],
 }));
-window.SAMPLE_WEEK = window.SAMPLE_PLAN;
 
-// For the welcome screen.
-window.SAMPLE_DISHES = DISH;
+// This file is a module for both sides: the server imports SAMPLE_PLAN for the demo schools, and the page
+// reads these globals (window.SAMPLE_DISHES is for the welcome screen).
+if (typeof window !== "undefined") Object.assign(window, { SAMPLE_PLAN, SAMPLE_WEEK: SAMPLE_PLAN, SAMPLE_DISHES: DISH });
