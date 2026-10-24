@@ -2,6 +2,7 @@
 // Netlify Blobs server stored in .netlify/dev-blobs.
 //   node scripts/dev.mjs            (today = real date)
 //   LL_TODAY=2026-10-19 node scripts/dev.mjs
+// test commit
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
