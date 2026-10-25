@@ -33,7 +33,7 @@ import { getSecret, makeChallenge, checkChallenge, powSolved, POW_BITS, makeVote
 import { clientIp, ipHash, limit } from "./ratelimit.mjs";
 import { findSimilar, similarity, SAME, tidyText } from "./similarity.mjs";
 import { computeInsights } from "./insights.mjs";
-import { aiSummary, reportData, weekWindow } from "./reports.mjs";
+import { weeklySummary, reportData, weekWindow } from "./reports.mjs";
 import {
   createMagic, consumeMagic, peekMagic, startSession, sessionCookie, endSession, addMember, removeMember, listMembers,
   schoolsFor, membershipsFor, requireStaff, whoAmI, roleRank, checkPassword, setMemberPassword, PASSWORD_MIN, COOKIE,
@@ -945,15 +945,14 @@ async function getPhoto(store, schoolId, photoId) {
 }
 
 // ---------- weekly reports ----------
-// Builds this week's report, stores it, and (optionally) emails it.
+// Builds this week's report and stores it.
 export async function buildWeeklyReport(store, school) {
   const today = todayIn(school.tz);
   const w = weekWindow(today);
   const [{ stats }, { stats: prev }] = await Promise.all([loadStats(store, school, w.from, w.to), loadStats(store, school, w.prevFrom, w.prevTo)]);
   const ideas = await ideaList(store, school, null);
   const data = reportData(school, stats, prev, ideas.filter(i => i.status === "new" || i.status === "planned"));
-  const { text: summary, ai } = await aiSummary(data);
-  const report = { date: today, from: w.from, to: w.to, ...data, summary, ai, comments: undefined };
+  const report = { date: today, from: w.from, to: w.to, ...data, summary: weeklySummary(data) };
   await store.setJSON(`report/${school.id}/${today}`, report);
   return report;
 }

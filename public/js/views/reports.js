@@ -1,5 +1,5 @@
-// Reports: the weekly kitchen report (AI-written summary with the real numbers
-// beside it), built every Monday morning or on demand.
+// Reports: the weekly kitchen report (a short summary with the numbers beside
+// it), built every Monday morning or on demand.
 import { $, esc, plural, D, shortDay } from "../util.js";
 import { state, school } from "../state.js";
 import { api } from "../api.js";

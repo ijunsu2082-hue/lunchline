@@ -18,7 +18,7 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 | Back end | One Netlify Function that routes `/api/*`, plus a scheduled Netlify Function for the weekly report |
 | Storage | Netlify Blobs (one key per record) |
 | Auth | Email and password (scrypt), cookie sessions and roles (cook, admin, owner). Setup links for new teammates. An optional master code for demos |
-| Weekly report summary | Anthropic Messages API, with a plain-text fallback when no key is set |
+| Weekly report summary | Plain text built from the week's numbers |
 | Anti-abuse | Signed device tokens, SHA-256 proof-of-work in a Web Worker, rate limits, suspicious-rating detection |
 | Offline and install | Service worker, offline rating queue, web app manifest |
 | QR codes | Client-side generator in `public/vendor/qrcode.mjs`, no third-party service |
@@ -44,7 +44,7 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 - Suggestions leaderboard with fuzzy "did you mean" matching and merging of duplicates
 - Optional grade level, shown only for groups of 5 or more
 - Waste log
-- Weekly AI-written report, built every Monday or on demand (plain summary if no API key)
+- Weekly report with a short summary, built every Monday or on demand
 - English and Spanish
 - Offline queue and installable PWA
 - Printable QR posters
@@ -83,7 +83,7 @@ netlify/
     demo.mjs        demo schools and their self-filling photo menus
     insights.mjs    turns ratings into what the kitchen sees
     similarity.mjs  fuzzy matching for suggestions
-    reports.mjs     weekly report data and AI summary
+    reports.mjs     weekly report data and summary
 scripts/  dev.mjs (local server), seed-demo.mjs, check.mjs
 test/     node:test suites
 ```
@@ -128,7 +128,7 @@ What is and is not guaranteed:
 - Students have no accounts and LunchLine does not collect names. Votes are stored against a hash of the device id.
 - Grade level is optional. A grade group with fewer than 5 students is hidden so no one can be picked out.
 - Staff identity is an email address with a password per school (stored as a scrypt hash, never in plain text); sessions are cookie-based and setup links are single use and expire after 7 days.
-- Student comments are shown to staff and are passed to an AI model only as data when a weekly report is written with an API key.
+- Student comments are shown to staff only; they are not sent to any other service.
 - Security headers (strict Content-Security-Policy and others) are set in `netlify.toml`.
 
 ## Deployment
