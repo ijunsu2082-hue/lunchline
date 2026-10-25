@@ -6,14 +6,14 @@
 //   node scripts/dev.mjs              (in one terminal)
 //   node scripts/seed-demo.mjs        (in another)
 //
-// It uses the same paths a real school does: email sign-in link (printed by the
-// dev server), proof-of-work device tokens, and the normal API.
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import vm from "node:vm";
+// It uses the same paths a real school does: password sign-up, proof-of-work
+// device tokens, and the normal API.
+import { createHash, randomBytes } from "node:crypto";
+import { SAMPLE_PLAN } from "../public/sample.js";
 
 const BASE = process.env.LL_BASE || "http://localhost:8888";
 const EMAIL = process.env.LL_EMAIL || "demo.staff@example.com";
+const PASSWORD = process.env.LL_PASSWORD || randomBytes(9).toString("base64url");
 let cookie = "";
 
 async function call(method, path, body, { token } = {}) {
@@ -42,17 +42,13 @@ async function deviceToken(school, voter) {
   return (await call("POST", "token", { school: school.id, voter_id: voter, challenge, nonce: solve(challenge, bits) })).token;
 }
 
-const sandbox = { window: {} };
-vm.runInNewContext(await readFile(new URL("../public/sample.js", import.meta.url), "utf8"), sandbox);
-const WEEK = sandbox.window.SAMPLE_WEEK;
+const WEEK = SAMPLE_PLAN;
 const add = (d, n) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 const monday = d => { const w = new Date(d + "T00:00:00Z").getUTCDay(); return add(d, w === 0 ? -6 : 1 - w); };
 
-// ----- staff sign-in through the real magic-link path -----
-const req = await call("POST", "auth/request", { email: EMAIL, mode: "create", name: process.env.LL_NAME || "Demo High School (simulated data)", tz: "America/Los_Angeles" });
-const login = new URL(req.dev_link).searchParams.get("login");
-const verified = await call("POST", "auth/verify", { token: login });
-const school = verified.created;
+// ----- staff sign-up through the real path -----
+const signedUp = await call("POST", "auth/signup", { email: EMAIL, password: PASSWORD, name: process.env.LL_NAME || "Demo High School (simulated data)", tz: "America/Los_Angeles" });
+const school = signedUp.created;
 await call("PATCH", `schools/${school.id}`, { theme: { color: "#1F7A4D" }, enrollment: 400, grades: ["9", "10", "11", "12"] });
 
 const { today } = await call("GET", `menu?school=${school.id}&from=2026-01-01&to=2026-01-01`);
@@ -111,4 +107,4 @@ for (let i = 0; i < 5; i++) await call("PUT", "waste", { school: school.id, date
 
 console.log(`${school.name}: ${votes} simulated ratings from ${voters.length} simulated students`);
 console.log(`Student join code: ${school.code}`);
-console.log(`Staff sign-in:     ${EMAIL} (the sign-in link prints in the dev server console)`);
+console.log(`Staff sign-in:     ${EMAIL} / ${PASSWORD}`);

@@ -52,7 +52,7 @@ export default {
   "join.title": "Join your school", "join.lede": "Scan the QR code at the cafeteria, or enter the 6-character code.", "join.code": "School code",
   "join.find": "Find my school", "join.byName": "No code? Find your school by name", "join.haveCode": "I have a school code",
   "join.findTitle": "Find your school", "join.findLede": "Search by name, then tap your school.", "join.schoolName": "School name", "join.namePh": "e.g. Lincoln High",
-  "join.noResults": "No schools match “{q}”. Check the spelling, or ask for your school code.", "join.joined": "You joined {school}", "join.tagline": "Rate your lunch",
+  "join.noResults": "No schools match “{q}”. Check the spelling, or ask for your school code.", "join.allSchools": "Or pick your school:", "join.joined": "You joined {school}", "join.tagline": "Rate your lunch",
   "join.parentTitle": "See the menu", "join.parentLede": "Enter your school's 6-character code to see the week's menu with allergens.",
 
   "setup.title": "Two quick taps", "setup.lede": "Both are optional. Nothing here has your name on it.", "setup.welcomeTo": "Welcome to",

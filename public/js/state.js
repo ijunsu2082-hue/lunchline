@@ -25,10 +25,10 @@ export const state = {
   // student
   week: null, day: null, meal: null, touched: false, weeks: {}, mine: {}, ideas: null,
   openComment: new Set(), cDraft: {}, bannerAt: 0, dishOpen: null, ideaDraft: "", ideaMatches: [], ideaView: "all", ideaForce: false, dupes: null,
-  draftColor: null, draftGrades: null, myReports: null,
+  draftColor: null, draftGrades: null,
   // staff
   aWeek: null, aDay: null, aMeal: "lunch", aWeeks: {}, range: "7", insights: null, edit: null,
-  team: null, reports: null, audit: null,
+  team: null, teamLink: null, reports: null, audit: null, // teamLink: { email, link } just made for a teammate
   loading: new Set(),
 };
 

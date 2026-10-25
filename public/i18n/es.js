@@ -53,7 +53,7 @@ export default {
   "join.title": "Únete a tu escuela", "join.lede": "Escanea el código QR en la cafetería o escribe el código de 6 caracteres.", "join.code": "Código de la escuela",
   "join.find": "Buscar mi escuela", "join.byName": "¿Sin código? Busca tu escuela por nombre", "join.haveCode": "Tengo un código",
   "join.findTitle": "Busca tu escuela", "join.findLede": "Busca por nombre y toca tu escuela.", "join.schoolName": "Nombre de la escuela", "join.namePh": "p. ej. Lincoln High",
-  "join.noResults": "Ninguna escuela coincide con “{q}”. Revisa cómo está escrito o pide el código.", "join.joined": "Te uniste a {school}", "join.tagline": "Califica tu almuerzo",
+  "join.noResults": "Ninguna escuela coincide con “{q}”. Revisa cómo está escrito o pide el código.", "join.allSchools": "O elige tu escuela:", "join.joined": "Te uniste a {school}", "join.tagline": "Califica tu almuerzo",
   "join.parentTitle": "Ver el menú", "join.parentLede": "Escribe el código de 6 caracteres de la escuela para ver el menú de la semana con alérgenos.",
 
   "setup.title": "Dos toques rápidos", "setup.lede": "Los dos son opcionales. Nada aquí lleva tu nombre.", "setup.welcomeTo": "Bienvenido a",

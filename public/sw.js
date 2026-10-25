@@ -1,11 +1,15 @@
 // LunchLine service worker. Goal: the app opens and this week's menu shows
 // even with no signal on the lunch line. Votes, sign-in and staff data are
 // never cached; they always go to the network.
-const CACHE = "ll-v26";
+//
+// The app's own files go to the network first, so a new version shows on the
+// very next visit after a deploy (serving a saved copy first left people on an
+// old version for a visit). The cache is the fallback when there's no signal.
+const CACHE = "ll-v29";
 
 // The app shell: every file the page needs to start.
 const SHELL = [
-  "/", "/styles.css?v=26", "/landing.css?v=26", "/flat.css?v=26", "/sample.js?v=26", "/js/main.js?v=26",
+  "/", "/styles.css?v=29", "/landing.css?v=29", "/flat.css?v=29", "/sample.js?v=29", "/js/main.js?v=29",
   "/js/api.js", "/js/i18n.js", "/js/icons.js", "/js/pow-worker.js", "/js/session.js",
   "/js/state.js", "/js/theme.js", "/js/ui.js", "/js/util.js",
   "/js/views/flows.js", "/js/views/ideas.js", "/js/views/me.js", "/js/views/menu-editor.js",
@@ -40,17 +44,14 @@ const save = (req, res) => {
   return res;
 };
 
-// Show the cached copy now, refresh it in the background.
-async function staleWhileRevalidate(req) {
-  const cached = await caches.match(req);
-  const fresh = fetch(req).then(res => save(req, res)).catch(() => cached || Response.error());
-  return cached || fresh;
-}
-
-// Try the network first; if it fails, fall back to the last good copy.
+// Try the network first; if it fails, fall back to the last good copy. Offline, a page
+// opened from a link (/?join=…) falls back to the saved app page.
 async function networkFirst(req) {
   try { return save(req, await fetch(req)); }
-  catch (e) { return (await caches.match(req)) || Response.error(); }
+  catch (e) {
+    const page = req.mode === "navigate";
+    return (await caches.match(req, { ignoreSearch: page })) || (page && await caches.match("/")) || Response.error();
+  }
 }
 
 // Photos never change under the same URL, so the cache wins.
@@ -70,5 +71,5 @@ self.addEventListener("fetch", event => {
   if (path.startsWith("/api/photos/") || path.startsWith("/samples/")) return event.respondWith(cacheFirst(req));
   if (path.startsWith("/api/")) return; // votes, auth, insights, tokens: network only
   if (path === "/sw.js") return;
-  event.respondWith(staleWhileRevalidate(req));
+  event.respondWith(networkFirst(req));
 });

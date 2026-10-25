@@ -1,5 +1,5 @@
 // School settings: join code and QR, school color, grades and enrollment, the
-// team (invite by email, roles), activity log, and the danger zone.
+// team (add people, roles, password setup links), activity log, and the danger zone.
 import { $, esc, plural, LS, inviteLink, parentLink, timeAgo } from "../util.js";
 import { state, school, can, GRADE_ORDER } from "../state.js";
 import { api } from "../api.js";
@@ -26,6 +26,17 @@ async function loadTeam() {
 }
 
 const roleBadge = r => `<span class="role-badge r-${r}">${esc(r)}</span>`;
+const rank = r => ["cook", "admin", "owner"].indexOf(r);
+
+// The setup link just made for a teammate. Nothing is emailed, so it's shown here to copy and pass on.
+function teamLinkHTML() {
+  const l = state.teamLink;
+  if (!l) return "";
+  return `<div class="alert setup-link">${icon("link")}<div><p><strong>Send this link to ${esc(l.email)}.</strong> It lets them pick a password for this school. It works once, within 7 days.</p>
+    <div class="invite-row"><input class="input" value="${esc(l.link)}" readonly aria-label="Setup link for ${esc(l.email)}">
+      <button type="button" class="btn primary" data-act="copy" data-text="${esc(l.link)}" data-label="Setup link">${icon("copy")}Copy</button>
+      <button type="button" class="btn secondary" data-act="team-link-done">Done</button></div></div></div>`;
+}
 
 function previewStyle(color) {
   return Object.entries(themeVars(color)).map(([k, v]) => `${k}:${v}`).join(";");
@@ -77,18 +88,20 @@ export function viewSchool() {
     <section class="tile wide">
       <div class="card-head"><h2>${icon("users")}Your team</h2><span class="muted small">${team && team.members ? plural(team.members.length, "person", "people") : ""}</span></div>
       ${!team ? skeleton(2) : team.error ? `<p class="muted">${esc(team.error)}</p>` : `
-        ${team.legacy_key ? `<div class="alert caution">${icon("key")}<p><strong>This school still has its old shared staff key.</strong> Add your email below and sign in with it, then retire the key so only named people have access.${a.via === "email" && owner ? ` <button class="link" data-act="retire-key">Retire the old key now</button>` : ""}</p></div>` : ""}
+        ${team.legacy_key ? `<div class="alert caution">${icon("key")}<p><strong>This school still has its old shared staff key.</strong> Add your email below, set a password with its setup link, then retire the key so only named people have access.${a.via === "email" && owner ? ` <button class="link" data-act="retire-key">Retire the old key now</button>` : ""}</p></div>` : ""}
         <ul class="team">${team.members.map(m => `<li>
           <span class="team-av" aria-hidden="true">${esc(m.email.charAt(0).toUpperCase())}</span>
-          <div class="team-main"><p class="team-e">${esc(m.email)}${m.me ? ' <span class="muted">(you)</span>' : ""}</p><p class="team-s">${roleBadge(m.role)} · added ${esc(timeAgo(m.added_at))}</p></div>
+          <div class="team-main"><p class="team-e">${esc(m.email)}${m.me ? ' <span class="muted">(you)</span>' : ""}</p><p class="team-s">${roleBadge(m.role)} · ${m.ready ? `added ${esc(timeAgo(m.added_at))}` : "hasn't set a password yet"}</p></div>
+          ${admin && rank(m.role) <= rank(a.role) ? `<button class="icon-btn" data-act="team-link" data-id="${m.id}" title="${m.ready ? "Password reset link" : "Password setup link"}" aria-label="${m.ready ? "Password reset link" : "Password setup link"} for ${esc(m.email)}">${icon("link")}</button>` : ""}
           ${admin && !m.me ? `<button class="icon-btn danger" data-act="team-remove" data-id="${m.id}" data-email="${esc(m.email)}" aria-label="Remove ${esc(m.email)}">${icon("trash")}</button>` : ""}
         </li>`).join("")}</ul>
+        ${admin ? teamLinkHTML() : ""}
         ${admin ? `<form class="invite" data-form="invite">
           <label class="label" for="inv-email">Add someone from your cafeteria or office</label>
           <div class="invite-row"><input class="input" id="inv-email" type="email" inputmode="email" placeholder="name@school.edu" autocomplete="off" required>
             <select class="input" id="inv-role" aria-label="Role"><option value="cook">Cook: edit menu, reply</option><option value="admin">Admin: manage team</option>${owner ? '<option value="owner">Owner: everything</option>' : ""}</select>
-            <button class="btn primary" type="submit">${icon("mail")}Invite</button></div>
-          <p class="help">They sign in with that email. We send them a link, no password.</p>
+            <button class="btn primary" type="submit">${icon("plus")}Add</button></div>
+          <p class="help">Nothing is emailed. You get a setup link to pass on, and they use it to pick a password.</p>
         </form>` : `<p class="muted small">Only admins can add or remove people.</p>`}`}
     </section>
 
@@ -99,7 +112,7 @@ export function viewSchool() {
       <div class="group">
         <div class="cell"><div class="cell-main"><p class="cell-t">Time zone</p><p class="cell-s">${esc(s.tz.replace(/_/g, " "))} · Today is ${esc(state.today || "")}</p></div></div>
         <button class="cell" data-act="as-student"><div class="cell-main"><p class="cell-t">Open student view</p><p class="cell-s">See and rate the menu the way students do</p></div>${icon("chevR")}</button>
-        <button class="cell" data-act="signout"><div class="cell-main"><p class="cell-t">Sign out</p><p class="cell-s">${a.via === "email" ? "You'll get a new sign-in link by email next time" : "You'll need the staff key to sign back in"}</p></div>${icon("chevR")}</button>
+        <button class="cell" data-act="signout"><div class="cell-main"><p class="cell-t">Sign out</p><p class="cell-s">${a.via === "email" ? "Sign back in with your email and password" : "You'll need the staff key to sign back in"}</p></div>${icon("chevR")}</button>
         ${owner ? `<button class="cell danger" data-act="delete-school"><div class="cell-main"><p class="cell-t">Delete school</p><p class="cell-s">Permanently removes menus, photos, ratings, ideas and the team</p></div>${icon("chevR")}</button>` : ""}
       </div>
     </section>
@@ -133,13 +146,21 @@ registerActions({
     state.draftGrades = GRADES.filter(x => cur.includes(x));
     el.setAttribute("aria-pressed", String(i < 0));
   },
+  async "team-link"(el) {
+    el.disabled = true;
+    try {
+      const out = await api("POST", `staff/${el.dataset.id}/link?school=${school().id}`);
+      state.teamLink = { email: out.email, link: out.link }; render();
+    } catch (e) { toast(e.message, true); el.disabled = false; }
+  },
+  "team-link-done"() { state.teamLink = null; render(); },
   async "team-remove"(el) {
     if (!(await askConfirm({ title: `Remove ${el.dataset.email}?`, body: "They'll lose access right away. You can add them again later.", ok: "Remove", danger: true }))) return;
     try { await api("DELETE", `staff/${el.dataset.id}?school=${school().id}`); state.team = null; render(); toast("Removed"); }
     catch (e) { toast(e.message, true); }
   },
   async "retire-key"() {
-    if (!(await askConfirm({ title: "Retire the old staff key?", body: "Anyone still using it will be signed out. Make sure you and your team can sign in by email first.", ok: "Retire key", danger: true }))) return;
+    if (!(await askConfirm({ title: "Retire the old staff key?", body: "Anyone still using it will be signed out. Make sure you and your team have set passwords first.", ok: "Retire key", danger: true }))) return;
     try { await api("POST", `schools/${school().id}/retire-key`); LS.del("ll_admin"); state.team = null; render(); toast("Old key retired"); }
     catch (e) { toast(e.message, true); }
   },
@@ -155,7 +176,7 @@ registerActions({
     } catch (e) { toast(e.message, true); }
   },
   async signout() {
-    if (!(await askConfirm({ title: "Sign out of the staff view?", body: state.admin.via === "email" ? "You can sign back in any time with your email." : "You'll need your staff key to sign back in.", ok: "Sign out" }))) return;
+    if (!(await askConfirm({ title: "Sign out of the staff view?", body: state.admin.via === "email" ? "You can sign back in any time with your email and password." : "You'll need your staff key to sign back in.", ok: "Sign out" }))) return;
     try { await api("POST", "auth/logout"); } catch { /* the cookie is cleared locally either way */ }
     LS.del("ll_admin"); LS.del("ll_admin_school"); state.admin = null;
     if (state.student) setMode("student"); else leaveToWelcome();
@@ -185,8 +206,10 @@ export async function submitSettingsForm(f) {
   if (f.dataset.form === "invite") {
     const email = $("#inv-email").value.trim(), role = $("#inv-role").value;
     try {
-      await api("POST", "staff", { school: school().id, email, role });
-      state.team = null; render(); toast(`${email} added. They can sign in now.`);
+      const out = await api("POST", "staff", { school: school().id, email, role });
+      state.team = null;
+      state.teamLink = out.link ? { email, link: out.link } : null;
+      render(); toast(out.link ? `${email} added. Send them the setup link.` : `${email} added. They can sign in with their password.`);
     } catch (e) { toast(e.message, true); }
   }
 }

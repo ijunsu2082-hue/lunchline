@@ -7,7 +7,7 @@ import { render, go, TABS } from "./ui.js";
 export function resetData() {
   Object.assign(state, {
     week: null, day: null, meal: null, touched: false, weeks: {}, mine: {}, ideas: null,
-    aWeek: null, aDay: null, aWeeks: {}, insights: null, team: null, reports: null, audit: null, today: null,
+    aWeek: null, aDay: null, aWeeks: {}, insights: null, team: null, teamLink: null, reports: null, audit: null, today: null,
     bannerAt: 0, dishOpen: null, ideaDraft: "", ideaMatches: [],
   });
   state.openComment.clear(); state.cDraft = {};
@@ -31,8 +31,9 @@ export const FLOWS = {
   welcome: ["welcome"],
   student: ["school", "setup"],
   parent: ["school"],
-  signin: ["email"],
+  signin: ["login"],
   create: ["create"],
+  invite: ["newpass"],
 };
 
 export function startFlow(flow, data = {}, opts = {}) {
@@ -42,9 +43,10 @@ export function startFlow(flow, data = {}, opts = {}) {
     steps: opts.steps || FLOWS[flow],
     exit: opts.exit || "welcome",
     d: {
-      findBy: "code", code: "", q: "", results: null, school: null,
+      findBy: "code", code: "", q: "", results: null, all: null, school: null,
       grade: "", allergies: [], allergyOther: "", allergyOtherOn: false, cuisines: [], cuisineOther: "", cuisineOtherOn: false,
-      email: "", schoolName: "", sample: true, sent: false, devLink: "", picking: null,
+      email: "", password: "", schoolName: "", sample: true, picking: null,
+      token: "", setupEmail: "", setupSchool: "",
       ...(flow === "edit" && st ? { ...st, allergyOtherOn: !!st.allergyOther, cuisineOtherOn: !!st.cuisineOther, allergies: [...st.allergies], cuisines: [...st.cuisines] } : {}),
       ...data,
     },

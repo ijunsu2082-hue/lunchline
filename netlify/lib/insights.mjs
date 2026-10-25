@@ -1,5 +1,5 @@
 // Turns raw ratings into what the kitchen sees. Pure functions: the API, the
-// weekly email, and the tests all use the same numbers.
+// weekly report, and the tests all use the same numbers.
 //
 // A rating row looks like:
 //   { date, item_id, vote, comment, updated_at, who, grade, hidden }

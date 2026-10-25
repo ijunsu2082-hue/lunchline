@@ -72,7 +72,7 @@ export async function loadInsights() {
 
 export function adminGone() {
   LS.del("ll_admin"); LS.del("ll_admin_school"); state.admin = null;
-  toast("You were signed out. Sign in again with your email.", true);
+  toast("You were signed out. Sign in again with your email and password.", true);
   if (state.student) setMode("student"); else leaveToWelcome();
 }
 

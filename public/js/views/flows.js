@@ -1,6 +1,6 @@
 // Onboarding and sign-in: a student joining a school (scan, then one quick
-// optional screen), a parent opening the menu, and staff signing in or creating
-// a school by email link.
+// optional screen), a parent opening the menu, and staff signing in with a
+// password, creating a school, or picking a password from a setup link.
 import { $, esc, normCode, LS, D, zoned } from "../util.js";
 import { state, ALLERGENS, GRADE_ORDER } from "../state.js";
 import { api, ensureToken } from "../api.js";
@@ -11,12 +11,16 @@ import { render, toast, registerActions, focusTitle } from "../ui.js";
 import { startFlow, obExit, setMode, leaveToWelcome, sampleDays } from "../session.js";
 import { welcomeHTML } from "./welcome.js";
 
+const STAFF_FLOWS = ["signin", "create", "invite"];
+const validEmail = s => /.+@.+\..+/.test(s.trim());
+const PASSWORD_MIN = 8;
+
 // ---------- shells ----------
 const blobs = '<svg class="fl-blobs" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-20 210c60-70 120-30 170-80s40-110 120-120 130 60 150 20v250H-20z" fill="rgba(255,255,255,.05)"/><path d="M240 320c10-70 70-90 120-70s60 70 60 70z" fill="rgba(255,255,255,.07)"/></svg>';
 
 // Students and families can switch language right on the join screens.
 function langSlot(ob) {
-  if (ob.flow === "signin" || ob.flow === "create") return '<span class="icon-btn ghost-space"></span>';
+  if (STAFF_FLOWS.includes(ob.flow)) return '<span class="icon-btn ghost-space"></span>';
   const cur = document.documentElement.lang || "en";
   const other = LANGS.find(([k]) => k !== cur) || LANGS[0];
   return `<button type="button" class="chip-btn" data-act="lang" data-lang="${other[0]}" lang="${other[0]}" aria-label="${other[1]}">${icon("globe")}<span>${other[0].toUpperCase()}</span></button>`;
@@ -80,11 +84,23 @@ function cuisineChips(d) {
   </div>`;
 }
 
+const resultList = (list, which) => `<ul class="result-list">${list.map((s, i) => `<li><button type="button" class="result" data-act="ob-pick" data-list="${which}" data-i="${i}"><span class="result-t">${esc(s.name)}</span>${icon("chevR")}</button></li>`).join("")}</ul>`;
+
 function resultsHTML(d) {
-  if (d.q.trim().length < 2) return "";
+  if (d.q.trim().length < 2) return d.all?.length ? `<p class="help">${esc(t("join.allSchools"))}</p>${resultList(d.all, "all")}` : "";
   if (d.results === null) return `<p class="help">${esc(t("common.searching"))}</p>`;
   if (!d.results.length) return `<p class="help">${esc(t("join.noResults", { q: d.q.trim() }))}</p>`;
-  return `<ul class="result-list">${d.results.map((s, i) => `<li><button type="button" class="result" data-act="ob-pick" data-i="${i}"><span class="result-t">${esc(s.name)}</span>${icon("chevR")}</button></li>`).join("")}</ul>`;
+  return resultList(d.results, "results");
+}
+
+// Every school, for picking from before typing anything. Loaded once per flow.
+async function loadAllSchools() {
+  const d = state.ob?.d;
+  if (!d || d.all) return;
+  d.all = [];
+  try { d.all = (await api("GET", "schools?all=1")).schools; } catch { d.all = null; return; }
+  const box = $("#results");
+  if (box && state.ob?.d === d && d.q.trim().length < 2) box.innerHTML = resultsHTML(d);
 }
 
 // ---------- steps ----------
@@ -128,36 +144,52 @@ const STEPS = {
   food(d) {
     return { title: esc(t("me.food")), lede: esc(t("me.food.why")), body: cuisineChips(d), cta: t("common.save"), ready: true };
   },
-  email(d) {
-    if (d.sent) return sentStep(d);
+  login(d) {
     return {
-      title: "Staff sign in", lede: "Enter your school email and we'll send you a sign-in link. No password to remember.",
+      title: "Staff sign in", lede: "Sign in with your school email and password.",
       body: `<label class="label" for="in-email">School email</label>
-        <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="email" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
-        <p class="help">${icon("shield")}Only people added to a school can get in. Students never need this.</p>
+        <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
+        <label class="label" for="in-pw">Password</label>
+        <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="current-password" aria-describedby="ob-err">
+        <p class="help">${icon("shield")}New to the team, or forgot your password? Ask your school's admin for a setup link. Students never need this.</p>
         <details class="master"><summary>Have a master code?</summary>
           <label class="label" for="in-master">Master code</label>
           <div class="master-row"><input class="input" id="in-master" type="password" autocomplete="off" maxlength="80" aria-describedby="ob-err"><button type="button" class="btn secondary" data-act="master-staff">Open</button></div>
         </details>`,
-      cta: "Email me a link", ready: /.+@.+\..+/.test(d.email.trim()),
+      cta: "Sign in", ready: validEmail(d.email) && d.password.length > 0,
     };
   },
   create(d) {
-    if (d.sent) return sentStep(d);
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Chicago";
     return {
-      title: "Set up your school", lede: "Confirm your email and you're in: a join code and QR poster are one tap away.",
+      title: "Set up your school", lede: "Pick a password and you're in: a join code and QR poster are one tap away.",
       body: `<label class="label" for="in-sn">School name</label>
         <input class="input lg" id="in-sn" data-bind="schoolName" value="${esc(d.schoolName)}" maxlength="60" placeholder="e.g. Lincoln High School" autocomplete="organization">
         <label class="label" for="in-email">Your email</label>
-        <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="email" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
+        <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
+        <label class="label" for="in-pw">Password</label>
+        <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="new-password" aria-describedby="pw-help ob-err">
+        <p class="help" id="pw-help">At least ${PASSWORD_MIN} characters. You'll sign in with this email and password.</p>
         <label class="check">
           <input type="checkbox" class="sr-only" data-bind-check="sample"${d.sample ? " checked" : ""}>
           <span class="check-box">${icon("check")}</span>
           <span class="check-text"><strong>Start with a sample menu</strong><span>Four weeks of breakfast, snack and lunch with photos, so you can try everything right away. Edit or delete any dish.</span></span>
         </label>
         <p class="help">${icon("clock")}Time zone: ${esc(tz.replace(/_/g, " "))}. You can change grades and more afterwards.</p>`,
-      cta: "Email me a link", ready: d.schoolName.trim().length >= 2 && /.+@.+\..+/.test(d.email.trim()),
+      cta: "Create my school", ready: d.schoolName.trim().length >= 2 && validEmail(d.email) && d.password.length >= PASSWORD_MIN,
+    };
+  },
+  // Reached from a setup link an admin shared (?setup=…).
+  newpass(d) {
+    return {
+      title: d.setupSchool ? `Join ${esc(d.setupSchool)}` : "Set your password",
+      lede: d.setupEmail
+        ? `Pick a password for <strong>${esc(d.setupEmail)}</strong>. You'll use it to sign in from now on.`
+        : "Checking your setup link…",
+      body: `<label class="label" for="in-pw">New password</label>
+        <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="new-password" aria-describedby="pw-help ob-err"${d.setupEmail ? "" : " disabled"}>
+        <p class="help" id="pw-help">At least ${PASSWORD_MIN} characters.</p>`,
+      cta: "Set password and sign in", ready: !!d.setupEmail && d.password.length >= PASSWORD_MIN,
     };
   },
 };
@@ -165,29 +197,14 @@ const STEPS = {
 // The colors schools reach for most; the full set lives in School settings.
 const QUICK_COLORS = PRESET_GROUPS.flatMap(([, l]) => l).filter(([n]) => ["Scarlet", "Cardinal", "Maroon", "Orange", "Gold", "Kelly green", "Forest", "Hunter", "Teal", "Sky", "Royal", "Navy", "Purple", "Pink", "Black"].includes(n));
 
-function sentStep(d) {
-  const demo = !!d.devLink;
-  return {
-    noBack: false, hideTabs: true,
-    title: demo ? "Your sign-in link" : "Check your email",
-    lede: demo
-      ? `This server isn't connected to an email service, so instead of emailing <strong>${esc(d.email.trim())}</strong> we're showing the link here. It works once and expires in 15 minutes.`
-      : `We sent a sign-in link to <strong>${esc(d.email.trim())}</strong>. It works once and expires in 15 minutes. Open it on this device.`,
-    body: demo
-      ? `<div class="dev-note"><p><strong>Demo mode.</strong> Anyone who can reach this page could sign in as any staff email, so only use demo mode for testing or showing LunchLine off.</p><a class="btn primary lg block" href="${esc(d.devLink)}">Open my sign-in link${icon("arrowR")}</a></div>`
-      : `<div class="sent-card">${icon("mail")}<p>Nothing yet? Check spam, or <button type="button" class="link" data-act="ob-resend">send it again</button>.</p></div>`,
-    foot: "",
-  };
-}
-
 // ---------- render ----------
 export function renderOb() {
   const ob = state.ob, step = ob.steps[ob.i];
   if (step === "welcome") return welcomeHTML();
   const S = STEPS[step](ob.d, ob);
-  const staffFlow = ob.flow === "signin" || ob.flow === "create";
+  const staffFlow = STAFF_FLOWS.includes(ob.flow);
   const foot = S.foot !== undefined ? S.foot : cta(S.cta, S.ready, ob.busy) + (S.foot2 || "");
-  const tabs = staffFlow && !S.hideTabs
+  const tabs = ob.flow === "signin" || ob.flow === "create"
     ? `<div class="fl-tabs" role="tablist" aria-label="Staff"><button type="button" role="tab" data-act="staff-tab" data-tab="signin" aria-selected="${ob.flow === "signin"}">Sign in</button><button type="button" role="tab" data-act="staff-tab" data-tab="create" aria-selected="${ob.flow === "create"}">New school</button></div>` : "";
   const hero = staffFlow
     ? `<div class="stitch-logo">${mark(54)}</div><p class="stitch-name">LunchLine</p><p class="stitch-k">For cafeteria staff</p>`
@@ -240,18 +257,14 @@ export async function obSubmit() {
     } catch (e) { ob.busy = false; render(); obError(e.message); }
     return;
   }
-  if (step === "email" || step === "create") {
+  if (step === "login" || step === "create" || step === "newpass") {
     obBusy(true); obError("");
     try {
-      const create = step === "create";
-      const out = await api("POST", "auth/request", create
-        ? { email: d.email.trim(), mode: "create", name: d.schoolName.trim(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, sample: d.sample, color: d.color }
-        : { email: d.email.trim(), mode: "login" });
-      if (out.dev_note) { // demo/dev mode only: tell them plainly instead of waiting for an email that won't come
-        ob.busy = false; render(); obError(`${out.dev_note} Use the “New school” tab to create one with this email.`); return;
-      }
-      d.sent = true; d.devLink = out.dev_link || "";
-      ob.busy = false; render(true);
+      const out = step === "login" ? await api("POST", "auth/login", { email: d.email.trim(), password: d.password })
+        : step === "create" ? await api("POST", "auth/signup", { email: d.email.trim(), password: d.password, name: d.schoolName.trim(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, sample: d.sample, color: d.color })
+        : await api("POST", "auth/setup", { token: d.token, password: d.password });
+      ob.busy = false;
+      await finishSignIn(out);
     } catch (e) { ob.busy = false; render(); obError(e.message); }
     return;
   }
@@ -318,22 +331,26 @@ export async function enterAdmin(out, via = "email") {
   setMode("admin");
 }
 
-export async function consumeLoginLink(token, demo = false) {
-  try {
-    const out = demo ? await api("POST", "auth/master", { code: token }) : await api("POST", "auth/verify", { token });
-    await enterAdmin(out);
-    if (out.created && out.sample) {
-      const start = D.monday(zoned(out.created.tz).date);
-      try { await api("PUT", "menu", { school: out.created.id, days: sampleDays(start, 4) }); }
-      catch { toast("Your school is ready, but the sample menu didn't load. Add it from the Menu tab.", true); }
-    }
-    toast(out.created ? `${out.created.name} is ready` : `Signed in to ${state.admin.school.name}`);
-    return true;
-  } catch (e) {
-    startFlow("signin");
-    obError(e.message);
-    return false;
+// After any successful sign-in: open the staff view, and load the sample menu into a brand-new school.
+async function finishSignIn(out) {
+  await enterAdmin(out);
+  if (out.created && out.sample) {
+    const start = D.monday(zoned(out.created.tz).date);
+    try { await api("PUT", "menu", { school: out.created.id, days: sampleDays(start, 4) }); }
+    catch { toast("Your school is ready, but the sample menu didn't load. Add it from the Menu tab.", true); }
   }
+  toast(out.created ? `${out.created.name} is ready` : `Signed in to ${state.admin.school.name}`);
+}
+
+// Opened from a setup link: show who it's for, then ask for a password.
+export async function openSetupLink(token) {
+  startFlow("invite", { token });
+  try {
+    const info = await api("POST", "auth/setup-info", { token });
+    if (state.ob?.flow !== "invite") return;
+    state.ob.d.setupEmail = info.email; state.ob.d.setupSchool = info.school;
+    render(true);
+  } catch (e) { obError(e.message); }
 }
 
 // ---------- clicks ----------
@@ -341,8 +358,10 @@ registerActions({
   async "master-staff"(el) {
     const code = $("#in-master")?.value.trim();
     if (!code) { obError("Enter the master code."); return; }
-    el.disabled = true;
-    try { await consumeLoginLink(code, true); } finally { el.disabled = false; }
+    el.disabled = true; obError("");
+    try { await finishSignIn(await api("POST", "auth/master", { code })); }
+    catch (e) { obError(e.message); }
+    finally { el.disabled = false; }
   },
   role(el) {
     const r = el.dataset.role;
@@ -356,11 +375,11 @@ registerActions({
     const ob = state.ob;
     ob.d.findBy = el.dataset.by; ob.err = ""; render();
     $(el.dataset.by === "name" ? "#in-q" : "#in-code")?.focus();
-    if (el.dataset.by === "name" && ob.d.q) searchSchools();
+    if (el.dataset.by === "name") { loadAllSchools(); if (ob.d.q) searchSchools(); }
   },
   "ob-pick"(el) {
     const ob = state.ob;
-    ob.d.school = ob.d.results[+el.dataset.i];
+    ob.d.school = (el.dataset.list === "all" ? ob.d.all : ob.d.results)[+el.dataset.i];
     applyTheme(ob.d.school.theme?.color);
     if (ob.flow === "student") ensureToken(ob.d.school.id).catch(() => {});
     obNext();
@@ -398,20 +417,9 @@ registerActions({
   "staff-tab"(el) {
     const ob = state.ob;
     if (ob.flow === el.dataset.tab) return;
-    ob.flow = el.dataset.tab; ob.steps = [el.dataset.tab === "create" ? "create" : "email"]; ob.i = 0; ob.err = ""; ob.d.sent = false;
+    ob.flow = el.dataset.tab; ob.steps = [el.dataset.tab === "create" ? "create" : "login"]; ob.i = 0; ob.err = "";
     render();
     $("[data-act=staff-tab][aria-selected=true]")?.focus();
-  },
-  async "ob-resend"() {
-    const ob = state.ob, d = ob.d;
-    try {
-      const create = ob.flow === "create";
-      const out = await api("POST", "auth/request", create
-        ? { email: d.email.trim(), mode: "create", name: d.schoolName.trim(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, sample: d.sample, color: d.color }
-        : { email: d.email.trim(), mode: "login" });
-      d.devLink = out.dev_link || "";
-      toast("Sent again. Check your inbox."); render();
-    } catch (e) { toast(e.message, true); }
   },
 });
 
