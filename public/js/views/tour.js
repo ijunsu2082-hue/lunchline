@@ -1,7 +1,7 @@
 // A working miniature of the student app for the landing page: rate dishes, flag an allergy or vegetarian,
 // vote on ideas, suggest one. It runs entirely in the page; nothing is saved or sent.
 import { esc } from "../util.js";
-import { icon } from "../icons.js";
+import { icon, mark } from "../icons.js";
 
 const DISHES = [
   { id: "t1", name: "Teriyaki Chicken & Rice Bowl", img: "teriyaki-chicken-bowl", cal: 540, meat: true, allergens: ["Soy", "Wheat"], desc: "Grilled teriyaki chicken over steamed rice with a side salad." },
@@ -67,7 +67,7 @@ export function bindTour(root) {
 
   function draw(focusSel) {
     const top = screen.scrollTop;
-    screen.innerHTML = `<div class="tp-bar"><span class="tp-logo" aria-hidden="true"></span><nav class="tp-tabs" aria-label="Demo app">${[["lunch", "Lunch"], ["ideas", "Ideas"], ["me", "Me"]].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${S.tab === k}">${l}</button>`).join("")}</nav></div>
+    screen.innerHTML = `<div class="tp-bar"><span class="tp-logo" aria-hidden="true">${mark(26, "#FF5A1F")}</span><nav class="tp-tabs" aria-label="Demo app">${[["lunch", "Lunch"], ["ideas", "Ideas"], ["me", "Me"]].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${S.tab === k}">${l}</button>`).join("")}</nav></div>
       <div class="tp-body"><p class="tp-school">Irvine High School</p>${body()}<p class="tp-note">Try it. Nothing here is saved or sent.</p></div>`;
     screen.scrollTop = top;
     if (focusSel) screen.querySelector(focusSel)?.focus({ preventScroll: true });

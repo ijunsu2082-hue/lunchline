@@ -1,6 +1,6 @@
 // The landing page. Real food photography, a serif headline, and plain talk.
 // Styles: landing.css. Motion: startWelcomeMotion (scroll reveals, word-by-word headings, parallax, photo strips
-// you can drag, count-up), all calm or off for reduced motion. The footer lets a visitor pick the page's accent hue.
+// you can drag, count-up), all calm or off for reduced motion. 
 import { esc, $, $$, reducedMotion } from "../util.js";
 import { icon, mark } from "../icons.js";
 import { tourHTML, bindTour } from "./tour.js";
@@ -17,13 +17,8 @@ const STEPS = [
   { photo: "orange-chicken-rice", t: "The kitchen answers on the dish.", p: "The cooks read your comments, fix what's wrong, and reply right under the dish." },
 ];
 
-const HUE_KEY = "ll_lx_hue", HUE_DEFAULT = 16;
-const PRESETS = [[16, "Orange"], [150, "Green"], [215, "Blue"], [270, "Purple"], [335, "Pink"]];
-const savedHue = () => { try { const v = Number(localStorage.getItem(HUE_KEY)); return Number.isFinite(v) && v >= 0 && v <= 360 && localStorage.getItem(HUE_KEY) !== null ? Math.round(v) : HUE_DEFAULT; } catch { return HUE_DEFAULT; } };
-
 export function welcomeHTML() {
-  const hue = savedHue();
-  return `<div class="lx" style="--h:${hue}">
+  return `<div class="lx">
     <header class="lx-nav" id="lx-nav">
       <div class="lx-wrap lx-nav-in">
         <a class="lx-brand" href="/" aria-label="LunchLine home">${mark(30, "#FF5A1F")}<span>LunchLine</span></a>
@@ -118,11 +113,6 @@ export function welcomeHTML() {
 
     <footer class="lx-foot"><div class="lx-wrap lx-foot-in">
       <span>We hope LunchLine can help your school!</span>
-      <div class="lx-hue">
-        <label for="lx-hue-r">Page color</label>
-        <input id="lx-hue-r" class="lx-hue-r" type="range" min="0" max="360" value="${hue}" aria-label="Page color hue">
-        <span class="lx-dots" role="group" aria-label="Color presets">${PRESETS.map(([h, name]) => `<button type="button" class="lx-dot" data-hue="${h}" style="--d:${h}" aria-label="${name}"></button>`).join("")}</span>
-      </div>
     </div></footer>
   </div>`;
 }
@@ -133,12 +123,6 @@ export function startWelcomeMotion() {
   const root = $(".lx");
   if (!root) return;
   bindTour(root);
-
-  // page color
-  const range = $("#lx-hue-r", root);
-  const setHue = h => { root.style.setProperty("--h", h); if (range) range.value = h; try { localStorage.setItem(HUE_KEY, String(h)); } catch { /* private mode */ } };
-  range?.addEventListener("input", () => setHue(+range.value));
-  $$(".lx-dot", root).forEach(b => b.addEventListener("click", () => setHue(+b.dataset.hue)));
 
   // nav shadow and the reading-progress line
   const nav = $("#lx-nav"), bar = $(".lx-progress", root);

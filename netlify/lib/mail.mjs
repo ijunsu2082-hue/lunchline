@@ -57,7 +57,7 @@ function layout(title, inner, preheader = "", color = ORANGE) {
 <span style="display:none;max-height:0;overflow:hidden">${escHtml(preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:16px;border:1px solid #EADFD0">
-<tr><td style="padding:22px 28px 0"><img src="${logoUrl(color)}" width="32" height="32" alt="LunchLine" style="display:inline-block;width:32px;height:32px;border:0;vertical-align:middle">
+<tr><td style="padding:22px 28px 0"><span style="display:inline-block;width:32px;height:32px;border-radius:9px;background:${HEXRE.test(color || "") ? color : ORANGE};vertical-align:middle;overflow:hidden"><img src="${logoUrl(color)}" width="32" height="32" alt="" style="display:block;width:32px;height:32px;border:0"></span>
 <span style="font-weight:800;font-size:18px;vertical-align:middle;margin-left:8px">LunchLine</span></td></tr>
 <tr><td style="padding:18px 28px 28px"><h1 style="font-size:22px;line-height:1.25;margin:0 0 14px">${escHtml(title)}</h1>${inner}</td></tr>
 </table>

@@ -115,7 +115,7 @@ document.addEventListener("submit", e => {
   if (kind === "ob") obSubmit();
   else if (kind === "editor") saveEditor();
   else if (kind === "idea" || kind === "idea-menu" || kind === "idea-reply") submitIdeaForm(f);
-  else if (kind === "reply-dish" || kind === "waste") submitStaffForm(f);
+  else if (kind === "reply-dish" || kind === "waste" || kind === "custom-range") submitStaffForm(f);
   else if (kind === "preset-save" || kind === "preset-load") submitPresetForm(f);
   else if (kind === "school-grades" || kind === "invite") submitSettingsForm(f);
 });
