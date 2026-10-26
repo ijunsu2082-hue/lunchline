@@ -377,7 +377,7 @@ async function deliver(to, msg, link) {
 }
 
 // Asks for a sign-in link, or for a link that creates a new school once the email is confirmed.
-// Whether or not the email belongs to anyone, the answer is the same.
+// An email that is on no school's team is told so, rather than being sent a fake "check your email".
 async function authRequest(store, req) {
   const secret = await getSecret(store);
   const b = await body(req);
@@ -396,12 +396,14 @@ async function authRequest(store, req) {
     const link = await loginLink(store, req, data);
     return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "create", schoolName: name, color: data.color }), link)) };
   }
+  // Whether mail is set up is not a secret, so say so instead of pretending a link went out.
+  if (!mailConfigured() && !globalThis.__LL_DEV) fail(503, "Sign-in emails aren't set up on this site yet.");
   const mine = await membershipsFor(store, email);
   if (mine.length) {
     const link = await loginLink(store, req, { email, purpose: "login" });
     return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "login", color: mine[0].school.theme?.color }), link)) };
   }
-  return { sent: true };
+  fail(404, "No school has that email on its team. Check the spelling, ask your admin to add you, or use the New school tab to start one.");
 }
 
 // Uses a link: confirms the email, creates the school if that's what it was for, and starts a session.

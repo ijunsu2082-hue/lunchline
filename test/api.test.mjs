@@ -77,13 +77,13 @@ test("creating a school needs a confirmed email, and signing in works with a lin
   assert.equal((await c("POST", "auth/login", { email: "a@b.edu", password: "x" })).status, 404, "the password route is gone");
 });
 
-test("asking for a sign-in link gives the same answer whether or not the email is on a team", async () => {
+test("asking for a sign-in link tells a stranger no school has their email instead of faking a send", async () => {
   const { staff } = await setup();
   const known = await staff("POST", "auth/request", { email: "cook@school.edu" });
   const unknown = await staff("POST", "auth/request", { email: "stranger@elsewhere.com" });
   assert.equal(known.status, 200);
-  assert.equal(unknown.status, 200);
-  assert.equal(unknown.body.sent, true);
+  assert.equal(unknown.status, 404);
+  assert.match(unknown.body.error, /No school has that email/);
   assert.equal(unknown.body.dev_link, undefined, "no link is made for a stranger");
 });
 

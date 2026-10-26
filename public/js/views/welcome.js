@@ -113,6 +113,7 @@ export function welcomeHTML() {
 
     <footer class="lx-foot"><div class="lx-wrap lx-foot-in">
       <span>We hope LunchLine can help your school!</span>
+      <a class="lx-tour" href="/walkthrough.html">Watch the 90 second tour</a>
     </div></footer>
   </div>`;
 }
