@@ -37,7 +37,7 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 
 - QR join with no student accounts
 - Breakfast, snack and lunch menus, with allergens and nutrition facts (calories, protein, fat, saturated fat, carbs, fiber, sodium) per dish. The sample menu is Irvine High School's snack and lunch flyer for the week of October 19, 2026, with nutrition and allergen text taken as written from the district's 2026-27 high school nutrition sheet. Dishes the sheet doesn't list are left blank and say to ask nutrition services
-- Staff email and password sign-in with roles: cook, admin, owner. Admins add teammates with a setup link they copy and pass on (nothing is emailed), and an optional master code covers live demos
+- Staff email and password sign-in with roles: cook, admin, owner. Admins add teammates with a setup link they copy and pass on (also emailed when `BREVO_API_KEY` or `RESEND_API_KEY` is set), and an optional master code covers live demos
 - A dozen demo schools (plus the master school) whose photo menus fill themselves, so there's always something to try
 - Device tokens with proof-of-work, rate limits, and suspicious-rating detection
 - Allergen flagging
@@ -98,7 +98,7 @@ npm test           # server tests
 npm run check      # translations, imports, offline file list
 ```
 
-Staff sign in with an email and password, so nothing needs a mail service. To add someone, an admin adds their email under School > Your team and copies the setup link that appears; the new teammate opens it and picks a password. The same "Reset link" covers a forgotten password. A password belongs to one school's team, so an admin can never change anyone's access to another school. Local settings go in a `.env` file (git ignores it); the dev server reads it.
+Staff sign in with an email and password, so sign-in never depends on a mail service. To add someone, an admin adds their email under School > Your team and copies the setup link that appears; the new teammate opens it and picks a password. The same "Reset link" covers a forgotten password. A password belongs to one school's team, so an admin can never change anyone's access to another school. Local settings go in a `.env` file (git ignores it); the dev server reads it.
 
 **Master code.** For live demos, set `MASTER_CODE` (8+ characters) and optionally `MASTER_EMAIL` and `MASTER_SCHOOL`. On the staff sign-in screen, "Have a master code?" then signs in as that email, as the owner of that school and the demo schools, creating the school with the sample menu on first use. It is off unless `MASTER_CODE` is set, is compared in constant time, and wrong guesses are rate limited. Treat it like a password.
 
@@ -132,6 +132,8 @@ What is and is not guaranteed:
 - Security headers (strict Content-Security-Policy and others) are set in `netlify.toml`.
 
 ## Deployment
+
+**Optional email.** Set `BREVO_API_KEY` (free, one verified sender address is enough) or `RESEND_API_KEY`, plus `FROM_EMAIL`, and teammate setup links are also emailed. Check it with `npm run mailtest -- you@example.com`. Without a key, admins copy the link as before.
 
 Deploy on Netlify. The `main` branch builds production; other branches and previews are skipped (see `netlify.toml`). Set the environment variables from `.env.example` in the Netlify dashboard, at minimum `SITE_URL` (so setup links point at the live site) and, for demos, `MASTER_CODE`. No email service is needed.
 

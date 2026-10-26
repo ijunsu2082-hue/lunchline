@@ -28,11 +28,11 @@ async function loadTeam() {
 const roleBadge = r => `<span class="role-badge r-${r}">${esc(r)}</span>`;
 const rank = r => ["cook", "admin", "owner"].indexOf(r);
 
-// The setup link just made for a teammate. Nothing is emailed, so it's shown here to copy and pass on.
+// The setup link just made for a teammate. It's emailed when the site has an email service, and always shown here to copy and pass on.
 function teamLinkHTML() {
   const l = state.teamLink;
   if (!l) return "";
-  return `<div class="alert setup-link">${icon("link")}<div><p><strong>Send this link to ${esc(l.email)}.</strong> It lets them pick a password for this school. It works once, within 7 days.</p>
+  return `<div class="alert setup-link">${icon("link")}<div><p><strong>${l.emailed ? `We emailed this link to ${esc(l.email)}. You can also copy it.` : `Send this link to ${esc(l.email)}.`}</strong> It lets them pick a password for this school. It works once, within 7 days.</p>
     <div class="invite-row"><input class="input" value="${esc(l.link)}" readonly aria-label="Setup link for ${esc(l.email)}">
       <button type="button" class="btn primary" data-act="copy" data-text="${esc(l.link)}" data-label="Setup link">${icon("copy")}Copy</button>
       <button type="button" class="btn secondary" data-act="team-link-done">Done</button></div></div></div>`;
@@ -51,7 +51,7 @@ export function viewSchool() {
   const admin = can("admin"), owner = can("owner");
   const dirtyColor = color !== (s.theme?.color || DEFAULT_COLOR).toUpperCase();
 
-  return `${head("Settings", esc(s.name), "Everything students and families see about your school.")}
+  return `${head("Settings", esc(s.name), "This is where you manage your join code, your team, and everything students and families see about your school.")}
   <div class="bento">
     <section class="tile join">
       <div class="join-qr">${qrSvg(inviteLink(s.code), { label: `QR code to join ${s.name}` })}</div>
@@ -101,7 +101,7 @@ export function viewSchool() {
           <div class="invite-row"><input class="input" id="inv-email" type="email" inputmode="email" placeholder="name@school.edu" autocomplete="off" required>
             <select class="input" id="inv-role" aria-label="Role"><option value="cook">Cook: edit menu, reply</option><option value="admin">Admin: manage team</option>${owner ? '<option value="owner">Owner: everything</option>' : ""}</select>
             <button class="btn primary" type="submit">${icon("plus")}Add</button></div>
-          <p class="help">Nothing is emailed. You get a setup link to pass on, and they use it to pick a password.</p>
+          <p class="help">You get a setup link to pass on (we also email it if this site has an email service), and they use it to pick a password.</p>
         </form>` : `<p class="muted small">Only admins can add or remove people.</p>`}`}
     </section>
 
@@ -150,7 +150,7 @@ registerActions({
     el.disabled = true;
     try {
       const out = await api("POST", `staff/${el.dataset.id}/link?school=${school().id}`);
-      state.teamLink = { email: out.email, link: out.link }; render();
+      state.teamLink = { email: out.email, link: out.link, emailed: !!out.emailed }; render();
     } catch (e) { toast(e.message, true); el.disabled = false; }
   },
   "team-link-done"() { state.teamLink = null; render(); },
@@ -208,8 +208,8 @@ export async function submitSettingsForm(f) {
     try {
       const out = await api("POST", "staff", { school: school().id, email, role });
       state.team = null;
-      state.teamLink = out.link ? { email, link: out.link } : null;
-      render(); toast(out.link ? `${email} added. Send them the setup link.` : `${email} added. They can sign in with their password.`);
+      state.teamLink = out.link ? { email, link: out.link, emailed: !!out.emailed } : null;
+      render(); toast(out.link ? (out.emailed ? `${email} added. We emailed them a setup link.` : `${email} added. Send them the setup link.`) : `${email} added. They can sign in with their password.`);
     } catch (e) { toast(e.message, true); }
   }
 }

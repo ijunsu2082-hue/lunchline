@@ -49,7 +49,7 @@ function board(admin) {
   if (ideas.error) return errorBox(ideas.error, "retry-ideas");
   let list = sorted(ideas.filter(i => !(admin && false)));
   if (!admin && state.ideaView === "week") list = list.filter(i => i.fresh);
-  if (!list.length) return `<div class="empty"><p>${esc(admin ? "No suggestions yet. Students can post ideas from the Ideas tab." : t(state.ideaView === "week" ? "ideas.emptyWeek" : "ideas.empty"))}</p></div>`;
+  if (!list.length) return `<div class="empty"><p>${esc(admin ? "Nobody's suggested anything yet. Students can post ideas from the Ideas tab in their app." : t(state.ideaView === "week" ? "ideas.emptyWeek" : "ideas.empty"))}</p></div>`;
   return `<ol class="board">${list.map((it, i) => `<li class="bd${i < 3 ? " top t" + (i + 1) : ""}">
     <span class="bd-rank" aria-hidden="true">${i + 1}</span>
     <div class="bd-main">
@@ -166,7 +166,7 @@ function dupesCard() {
 }
 
 export function viewIdeasAdmin() {
-  return `${head("", "Student ideas", "Dishes students want, ranked by how many agree. Mark what's planned and tell them what you decided.",
+  return `${head("", "What students are asking for", "These are dishes students would love to see, ranked by how many of them agree. Let them know what you're planning and why.",
     `<button class="icon-btn outlined" data-act="retry-ideas" aria-label="Refresh">${icon("refresh")}</button>`)}
     ${state.ideas && !state.ideas.error ? dupesCard() : ""}
     ${board(true)}`;

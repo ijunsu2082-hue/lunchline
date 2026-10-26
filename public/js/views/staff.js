@@ -127,7 +127,7 @@ function rankList(list, kind) {
 export function viewInsights() {
   const s = state.admin.school, ins = state.insights;
   const ranges = [["7", "7 days"], ["30", "30 days"], ["all", "All time"]];
-  const top = `${head("Insights", "What students think", "From their ratings and comments. Anything that looks scripted is set aside.",
+  const top = `${head("Insights", "Here's what students are saying", "These are the ratings and comments from your students. We set aside anything that looks like a script or a bot, so you can trust the numbers.",
     `<button class="icon-btn outlined" data-act="refresh-ins" aria-label="Refresh">${icon("refresh")}</button>`)}
     <div class="seg narrow" role="group" aria-label="Time range">${ranges.map(([k, l]) => `<button data-act="range" data-range="${k}" aria-pressed="${state.range === k}">${l}</button>`).join("")}</div>`;
   if (!ins || ins.range !== state.range) { loadInsights(); return top + skeleton(4, "bento"); }
@@ -135,7 +135,7 @@ export function viewInsights() {
   const st = ins.data.stats, ideas = ins.data.ideas, wasteLog = ins.data.waste_log;
   if (!st.total.total) {
     return `${top}<div class="empty big">
-      <p><strong>No ratings ${state.range === "all" ? "yet" : "in this period"}.</strong><br>Put the QR poster where students line up. One scan, one tap, no signup.</p>
+      <p><strong>${state.range === "all" ? "Nobody has rated anything yet." : "There are no ratings in this time range."}</strong><br>Once you put the QR poster up where students line up, ratings will start showing here. It only takes them one scan and one tap.</p>
       <div class="row-btns center"><button class="btn primary" data-act="poster-open" data-kind="letter">${icon("qr")}Print the QR poster</button>
       <button class="btn secondary" data-act="copy" data-text="${esc(location.origin + "/?join=" + s.code)}" data-label="Invite link">${icon("link")}Copy invite link</button></div>
       <p class="big-code">${esc(s.code)}</p></div>

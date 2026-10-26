@@ -444,3 +444,36 @@ test("a page from before passwords gets a clear reload message, not a dead end",
     assert.match(r.body.error, /reload this page/i, path);
   }
 });
+
+test("a setup link is emailed when an email service is set up, and still comes back to copy when it isn't", async () => {
+  const { staff, school } = await setup();
+  const realFetch = globalThis.fetch, sent = [];
+  const save = { b: process.env.BREVO_API_KEY, r: process.env.RESEND_API_KEY, f: process.env.FROM_EMAIL };
+  try {
+    delete process.env.RESEND_API_KEY; delete process.env.BREVO_API_KEY;
+    const plain = await staff("POST", "staff", { school: school.id, email: "nomail@school.edu", role: "cook" });
+    assert.equal(plain.status, 201);
+    assert.ok(plain.body.link, "link is returned");
+    assert.equal(plain.body.emailed, false);
+
+    process.env.BREVO_API_KEY = "test-key"; process.env.FROM_EMAIL = "LunchLine <sender@example.org>";
+    globalThis.fetch = async (url, init) => { sent.push({ url: String(url), body: JSON.parse(init.body) }); return new Response("{}", { status: 201 }); };
+    const mailed = await staff("POST", "staff", { school: school.id, email: "mail@school.edu", role: "cook" });
+    assert.equal(mailed.status, 201);
+    assert.equal(mailed.body.emailed, true);
+    assert.equal(sent.length, 1);
+    assert.match(sent[0].url, /brevo/);
+    assert.equal(sent[0].body.to[0].email, "mail@school.edu");
+    assert.equal(sent[0].body.sender.email, "sender@example.org");
+    assert.ok(sent[0].body.textContent.includes(mailed.body.link), "the email carries the same link");
+
+    globalThis.fetch = async () => new Response("nope", { status: 500 });
+    const failed = await staff("POST", "staff", { school: school.id, email: "fail@school.edu", role: "cook" });
+    assert.equal(failed.status, 201, "a failed email never blocks the admin");
+    assert.equal(failed.body.emailed, false);
+    assert.ok(failed.body.link);
+  } finally {
+    globalThis.fetch = realFetch;
+    for (const [k, v] of [["BREVO_API_KEY", save.b], ["RESEND_API_KEY", save.r], ["FROM_EMAIL", save.f]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+});

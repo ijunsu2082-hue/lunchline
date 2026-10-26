@@ -83,12 +83,16 @@ export function magicLinkEmail({ link, purpose, schoolName }) {
   };
 }
 
-export function inviteEmail({ link, schoolName, role, by }) {
-  const title = `${by} added you to ${schoolName}`;
+export function inviteEmail({ link, schoolName, role, by, reset = false }) {
+  const title = reset ? `Reset your LunchLine password for ${schoolName}` : `${by} added you to ${schoolName}`;
+  const lead = reset
+    ? `Tap the button to choose a new password for <strong>${escHtml(schoolName)}</strong>.`
+    : `You can now sign in as <strong>${escHtml(role)}</strong> for ${escHtml(schoolName)}. Tap the button to choose your password.`;
   return {
-    subject: `You're invited to ${schoolName} on LunchLine`,
-    html: layout(title, `<p style="font-size:15px;line-height:1.55;margin:0">You can now sign in as <strong>${escHtml(role)}</strong> for ${escHtml(schoolName)}. Use this email address on the sign-in page and we'll send you a link.</p>${button(link, "Go to LunchLine")}`, title),
-    text: `${title}\n\nSign in at ${link} with this email address and we'll send you a link.`,
+    subject: reset ? `Reset your password for ${schoolName} on LunchLine` : `You're invited to ${schoolName} on LunchLine`,
+    html: layout(title, `<p style="font-size:15px;line-height:1.55;margin:0">${lead}</p>${button(link, "Choose a password")}
+      <p style="font-size:13px;color:#7A6F66;line-height:1.5;margin:0">This link works once and expires in 7 days. If you weren't expecting it, you can ignore this email.</p>`, title),
+    text: `${title}\n\n${reset ? "Choose a new password" : "Choose your password"} here (works once, expires in 7 days):\n${link}`,
   };
 }
 

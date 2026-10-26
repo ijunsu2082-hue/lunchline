@@ -33,6 +33,7 @@ import { getSecret, makeChallenge, checkChallenge, powSolved, POW_BITS, makeVote
 import { clientIp, ipHash, limit } from "./ratelimit.mjs";
 import { findSimilar, similarity, SAME, tidyText } from "./similarity.mjs";
 import { computeInsights } from "./insights.mjs";
+import { sendMail, mailConfigured, inviteEmail } from "./mail.mjs";
 import { weeklySummary, reportData, weekWindow } from "./reports.mjs";
 import {
   createMagic, consumeMagic, peekMagic, startSession, sessionCookie, endSession, addMember, removeMember, listMembers,
@@ -448,6 +449,13 @@ async function getStaff(store, req, q) {
   return { members: members.map(m => ({ id: m.id, email: m.email, role: m.role, added_at: m.added_at, ready: !!m.pw, me: m.id === me })), legacy_key: !!school.admin_hash, me_role: user.role };
 }
 
+// Best effort: a failed email never blocks the admin, who still has the link to copy.
+async function tryEmail(to, msg) {
+  if (!mailConfigured()) return false;
+  try { await sendMail({ to, ...msg }); return true; }
+  catch (e) { console.error("setup link email failed", e.message); return false; }
+}
+
 async function inviteStaff(store, req) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "admin");
@@ -457,9 +465,11 @@ async function inviteStaff(store, req) {
   if (roleRank(role) > roleRank(user.role)) fail(403, "You can't give someone a higher role than your own.");
   const mem = await addMember(store, school.id, email, role, user.email);
   await audit(store, school.id, user.email, `added ${email} as ${role}`);
-  // Nothing is emailed: the admin passes this link on, and it lets the new member pick a password.
+  // The link lets the new member pick a password. It is emailed when an email service is set up;
+  // either way it comes back here so the admin can copy it and pass it on.
   const link = mem.pw ? "" : await setupLink(store, req, school.id, email);
-  return { member: { id: mem.id, email, role, ready: !!mem.pw }, link };
+  const emailed = link ? await tryEmail(email, inviteEmail({ link, schoolName: school.name, role, by: user.email || "Your school's admin" })) : false;
+  return { member: { id: mem.id, email, role, ready: !!mem.pw }, link, emailed };
 }
 
 // A fresh setup link for a teammate who hasn't set a password yet, or who forgot it. It only ever
@@ -472,7 +482,8 @@ async function memberLink(store, req, eh, q) {
   if (roleRank(target.role) > roleRank(user.role)) fail(403, "You can't reset someone with a higher role.");
   const link = await setupLink(store, req, school.id, target.email);
   await audit(store, school.id, user.email, `made a setup link for ${target.email}`);
-  return { email: target.email, link };
+  const emailed = await tryEmail(target.email, inviteEmail({ link, schoolName: school.name, role: target.role, by: user.email || "Your school's admin", reset: !!target.pw }));
+  return { email: target.email, link, emailed };
 }
 
 async function dropStaff(store, req, eh, q) {

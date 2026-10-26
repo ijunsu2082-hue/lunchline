@@ -30,7 +30,7 @@ function reportCard(r, latest) {
 
 export function viewReports() {
   const rs = state.reports;
-  const top = head("Reports", "Weekly report", "A plain-language summary of the week, with the numbers beside it.");
+  const top = head("Reports", "Your week in lunch", "Each Monday we put together a plain-English summary of how the week went, with the numbers right beside it.");
   if (!rs) { loadReports(); return top + skeleton(3); }
   if (rs.error) return top + `<div class="empty"><p>${esc(rs.error)}</p></div>`;
   return `${top}
@@ -46,7 +46,7 @@ export function viewReports() {
         </div>
       </section>
       ${rs.length ? reportCard(rs[0], true) + rs.slice(1).map(r => reportCard(r, false)).join("")
-        : `<section class="tile wide"><div class="empty slim"><p>No reports yet. Once students start rating, your first one will show up here.</p></div></section>`}
+        : `<section class="tile wide"><div class="empty slim"><p>There's no report yet. Once students start rating dishes, your first one will show up here.</p></div></section>`}
     </div>`;
 }
 

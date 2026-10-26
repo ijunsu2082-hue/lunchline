@@ -146,12 +146,12 @@ const STEPS = {
   },
   login(d) {
     return {
-      title: "Staff sign in", lede: "Sign in with your school email and password.",
+      title: "Welcome back", lede: "Sign in with the email and password you use for your school's cafeteria account.",
       body: `<label class="label" for="in-email">School email</label>
         <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
         <label class="label" for="in-pw">Password</label>
         <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="current-password" aria-describedby="ob-err">
-        <p class="help">${icon("shield")}New to the team, or forgot your password? Ask your school's admin for a setup link. Students never need this.</p>
+        <p class="help">${icon("shield")}New to the team, or forgot your password? Your school's admin can send you a setup link. Students never need to sign in.</p>
         <details class="master"><summary>Have a master code?</summary>
           <label class="label" for="in-master">Master code</label>
           <div class="master-row"><input class="input" id="in-master" type="password" autocomplete="off" maxlength="80" aria-describedby="ob-err"><button type="button" class="btn secondary" data-act="master-staff">Open</button></div>
@@ -162,27 +162,27 @@ const STEPS = {
   create(d) {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Chicago";
     return {
-      title: "Set up your school", lede: "Pick a password and you're in: a join code and QR poster are one tap away.",
+      title: "Let's set up your school", lede: "Tell us the school's name and pick a password, and you'll get a join code and a QR poster you can print right away.",
       body: `<label class="label" for="in-sn">School name</label>
         <input class="input lg" id="in-sn" data-bind="schoolName" value="${esc(d.schoolName)}" maxlength="60" placeholder="e.g. Lincoln High School" autocomplete="organization">
         <label class="label" for="in-email">Your email</label>
         <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
         <label class="label" for="in-pw">Password</label>
         <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="new-password" aria-describedby="pw-help ob-err">
-        <p class="help" id="pw-help">At least ${PASSWORD_MIN} characters. You'll sign in with this email and password.</p>
+        <p class="help" id="pw-help">Use at least ${PASSWORD_MIN} characters. This email and password are what you'll use to sign in from now on.</p>
         <label class="check">
           <input type="checkbox" class="sr-only" data-bind-check="sample"${d.sample ? " checked" : ""}>
           <span class="check-box">${icon("check")}</span>
           <span class="check-text"><strong>Start with a sample menu</strong><span>Four weeks of breakfast, snack and lunch with photos, so you can try everything right away. Edit or delete any dish.</span></span>
         </label>
-        <p class="help">${icon("clock")}Time zone: ${esc(tz.replace(/_/g, " "))}. You can change grades and more afterwards.</p>`,
+        <p class="help">${icon("clock")}We've set your time zone to ${esc(tz.replace(/_/g, " "))}. You can fine-tune grades and other details after you're in.</p>`,
       cta: "Create my school", ready: d.schoolName.trim().length >= 2 && validEmail(d.email) && d.password.length >= PASSWORD_MIN,
     };
   },
   // Reached from a setup link an admin shared (?setup=…).
   newpass(d) {
     return {
-      title: d.setupSchool ? `Join ${esc(d.setupSchool)}` : "Set your password",
+      title: d.setupSchool ? `Welcome to ${esc(d.setupSchool)}` : "Choose your password",
       lede: d.setupEmail
         ? `Pick a password for <strong>${esc(d.setupEmail)}</strong>. You'll use it to sign in from now on.`
         : "Checking your setup link…",

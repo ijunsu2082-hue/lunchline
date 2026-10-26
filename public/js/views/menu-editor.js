@@ -57,7 +57,7 @@ export function viewKitchen() {
               <span class="edit-s">${it.allergens.length || it.allergens_other ? "Contains " + esc(listJoin([...it.allergens.map(a => t("allergen." + a)), ...terms(it.allergens_other).map(cap)])) : (it.calories == null && /ask nutrition/i.test(it.may_other) ? "Allergens not listed" : "No major allergens")}${it.photo ? "" : " · No photo"}${it.reply ? " · Has a reply" : ""}</span></span>
             <span class="edit-go">${icon("pencil")}<span class="sr-only">Edit</span></span>
           </button>`).join("")
-          : `<div class="empty slim"><p>No ${mealName(state.aMeal).toLowerCase()} for ${D.fmt(date, { weekday: "long" })} yet.</p></div>`}
+          : `<div class="empty slim"><p>Nothing's been added for ${mealName(state.aMeal).toLowerCase()} on ${D.fmt(date, { weekday: "long" })} yet.</p></div>`}
       </div>
       <div class="row-btns">
         <button class="btn primary" data-act="add-dish">${icon("plus")}Add to ${mealName(state.aMeal)}</button>
@@ -66,7 +66,7 @@ export function viewKitchen() {
         ${weekEmpty ? `<button class="btn secondary" data-act="fill-sample">Fill this week with sample dishes</button>` : ""}
       </div>`;
   }
-  return `${head("Menu", "Menu", "Pick a day, then add or edit its food. Students see changes right away.")}
+  return `${head("Menu", "What's being served", "Pick a day, then add or change the food for it. Students see your changes the moment you save.")}
     ${dayChips(state.aWeek, date, wk && wk.days, "a-")}
     ${body}`;
 }

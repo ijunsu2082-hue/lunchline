@@ -5,11 +5,11 @@
 // The app's own files go to the network first, so a new version shows on the
 // very next visit after a deploy (serving a saved copy first left people on an
 // old version for a visit). The cache is the fallback when there's no signal.
-const CACHE = "ll-v29";
+const CACHE = "ll-v31";
 
 // The app shell: every file the page needs to start.
 const SHELL = [
-  "/", "/styles.css?v=29", "/landing.css?v=29", "/flat.css?v=29", "/sample.js?v=29", "/js/main.js?v=29",
+  "/", "/styles.css?v=31", "/landing.css?v=31", "/flat.css?v=31", "/sample.js?v=31", "/js/main.js?v=31",
   "/js/api.js", "/js/i18n.js", "/js/icons.js", "/js/pow-worker.js", "/js/session.js",
   "/js/state.js", "/js/theme.js", "/js/ui.js", "/js/util.js",
   "/js/views/flows.js", "/js/views/ideas.js", "/js/views/me.js", "/js/views/menu-editor.js",
@@ -17,8 +17,8 @@ const SHELL = [
   "/js/views/student.js", "/js/views/welcome.js",
   "/vendor/qrcode.mjs", "/i18n/en.js", "/i18n/es.js",
   "/fonts/public-sans-latin-wght-normal.woff2", "/fonts/public-sans-latin-ext-wght-normal.woff2",
-  "/fonts/public-sans-latin-wght-italic.woff2",
-  "/logo.svg", "/icon.svg",
+  "/fonts/public-sans-latin-wght-italic.woff2", "/fonts/fraunces-latin-wght-normal.woff2", "/fonts/fraunces-latin-wght-italic.woff2",
+  "/logo.svg", "/icon.svg", "/img/app-student.jpg", "/img/app-staff.jpg",
 ];
 
 self.addEventListener("install", event => {
