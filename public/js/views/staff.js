@@ -180,8 +180,9 @@ export function viewInsights() {
       <section class="tile wide"><div class="card-head"><h2>What students said</h2><span class="muted small">${plural(st.comments.length, "comment")}</span></div>
         ${st.comments.length ? `<ul class="feed">${st.comments.slice(0, 40).map(c => `<li>
           <span class="pill v-${c.vote}">${icon(rateIcon(c.vote))}${t("rate." + c.vote)}</span>
-          <div class="feed-main"><p class="feed-q">“${esc(c.comment)}”</p><p class="feed-m"><strong>${esc(c.name)}</strong> · ${mealName(c.meal)} · ${shortDay(c.date)}</p></div>
-          <div class="feed-act"><button class="btn ghost xs" data-act="reply-dish" data-date="${c.date}" data-id="${c.item_id}" data-name="${esc(c.name)}" data-reply="" data-to="${esc(c.comment)}">${icon("megaphone")}Reply</button>
+          <div class="feed-main"><p class="feed-q">“${esc(c.comment)}”</p><p class="feed-m"><strong>${esc(c.name)}</strong> · ${mealName(c.meal)} · ${shortDay(c.date)}</p>
+            ${c.kr ? `<p class="feed-r">${icon("megaphone")}<span><strong>You replied${c.kr.public ? " to everyone" : " privately"}:</strong> ${esc(c.kr.text)}</span></p>` : ""}</div>
+          <div class="feed-act"><button class="btn ghost xs" data-act="reply-dish" data-date="${c.date}" data-id="${c.item_id}" data-name="${esc(c.name)}" data-reply="${esc(c.kr ? c.kr.text : "")}" data-to="${esc(c.comment)}" data-cid="${c.cid}" data-public="${c.kr ? !!c.kr.public : true}">${icon("megaphone")}${c.kr ? "Edit reply" : "Reply"}</button>
           <button class="btn ghost xs" data-act="hide-comment" data-date="${c.date}" data-id="${c.item_id}" data-cid="${c.cid}">${icon("eyeOff")}Hide</button></div>
         </li>`).join("")}</ul>` : '<p class="muted small">No written comments in this period.</p>'}</section>
 
@@ -232,19 +233,21 @@ registerActions({
     if (!st || !st.dishes) { toast("Nothing to export yet", true); return; }
     const cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [["Dish", "Meals", "Good", "Mid", "Bad", "Ratings", "Percent good"], ...st.dishes.map(d => [d.name, d.meals.join(" & "), d.t.good, d.t.mid, d.t.bad, d.t.total, pct(d.t)])];
-    const url = URL.createObjectURL(new Blob([rows.map(r => r.map(cell).join(",")).join("
-")], { type: "text/csv" }));
+    const url = URL.createObjectURL(new Blob([rows.map(r => r.map(cell).join(",")).join("\n")], { type: "text/csv" }));
     const a = Object.assign(document.createElement("a"), { href: url, download: `${school().name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-ratings-${state.range || "7d"}.csv` });
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     toast("Spreadsheet downloaded");
   },
   "refresh-ins"() { state.insights = null; render(); document.querySelector('[data-act="refresh-ins"]')?.focus(); },
   "reply-dish"(el) {
-    const to = el.dataset.to || "";
-    openSheet(`<form class="sheet-form" data-form="reply-dish" data-date="${el.dataset.date}" data-id="${el.dataset.id}" data-to="${esc(to)}">
+    const to = el.dataset.to || "", cid = el.dataset.cid || "", pub = el.dataset.public !== "false";
+    openSheet(`<form class="sheet-form" data-form="reply-dish" data-date="${el.dataset.date}" data-id="${el.dataset.id}" data-to="${esc(to)}" data-cid="${esc(cid)}">
       <h2 id="sheet-title">Reply on “${esc(el.dataset.name)}”</h2>
       ${to ? `<blockquote class="replying">${icon("megaphone")}<span><small>Replying to</small>“${esc(to)}”</span></blockquote>` : ""}
-      <p class="muted">Students see your note on the dish${to ? ", with the comment it answers" : ""}. Say what you're changing.</p>
+      ${cid ? `<fieldset class="reply-vis"><legend>Who sees your reply?</legend>
+        <label class="radio"><input type="radio" name="reply-vis" value="public"${pub ? " checked" : ""}><span><strong>Everyone</strong>Shown on the dish, with the comment it answers. Their name is never shown.</span></label>
+        <label class="radio"><input type="radio" name="reply-vis" value="private"${pub ? "" : " checked"}><span><strong>Only the student who wrote it</strong>They see it next to their own comment.</span></label>
+      </fieldset>` : `<p class="muted">Students see your note on the dish. Say what you're changing.</p>`}
       <label class="label" for="reply-in">Your note</label>
       <input class="input" id="reply-in" maxlength="${REPLY_MAX}" value="${esc(el.dataset.reply)}" placeholder="e.g. The oven was down. Fixed for Thursday.">
       <div class="modal-btns"><button type="button" class="btn secondary" data-act="sheet-close">Cancel</button><button class="btn primary" type="submit">Post reply</button></div>
@@ -273,10 +276,11 @@ registerActions({
 export async function submitStaffForm(f) {
   if (f.dataset.form === "reply-dish") {
     const text = $("#reply-in").value.trim();
+    const priv = !!f.dataset.cid && f.querySelector('input[name="reply-vis"]:checked')?.value === "private";
     closeSheet();
     try {
-      await api("POST", "replies", { school: school().id, date: f.dataset.date, item_id: f.dataset.id, text, ...(f.dataset.to ? { to: f.dataset.to } : {}) });
-      state.insights = null; state.aWeeks = {}; render(); toast(text ? "Reply posted" : "Reply removed");
+      await api("POST", "replies", { school: school().id, date: f.dataset.date, item_id: f.dataset.id, text, ...(f.dataset.cid ? { cid: f.dataset.cid, public: !priv } : f.dataset.to ? { to: f.dataset.to } : {}) });
+      state.insights = null; state.aWeeks = {}; render(); toast(!text ? "Reply removed" : priv ? "Reply sent to that student" : "Reply posted");
     } catch (e) { toast(e.message, true); }
   }
   if (f.dataset.form === "waste") {

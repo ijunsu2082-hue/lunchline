@@ -20,6 +20,7 @@ import { staffShell, viewInsights, submitStaffForm } from "./views/staff.js";
 import { viewKitchen, saveEditor, uploadPhoto, onEditorInput } from "./views/menu-editor.js";
 import { viewSchool, onColorInput, submitSettingsForm } from "./views/settings.js";
 import { viewReports } from "./views/reports.js";
+import { submitPresetForm } from "./views/presets.js";
 import "./views/qr.js";
 
 const main = $("#main");
@@ -113,6 +114,7 @@ document.addEventListener("submit", e => {
   else if (kind === "editor") saveEditor();
   else if (kind === "idea" || kind === "idea-menu" || kind === "idea-reply") submitIdeaForm(f);
   else if (kind === "reply-dish" || kind === "waste") submitStaffForm(f);
+  else if (kind === "preset-save" || kind === "preset-load") submitPresetForm(f);
   else if (kind === "school-grades" || kind === "invite") submitSettingsForm(f);
 });
 

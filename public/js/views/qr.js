@@ -40,10 +40,10 @@ const POSTERS = {
     </div>`,
   },
   tent: {
-    name: "Table tent", sub: "Half-letter, fold in the middle",
+    name: "Table tent", sub: "Fold on the dashed line. The top half prints upside down so both sides read upright",
     html: s => `<div class="poster tent">
-      <div class="tent-half"><p class="poster-h sm">Rate today's lunch</p><div class="poster-qr sm">${qrSvg(inviteLink(s.code), { label: `QR code to join ${s.name}` })}</div><p class="poster-code">${esc(s.name)} · <b class="mono">${esc(s.code)}</b></p></div>
       <div class="tent-half flip"><p class="poster-h sm">Rate today's lunch</p><div class="poster-qr sm">${qrSvg(inviteLink(s.code), { label: `QR code to join ${s.name}` })}</div><p class="poster-code">${esc(s.name)} · <b class="mono">${esc(s.code)}</b></p></div>
+      <div class="tent-half"><p class="poster-h sm">Rate today's lunch</p><div class="poster-qr sm">${qrSvg(inviteLink(s.code), { label: `QR code to join ${s.name}` })}</div><p class="poster-code">${esc(s.name)} · <b class="mono">${esc(s.code)}</b></p></div>
     </div>`,
   },
   parent: {

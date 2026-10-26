@@ -270,3 +270,37 @@ body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211;
   .bd-tools .seg.mini button { padding: 3px 7px; font-size: .72rem; min-height: 28px; }
   .bd-tools .btn.ghost.sm { padding: 0 8px; }
 }
+
+/* school name: room for descenders (the g in "High") */
+.st-school { line-height: 1.2; padding-bottom: .08em; }
+
+/* kitchen replies to a comment: who sees it, and what it answers */
+.feed-r { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: .88rem; color: var(--ink-2); }
+.feed-r .i { width: 14px; height: 14px; margin-top: 3px; flex: none; }
+.feed-r strong { color: var(--ink); font-weight: 650; }
+.reply-vis { border: 0; padding: 0; margin: 14px 0 4px; display: grid; gap: 8px; }
+.reply-vis legend { font-weight: 700; margin-bottom: 8px; padding: 0; }
+.radio { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line-2, #CFCAC1); border-radius: 12px; cursor: pointer; }
+.radio input { margin-top: 4px; accent-color: #131211; width: 18px; height: 18px; flex: none; }
+.radio span { display: grid; gap: 2px; font-size: .92rem; color: var(--ink-2); }
+.radio strong { color: var(--ink); }
+.radio:has(input:checked) { border-color: #131211; background: #fff; }
+.reply.mine { background: #FFF3EC; }
+.only-you { margin-left: 6px; font-size: .72rem; font-weight: 650; padding: 2px 8px; border-radius: 999px; background: #131211; color: #fff; text-transform: none; letter-spacing: 0; }
+.reply-to { font-size: .88rem; color: var(--ink-2); margin: 2px 0 6px; }
+
+/* menu presets */
+.presets { max-height: 80dvh; overflow-y: auto; }
+.preset-group { margin-top: 18px; }
+.preset-group h3 { font-size: .95rem; margin: 0 0 8px; }
+.preset-list { display: grid; gap: 8px; }
+.preset { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line-2, #CFCAC1); border-radius: 12px; background: #fff; }
+.preset-main { flex: 1; min-width: 0; }
+.preset-n { font-weight: 700; overflow-wrap: anywhere; }
+.preset-s { font-size: .82rem; color: var(--ink-2); }
+.veg-pick { margin-bottom: 6px; }
+.form-err { color: var(--bad-t, #AE261F); min-height: 1.2em; font-size: .9rem; }
+.reply-k .only-you { display: table; margin: 4px 0 2px; }
+label.pick { cursor: pointer; }
+label.pick:has(input:checked) { background: #131211; color: #fff; border-color: #131211; }
+label.pick:has(input:focus-visible) { outline: 3px solid var(--brand); outline-offset: 2px; }

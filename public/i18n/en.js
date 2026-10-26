@@ -61,7 +61,7 @@ export default {
   "setup.otherAllergies": "Other allergies", "setup.otherPh": "e.g. kiwi, mustard, coconut", "setup.go": "Show me the menu", "setup.skip": "Skip for now",
   "grade.n": "Grade {g}",
 
-  "ideas.title": "What should be on the menu?", "ideas.lede": "Vote up the ideas you want. The kitchen reads the top of this list.", "ideas.suggest": "Suggest a dish", "ideas.label": "Your idea",
+  "dish.replyMine": "The kitchen replied to you", "dish.onlyYou": "Only you can see this", "dish.yourComment": "You wrote", "setup.vegetarian.q": "Are you vegetarian?", "setup.vegetarian": "I'm vegetarian", "setup.vegetarian.short": "Vegetarian", "setup.vegetarian.why": "We'll warn you about dishes with meat, seafood or egg, including meat sauces.", "veg.meat": "meat", "veg.seafood": "seafood", "veg.egg": "egg", "veg.hasShort": "Has {a}", "veg.has": "Not vegetarian: this has {a}.", "veg.check": "If you're not sure, ask the cafeteria staff.", "ideas.title": "What should be on the menu?", "ideas.lede": "Vote up the ideas you want. The kitchen reads the top of this list.", "ideas.suggest": "Suggest a dish", "ideas.label": "Your idea",
   "ideas.ph": "Orange chicken, birria tacos...", "ideas.post": "Post idea", "ideas.dym": "Did you mean", "ideas.similar": "Similar ideas",
   "ideas.addVote": "Add my vote", "ideas.postNew": "No, post mine as a new idea", "ideas.checkFirst": "That looks a lot like an idea that's already here. You can add your vote to it, or post yours as something new.",
   "ideas.leaderboard": "Leaderboard", "ideas.thisWeek": "New this week", "ideas.vote": "vote", "ideas.votes": "votes",

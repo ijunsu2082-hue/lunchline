@@ -412,3 +412,74 @@ test("an invite link is emailed when an email service is set up, and still comes
     for (const [k, v] of [["BREVO_API_KEY", save.b], ["RESEND_API_KEY", save.r], ["FROM_EMAIL", save.f]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }
 });
+
+test("the old sample schools are removed once, and Irvine High keeps its own menu", async () => {
+  const store = memStore();
+  const { createSchool } = await import("../netlify/lib/api.mjs");
+  const lincoln = await createSchool(store, { name: "Lincoln High School", email: "ajaysriramsankar@gmail.com", tz: "America/Los_Angeles", demo: { offset: 1 } });
+  const irvine = await createSchool(store, { name: "Irvine High School", email: "ajaysriramsankar@gmail.com", tz: "America/Los_Angeles", demo: { offset: 0 } });
+  const real = await createSchool(store, { name: "Oak Real School", email: "someone@oak.edu", tz: "America/Chicago" });
+  const anon = client(handle, store);
+  const names = (await anon("GET", "schools?all=1")).body.schools.map(s => s.name).sort();
+  assert.deepEqual(names, ["Irvine High School", "Oak Real School"]);
+  assert.equal((await anon("GET", `schools/${lincoln.id}`)).status, 404);
+  const stored = await store.get(`school/${irvine.id}`, { type: "json" });
+  assert.equal(stored.demo, undefined);
+  const menu = (await anon("GET", `menu?school=${irvine.id}&from=2026-10-19&to=2026-10-25`)).body.days;
+  assert.deepEqual(Object.keys(menu).sort(), ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"]);
+  assert.ok((await anon("GET", `menu?school=${real.id}&from=2026-10-19&to=2026-10-25`)).body.days && Object.keys((await anon("GET", `menu?school=${real.id}&from=2026-10-19&to=2026-10-25`)).body.days).length === 0, "a real school gets nothing it didn't enter");
+  // the master email now opens only its own school
+  const owner = client(handle, store, { ip: "6.1.1.1" });
+  const link = (await owner("POST", "auth/request", { email: "ajaysriramsankar@gmail.com" })).body.dev_link;
+  const me = await owner("POST", "auth/verify", { token: tokenOf(link) });
+  assert.deepEqual(me.body.schools.map(s => s.school.name), ["Irvine High School"]);
+});
+
+test("a reply can go to one student privately or to everyone, always showing the comment it answers", async () => {
+  const { school, staff, device } = await setup();
+  const kid = await device("device-reply-0001"), other = await device("device-reply-0002");
+  await kid.call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa1", vote: "bad", comment: "cold and dry" }, { token: kid.token });
+  await other.call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa1", vote: "good", comment: "loved it" }, { token: other.token });
+  const feed = (await staff("GET", `insights?school=${school.id}&from=${TODAY}&to=${TODAY}`)).body.stats.comments;
+  const cold = feed.find(c => c.comment === "cold and dry");
+  const priv = await staff("POST", "replies", { school: school.id, date: TODAY, item_id: "aaaaaa1", text: "Oven was down, fixed Thursday.", cid: cold.cid, public: false });
+  assert.equal(priv.status, 200);
+  assert.equal(priv.body.public, false);
+  const mine = (await kid.call("GET", `votes?school=${school.id}&from=${TODAY}&to=${TODAY}`, undefined, { token: kid.token })).body.votes;
+  assert.equal(mine[0].kitchen_reply.text, "Oven was down, fixed Thursday.");
+  const theirs = (await other.call("GET", `votes?school=${school.id}&from=${TODAY}&to=${TODAY}`, undefined, { token: other.token })).body.votes;
+  assert.equal(theirs[0].kitchen_reply, undefined, "other students never see it");
+  const dishes = (await kid.call("GET", `menu?school=${school.id}&from=${TODAY}&to=${TODAY}`)).body.days[TODAY].lunch;
+  assert.equal(dishes.find(d => d.id === "aaaaaa1").reply, "", "a private reply isn't posted on the dish");
+  const pub = await staff("POST", "replies", { school: school.id, date: TODAY, item_id: "aaaaaa1", text: "We're fixing the oven.", cid: cold.cid, public: true });
+  assert.equal(pub.body.public, true);
+  const posted = (await kid.call("GET", `menu?school=${school.id}&from=${TODAY}&to=${TODAY}`)).body.days[TODAY].lunch.find(d => d.id === "aaaaaa1");
+  assert.equal(posted.reply, "We're fixing the oven.");
+  assert.equal(posted.reply_to, "cold and dry", "the public reply shows what it answers");
+  // rating again without changing the comment keeps the reply
+  await kid.call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa1", vote: "mid", comment: "cold and dry" }, { token: kid.token });
+  assert.equal((await kid.call("GET", `votes?school=${school.id}&from=${TODAY}&to=${TODAY}`, undefined, { token: kid.token })).body.votes[0].kitchen_reply.text, "We're fixing the oven.");
+  assert.equal((await staff("POST", "replies", { school: school.id, date: TODAY, item_id: "aaaaaa1", text: "x", cid: "nope00000000" })).status, 404);
+});
+
+test("presets: save a dish, a day and a week, share them with the team, and keep them out of other schools", async () => {
+  const { school, staff, store } = await setup();
+  const day = { breakfast: [dish("p0000001", "Pancakes", { reply: "old note" })], snack: [], lunch: [dish("p0000002", "Tacos"), dish("p0000003", "Rice")] };
+  const d = await staff("POST", "presets", { school: school.id, name: "Taco Tuesday", kind: "day", data: day });
+  assert.equal(d.status, 201, JSON.stringify(d.body));
+  assert.equal(d.body.preset.data.lunch.length, 2);
+  assert.equal(d.body.preset.data.lunch[0].id, undefined, "ids aren't saved");
+  assert.equal(d.body.preset.data.breakfast[0].reply, undefined, "replies aren't saved");
+  assert.equal((await staff("POST", "presets", { school: school.id, name: "Week A", kind: "week", data: { days: [day, day, day, day, day] } })).status, 201);
+  assert.equal((await staff("POST", "presets", { school: school.id, name: "Tacos", kind: "item", data: dish("p0000002", "Tacos", { calories: 480 }) })).status, 201);
+  assert.equal((await staff("POST", "presets", { school: school.id, name: "x", kind: "day", data: day })).status, 400, "name too short");
+  assert.equal((await staff("POST", "presets", { school: school.id, name: "Bad", kind: "month", data: day })).status, 400);
+  const list = (await staff("GET", `presets?school=${school.id}`)).body.presets;
+  assert.deepEqual(list.map(p => p.kind).sort(), ["day", "item", "week"]);
+  const other = client(handle, store, { ip: "6.6.6.7" });
+  await createSchoolAs(other, "o@other.edu", "Other School");
+  assert.equal((await other("GET", `presets?school=${school.id}`)).status, 403, "another school can't read them");
+  assert.equal((await client(handle, store)("GET", `presets?school=${school.id}`)).status, 401);
+  assert.equal((await staff("DELETE", `presets/${list[0].id}?school=${school.id}`)).status, 200);
+  assert.equal((await staff("GET", `presets?school=${school.id}`)).body.presets.length, 2);
+});

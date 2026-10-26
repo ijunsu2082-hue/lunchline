@@ -44,7 +44,7 @@ export function startFlow(flow, data = {}, opts = {}) {
     exit: opts.exit || "welcome",
     d: {
       findBy: "code", code: "", q: "", results: null, all: null, school: null,
-      grade: "", allergies: [], allergyOther: "", allergyOtherOn: false, cuisines: [], cuisineOther: "", cuisineOtherOn: false,
+      grade: "", vegetarian: false, allergies: [], allergyOther: "", allergyOtherOn: false, cuisines: [], cuisineOther: "", cuisineOtherOn: false,
       email: "", password: "", schoolName: "", picking: null,
       sentTo: "", devLink: "", verifyFailed: false,
       ...(flow === "edit" && st ? { ...st, allergyOtherOn: !!st.allergyOther, cuisineOtherOn: !!st.cuisineOther, allergies: [...st.allergies], cuisines: [...st.cuisines] } : {}),

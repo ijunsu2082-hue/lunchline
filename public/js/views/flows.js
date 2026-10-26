@@ -58,6 +58,11 @@ const heroSchool = d => d.school
   : `<div class="stitch-logo">${mark(54)}</div><p class="stitch-name">LunchLine</p><p class="stitch-k">${esc(t("join.tagline"))}</p>`;
 
 // ---------- chips ----------
+function vegBlock(d) {
+  return `<h2 class="fl-h2">${esc(t("setup.vegetarian.q"))}</h2><p class="help">${esc(t("setup.vegetarian.why"))}</p>
+  <div class="chips-pick veg-pick"><button type="button" class="pick" data-act="ob-veg" aria-pressed="${!!d.vegetarian}">${icon("check")}${esc(t("setup.vegetarian"))}</button></div>`;
+}
+
 function allergyChips(d) {
   return `<div class="chips-pick" role="group" aria-label="${esc(t("setup.allergies"))}">
     ${ALLERGENS.map(k => `<button type="button" class="pick" data-act="ob-opt" data-kind="allergies" data-key="${k}" aria-pressed="${d.allergies.includes(k)}">${icon("check")}${esc(t("allergen." + k))}</button>`).join("")}
@@ -129,6 +134,7 @@ const STEPS = {
     return {
       title: esc(t("setup.title")), lede: esc(t("setup.lede")),
       body: `<h2 class="fl-h2">${esc(t("setup.grade"))}</h2><p class="help">${esc(t("setup.grade.why"))}</p>${gradeChips(d)}
+        ${vegBlock(d)}
         <h2 class="fl-h2">${esc(t("setup.allergies"))}</h2><p class="help">${esc(t("setup.allergies.why"))}</p>${allergyChips(d)}`,
       cta: edit ? t("common.save") : t("setup.go"), ready: true,
       foot2: edit ? "" : `<button type="button" class="link center" data-act="ob-skip">${esc(t("setup.skip"))}</button>`,
@@ -138,7 +144,7 @@ const STEPS = {
     return { title: esc(t("setup.grade")), lede: esc(t("setup.grade.why")), body: gradeChips(d), cta: t("common.save"), ready: true };
   },
   allergies(d) {
-    return { title: esc(t("setup.allergies")), lede: esc(t("setup.allergies.why")), body: allergyChips(d), cta: t("common.save"), ready: true };
+    return { title: esc(t("setup.allergies")), lede: esc(t("setup.allergies.why")), body: vegBlock(d) + allergyChips(d), cta: t("common.save"), ready: true };
   },
   food(d) {
     return { title: esc(t("me.food")), lede: esc(t("me.food.why")), body: cuisineChips(d), cta: t("common.save"), ready: true };
@@ -277,6 +283,7 @@ function profileFrom(d, base = {}) {
     school: d.school || base.school,
     grade: d.grade || "",
     allergies: [...d.allergies],
+    vegetarian: !!d.vegetarian,
     allergyOther: d.allergyOtherOn ? d.allergyOther.trim() : "",
     cuisines: [...d.cuisines],
     cuisineOther: d.cuisineOtherOn ? d.cuisineOther.trim() : "",
@@ -400,7 +407,8 @@ registerActions({
     document.querySelectorAll('.create-swatches [data-act="ob-color"]').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.color.toLowerCase() === hex.toLowerCase())));
     const note = $("#color-name"); if (note) note.textContent = `${colorName(d.color)}. Students see the app in this color, and you can change it any time.`;
   },
-  "ob-skip"() { const d = state.ob.d; d.grade = ""; d.allergies = []; d.allergyOtherOn = false; d.allergyOther = ""; obFinish(); },
+  "ob-veg"(el) { const d = state.ob.d; d.vegetarian = !d.vegetarian; el.setAttribute("aria-pressed", String(d.vegetarian)); },
+  "ob-skip"() { const d = state.ob.d; d.grade = ""; d.vegetarian = false; d.allergies = []; d.allergyOtherOn = false; d.allergyOther = ""; obFinish(); },
   "staff-tab"(el) {
     const ob = state.ob;
     if (ob.flow === el.dataset.tab) return;

@@ -8,6 +8,7 @@ import { t } from "../i18n.js";
 import { render, toast, registerActions, head, errorBox, skeleton, currentTab, openSheet, closeSheet, sheetEl, askConfirm } from "../ui.js";
 import { dayChips } from "./student.js";
 import { adminGone } from "./staff.js";
+import { savePresetFromEditor } from "./presets.js";
 
 const terms = s => String(s || "").toLowerCase().split(/[,;/\n]+/).map(x => x.trim()).filter(x => x.length >= 2);
 const mealName = m => cap(m);
@@ -62,6 +63,7 @@ export function viewKitchen() {
         <button class="btn primary" data-act="add-dish">${icon("plus")}Add to ${mealName(state.aMeal)}</button>
         ${state.aMeal === "snack" && !items.length && day.breakfast.length ? `<button class="btn secondary" data-act="snack-same">${icon("copy")}Same as breakfast</button>` : ""}
         ${items.length ? `<button class="btn secondary" data-act="copy-day">${icon("copy")}Copy to next day</button>` : ""}
+        <button class="btn secondary" data-act="presets-open">${icon("copy")}Presets</button>
       </div>`;
   }
   return `${head("Menu", "What's being served", "Pick a day, then add or change the food for it. Students see your changes the moment you save.")}
@@ -148,6 +150,7 @@ function editorHTML() {
       <label class="label" for="ed-reply">Note to students <span class="muted">(optional)</span></label>
       <input class="input" id="ed-reply" data-ed="reply" value="${esc(it.reply || "")}" maxlength="160" placeholder="e.g. New recipe this week. Tell us what you think.">
       <p class="err" id="ed-err" role="alert"></p>
+      ${e.id ? `<button type="button" class="btn secondary" data-act="ed-preset">${icon("copy")}Save dish as preset</button>` : ""}
       ${e.id ? `<button type="button" class="btn danger-ghost" data-act="ed-delete">${icon("trash")}Delete dish</button>` : ""}
     </div>
   </form>`;
@@ -262,6 +265,7 @@ registerActions({
   "edit-dish"(el) { openEditor(el.dataset.id); },
   "copy-day"() { copyDay(); },
   "ed-delete"() { deleteDish(); },
+  "ed-preset"() { savePresetFromEditor(state.edit.item); },
   "ed-photo-remove"() { state.edit.item.photo = ""; $("#ed-photo-box").innerHTML = photoFieldHTML(); },
   "ed-chip"(el) {
     const it = state.edit.item, f = el.dataset.field, k = el.dataset.key;

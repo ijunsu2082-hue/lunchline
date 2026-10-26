@@ -33,6 +33,7 @@ import { clientIp, ipHash, limit } from "./ratelimit.mjs";
 import { findSimilar, similarity, SAME, tidyText } from "./similarity.mjs";
 import { computeInsights } from "./insights.mjs";
 import { sendMail, mailConfigured, inviteEmail, magicLinkEmail } from "./mail.mjs";
+import { SAMPLE_PLAN as IRVINE_PLAN } from "./irvine-menu.mjs";
 import { weeklySummary, reportData, weekWindow } from "./reports.mjs";
 import {
   createMagic, consumeMagic, startSession, sessionCookie, endSession, addMember, removeMember, listMembers,
@@ -45,10 +46,11 @@ const DEFAULT_COLOR = "#FF5A1F";
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 // A page loaded before sign-in moved to passwords can still call the old email routes. Tell it to reload.
-const updated = () => fail(410, "LunchLine was just updated. Reload this page to sign in with your email and password.", { code: "update" });
+const updated = () => fail(410, "LunchLine was just updated. Reload this page to continue.", { code: "update" });
 
 export async function handle(req, store) {
   try {
+    await ensureMigrated(store);
     const url = new URL(req.url);
     const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
     const [resource, id, action] = parts;
@@ -100,6 +102,12 @@ export async function handle(req, store) {
         break;
       case "replies":
         if (m === "POST" && !id) return json(await postReply(store, req));
+        break;
+
+      case "presets":
+        if (m === "GET" && !id) return json(await listPresets(store, req, q));
+        if (m === "POST" && !id) return json(await savePreset(store, req), 201);
+        if (m === "DELETE" && id) return json(await deletePreset(store, req, id, q));
         break;
 
       case "votes":
@@ -268,17 +276,53 @@ async function retireKey(store, req, id) {
   return { retired: true };
 }
 
-async function deleteSchool(store, req, id) {
-  const { school, user } = await requireStaff(store, req, id, "owner");
+async function purgeSchool(store, school) {
   const members = await listMembers(store, school.id);
-  const prefixes = ["day", "vote", "votecache", "profile", "idea", "ideavote", "waste", "report", "audit", "photo", "staff"];
+  const prefixes = ["day", "vote", "votecache", "profile", "idea", "ideavote", "waste", "report", "audit", "photo", "staff", "preset"];
   const keys = (await Promise.all(prefixes.map(p => listKeys(store, `${p}/${school.id}/`)))).flat();
   keys.push(`code/${school.code}`, `name/${slug(school.name) || "school"}/${school.id}`, `school/${school.id}`);
   if (school.admin_hash) keys.push(`admin/${school.admin_hash}`);
   for (const mem of members) keys.push(`member/${mem.id}/${school.id}`);
   await deleteAll(store, keys);
+}
+
+async function deleteSchool(store, req, id) {
+  const { school, user } = await requireStaff(store, req, id, "owner");
+  await purgeSchool(store, school);
   console.log(`school ${school.id} deleted by ${user.email || "staff key"}`);
   return { deleted: true };
+}
+
+// ---------- one-time cleanup of the old sample schools ----------
+// Earlier versions seeded a dozen sample schools, all owned by one master email, so that one address could open
+// every one of them. Delete those, keep Irvine High School (the real one), and give Irvine its own stored menu.
+const MIGRATION = "migrate/no-demo-v1";
+const migrated = new WeakSet();
+export async function ensureMigrated(store) {
+  if (migrated.has(store)) return;
+  if (await store.get(MIGRATION)) { migrated.add(store); return; }
+  await store.setJSON(MIGRATION, { at: Date.now() });
+  const schools = await getAll(store, await listKeys(store, "school/"));
+  for (const school of schools.filter(x => x.demo)) {
+    if (slug(school.name) === slug("Irvine High School")) {
+      await store.setJSON(`school/${school.id}`, { ...school, demo: undefined });
+      await fillIrvineMenu(store, school);
+    } else await purgeSchool(store, school);
+  }
+  migrated.add(store);
+}
+
+// Weekdays from two weeks back to eight weeks ahead that nobody has saved yet get Irvine's flyer menu.
+async function fillIrvineMenu(store, school) {
+  const today = todayIn(school.tz);
+  for (let n = -14; n <= 56; n++) {
+    const date = addDays(today, n), dow = new Date(date + "T00:00:00Z").getUTCDay();
+    if (dow === 0 || dow === 6 || await store.get(`day/${school.id}/${date}`)) continue;
+    const plan = IRVINE_PLAN[dow - 1];
+    const day = { date };
+    for (const meal of MEALS) day[meal] = (plan[meal] || []).map((it, i) => ({ ...it, id: sha(`${date}:${meal}:${i}`).slice(0, 10) }));
+    await store.setJSON(`day/${school.id}/${date}`, cleanDay(day, school.id));
+  }
 }
 
 // ---------- staff login ----------
@@ -564,10 +608,75 @@ async function postReply(store, req) {
   const meal = day && MEALS.find(ml => day[ml].some(i => i.id === b.item_id));
   if (!meal) fail(404, "That dish isn't on the menu for that day.");
   const reply = cleanProfanity(str(b.text, REPLY_MAX));
-  // `to` is the comment being answered, shown with the reply so students can tell what it's about.
-  day[meal] = day[meal].map(i => (i.id !== b.item_id ? i : { ...i, reply, reply_to: !reply ? "" : b.to !== undefined ? cleanProfanity(str(b.to, 200)) : i.reply_to || "" }));
+  // A reply to one student's comment (`cid`) is kept on their rating, so they see it next to what they wrote.
+  // `public` also posts it on the dish for everyone, quoting the comment; otherwise only that student sees it.
+  let quoted = "";
+  const isPublic = b.public !== false;
+  if (typeof b.cid === "string" && b.cid) {
+    const keys = (await listKeys(store, `vote/${school.id}/${b.date}/`)).filter(k => k.endsWith("/" + b.item_id));
+    const row = (await getAll(store, keys)).find(v => sha(school.id + v.voter_id).slice(0, 12) === b.cid);
+    if (!row) fail(404, "That comment is gone.");
+    quoted = row.comment || "";
+    const next = { ...row };
+    if (reply) next.kitchen_reply = { text: reply, at: new Date().toISOString(), public: isPublic }; else delete next.kitchen_reply;
+    await store.setJSON(`vote/${school.id}/${row.date}/${row.voter_id}/${row.item_id}`, next);
+    await store.delete(`votecache/${school.id}/${b.date}`);
+    if (!isPublic) return { reply, public: false };
+  }
+  day[meal] = day[meal].map(i => (i.id !== b.item_id ? i : { ...i, reply, reply_to: !reply ? "" : quoted || (b.to !== undefined ? cleanProfanity(str(b.to, 200)) : i.reply_to || "") }));
   await store.setJSON(`day/${school.id}/${b.date}`, day);
-  return { reply };
+  return { reply, public: true };
+}
+
+// ---------- menu presets ----------
+// Saved menus a team can load again: one dish, one day (all meals), or one week (Monday to Friday).
+const PRESET_KINDS = ["item", "day", "week"];
+const PRESET_MAX = 60;
+const stripId = i => ({ ...i, id: "" });
+function cleanPreset(raw, schoolId) {
+  const kind = raw.kind;
+  if (!PRESET_KINDS.includes(kind)) fail(400, "Presets are for a dish, a day or a week.");
+  const asDay = d => {
+    const day = cleanDay({ date: "2000-01-03", ...Object.fromEntries(MEALS.map(m => [m, (Array.isArray(d?.[m]) ? d[m] : []).map(stripId)])) }, schoolId);
+    delete day.date;
+    for (const m of MEALS) day[m] = day[m].map(({ id, reply, reply_to, ...rest }) => rest);
+    return day;
+  };
+  if (kind === "item") { const { id, reply, reply_to, ...it } = cleanItem(stripId(raw.data), schoolId); return { kind, data: it }; }
+  if (kind === "day") return { kind, data: asDay(raw.data) };
+  const days = Array.isArray(raw.data?.days) ? raw.data.days.slice(0, 5) : [];
+  if (!days.length) fail(400, "That week has no days in it.");
+  return { kind, data: { days: days.map(asDay) } };
+}
+
+async function listPresets(store, req, q) {
+  const { school } = await requireStaff(store, req, q.get("school"), "cook");
+  const rows = await getAll(store, await listKeys(store, `preset/${school.id}/`));
+  return { presets: rows.sort((a, b) => b.created_at.localeCompare(a.created_at)) };
+}
+
+async function savePreset(store, req) {
+  const b = await body(req);
+  const { school, user } = await requireStaff(store, req, b.school, "cook");
+  const name = str(b.name, 50);
+  if (name.length < 2) fail(400, "Give the preset a name.");
+  const keys = await listKeys(store, `preset/${school.id}/`);
+  if (keys.length >= PRESET_MAX) fail(400, `You can keep up to ${PRESET_MAX} presets. Delete one first.`);
+  const id = randomId(10);
+  const row = { id, name, ...cleanPreset(b, school.id), created_by: user.email, created_at: new Date().toISOString() };
+  await store.setJSON(`preset/${school.id}/${id}`, row);
+  await audit(store, school.id, user.email, `saved the ${row.kind} preset “${name}”`);
+  return { preset: row };
+}
+
+async function deletePreset(store, req, id, q) {
+  const { school, user } = await requireStaff(store, req, q.get("school"), "cook");
+  if (!ID.test(id)) fail(404, "That preset is gone.");
+  const row = await store.get(`preset/${school.id}/${id}`, { type: "json" });
+  if (!row) fail(404, "That preset is gone.");
+  await store.delete(`preset/${school.id}/${id}`);
+  await audit(store, school.id, user.email, `deleted the preset “${row.name}”`);
+  return { deleted: true };
 }
 
 // ---------- votes ----------
@@ -610,6 +719,7 @@ async function castVote(store, req) {
     updated_at: new Date().toISOString(), grade: profile?.grade || "",
     // a comment staff hid stays hidden unless the student rewrites it
     hidden: !!prev && prev.comment === comment && !!prev.hidden,
+    ...(prev && prev.comment === comment && prev.kitchen_reply ? { kitchen_reply: prev.kitchen_reply } : {}),
   };
   await store.setJSON(`vote/${school.id}/${b.date}/${voter}/${b.item_id}`, row);
   const { voter_id, hidden, ...out } = row;
@@ -635,6 +745,7 @@ async function hideComment(store, req) {
 const compact = (school, v) => ({
   date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment || "", updated_at: v.updated_at,
   who: sha(school.id + v.voter_id).slice(0, 12), grade: v.grade || "", hidden: !!v.hidden,
+  ...(v.kitchen_reply ? { kr: { text: v.kitchen_reply.text, public: !!v.kitchen_reply.public } } : {}),
 });
 
 async function ratingRows(store, school, date, closed) {

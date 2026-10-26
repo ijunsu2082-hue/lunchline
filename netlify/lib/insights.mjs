@@ -91,7 +91,7 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
       const gd = (byGradeDish[v.grade] ||= {})[k] ||= { name: m.it.name, t: T() };
       add(gd.t, v.vote);
     }
-    if (v.comment && !v.hidden) comments.push({ cid: v.who, date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment, updated_at: v.updated_at, name: m.it.name, meal: m.meal });
+    if (v.comment && !v.hidden) comments.push({ cid: v.who, date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment, updated_at: v.updated_at, name: m.it.name, meal: m.meal, ...(v.kr ? { kr: v.kr } : {}) });
   }
   for (const v of votes) { // flagged rows still count against their dish's confidence
     if (!v.flag) continue;

@@ -26,6 +26,21 @@ export function allergyHits(item, p) {
   }
   return { contains, may };
 }
+// Vegetarian students: flag meat (including meat sauces and broths), seafood of any kind, and egg.
+const MEAT = /\b(beef|chicken|pork|bacon|ham|turkey|sausages?|pepperoni|salami|meatballs?|meat(?!less)|lamb|steak|gyro|brisket|carnitas|hot ?dogs?|bologna|jerky|gelatin|lard|ribs?|wings?|nuggets?|tenders?|patty|patties|burgers?|bolognese|ragu)\b/i;
+const SEAFOOD = /\b(fish|salmon|tuna|shrimp|prawns?|crab|lobster|anchov\w*|seafood|clams?|oysters?|squid|calamari|tilapia|cod|sardines?|scallops?|pollock|mahi)\b/i;
+const EGG = /\beggs?\b/i;
+const MEATLESS = /\b(veggie|vegetarian|vegan|meatless|plant-based|beyond|impossible)\s+(burgers?|patty|patties|nuggets?|tenders?|sausages?|meat\w*|chicken|crumbles?)/gi;
+export function vegFlags(item) {
+  const hay = [item.name, item.desc, item.ingredients, item.allergens_other].join(" ").replace(MEATLESS, " ");
+  const out = [];
+  if (MEAT.test(hay)) out.push("meat");
+  if (item.allergens.includes("fish") || item.allergens.includes("shellfish") || SEAFOOD.test(hay)) out.push("seafood");
+  if (item.allergens.includes("eggs") || EGG.test(hay)) out.push("egg");
+  return out;
+}
+const vegList = flags => listJoin(flags.map(k => t("veg." + k)));
+
 function pickedFor(item, p, hits) {
   if (hits.contains.length || hits.may.length) return false;
   if (item.cuisine && (p.cuisines || []).includes(item.cuisine)) return true;
@@ -177,6 +192,10 @@ function rateBanner(day, date, items) {
 }
 
 function replyBanner() {
+  const mine = Object.values(state.mine).filter(r => r.kitchen_reply).sort((x, y) => (y.kitchen_reply.at || "").localeCompare(x.kitchen_reply.at || ""))[0];
+  if (mine) {
+    return `<article class="banner b-reply"><div class="bn-text"><p class="bn-big">${esc(t("dish.replyMine"))}</p><p class="bn-sub">${esc(t("dish.yourComment"))} “${esc(mine.comment || "")}”<br>“${esc(mine.kitchen_reply.text)}”</p><button class="btn on-brand sm" data-act="s-goto" data-date="${mine.date}">${icon("arrowR")}</button></div><span class="bn-ico">${icon("megaphone")}</span></article>`;
+  }
   let best = null;
   for (const wk of Object.values(state.weeks)) {
     for (const day of Object.values(wk.days || {})) {
@@ -267,7 +286,8 @@ export function viewMenu() {
 function dishFlags(item) {
   const p = profile(), hits = allergyHits(item, p);
   const warn = hits.contains.length > 0, caution = !warn && hits.may.length > 0;
-  return { hits, warn, caution, picked: pickedFor(item, p, hits) };
+  const veg = p.vegetarian ? vegFlags(item) : [];
+  return { hits, warn, caution, veg, picked: pickedFor(item, p, hits) && !veg.length };
 }
 
 function askedFor(item) {
@@ -281,10 +301,11 @@ function dishCard(item, date) {
   const asked = askedFor(item);
   const sub = [item.calories ? t("dish.cal", { n: item.calories }) : "", ...item.diet.map(k => t("diet." + k))].filter(Boolean).join(" · ") || item.desc || cuisineLabel(item);
   const ribbon = f.warn ? `<span class="dc-flag danger">${icon("alert")}${esc(t("dish.hasShort", { a: listJoin(f.hits.contains).toLowerCase() }))}</span>`
-    : f.caution ? `<span class="dc-flag caution">${icon("alert")}${esc(t("dish.mayShort"))}</span>` : "";
+    : f.caution ? `<span class="dc-flag caution">${icon("alert")}${esc(t("dish.mayShort"))}</span>`
+    : f.veg.length ? `<span class="dc-flag danger">${icon("alert")}${esc(t("veg.hasShort", { a: vegList(f.veg) }))}</span>` : "";
   const badge = asked ? `<span class="dc-badge">${icon("lightbulb")}${esc(asked.voted ? t("dish.asked") : t("dish.askedBy", { n: asked.count }))}</span>`
     : f.picked ? `<span class="dc-badge">${icon("heart")}${esc(item.cuisine && (p.cuisines || []).includes(item.cuisine) ? t("dish.youLike", { c: cuisineLabel(item) }) : t("dish.picked"))}</span>` : "";
-  return `<article class="dc${f.warn ? " is-warn" : f.caution ? " is-caution" : ""}" id="dish-${id}" aria-labelledby="dn-${id}">
+  return `<article class="dc${f.warn || (f.veg.length && !f.caution) ? " is-warn" : f.caution ? " is-caution" : ""}" id="dish-${id}" aria-labelledby="dn-${id}">
     <button type="button" class="dc-open" data-act="dish-open" data-id="${id}">
       <span class="dc-photo">${item.photo ? `<img src="${esc(item.photo)}" alt="" loading="lazy" decoding="async">` : foodTile(item.name)}${ribbon}${badge}</span>
       <span class="dc-body"><span class="dc-name" id="dn-${id}">${esc(item.name)}</span><span class="dc-sub">${esc(sub)}</span></span>
@@ -356,6 +377,13 @@ function nutritionPanel(item) {
     <p class="fine">${icon("info")}${esc(t("dish.nutritionNote"))}</p></section>`;
 }
 
+// The kitchen's answer to this student's own comment, shown with what they wrote.
+function mineReply(rec) {
+  const k = rec.kitchen_reply;
+  return `<div class="reply mine">${icon("megaphone")}<div><p class="reply-k">${esc(t("dish.replyMine"))}${k.public ? "" : ` <span class="only-you">${esc(t("dish.onlyYou"))}</span>`}</p>
+    <p class="reply-to">${esc(t("dish.yourComment"))} “${esc(rec.comment || "")}”</p><p>${esc(k.text)}</p></div></div>`;
+}
+
 function sheetHTML(item) {
   const p = profile(), f = dishFlags(item), date = state.day, id = item.id;
   const mine = new Set(p.allergies || []), other = terms(p.allergyOther);
@@ -375,8 +403,10 @@ function sheetHTML(item) {
       <h2 class="ds-name" id="sheet-title">${esc(item.name)}</h2>
       ${item.desc ? `<p class="ds-desc">${esc(item.desc)}</p>` : ""}
       ${asked ? `<div class="alert info">${icon("lightbulb")}<p>${esc(t("dish.askedBy", { n: asked.count }))}</p></div>` : ""}
+      ${state.mine[date + "|" + id]?.kitchen_reply ? mineReply(state.mine[date + "|" + id]) : ""}
       ${item.reply ? `<div class="reply">${icon("megaphone")}<div><p class="reply-k">${esc(t("dish.reply"))}</p>${item.reply_to ? `<p class="reply-to">In reply to “${esc(item.reply_to)}”</p>` : ""}<p>${esc(item.reply)}</p></div></div>` : ""}
       ${f.warn ? `<div class="alert danger">${icon("alert")}<p><strong>${esc(t("dish.has", { a: listJoin(f.hits.contains).toLowerCase() }))}</strong> ${esc(t("dish.allergic"))}${f.hits.may.length ? " " + esc(t("dish.mayAlso", { a: listJoin(f.hits.may).toLowerCase() })) : ""}</p></div>` : ""}
+      ${f.veg.length ? `<div class="alert danger">${icon("alert")}<p><strong>${esc(t("veg.has", { a: vegList(f.veg) }))}</strong> ${esc(t("veg.check"))}</p></div>` : ""}
       ${f.caution ? `<div class="alert caution">${icon("alert")}<p><strong>${esc(t("dish.mayContain", { a: listJoin(f.hits.may).toLowerCase() }))}</strong> ${esc(t("dish.askStaff"))}</p></div>` : ""}
       ${readOnly() ? "" : `<div class="rate" id="sh-rate-${id}">${sheetRate(item, date)}</div>`}
       <div class="contains"><span class="mini-label">${esc(t("dish.contains"))}</span>${containsChips.length ? `<ul class="chips">${containsChips.join("")}</ul>` : `<span class="none">${esc(item.calories == null && /ask nutrition/i.test(item.may_other || "") ? t("dish.unknown") : t("dish.none"))}</span>`}</div>

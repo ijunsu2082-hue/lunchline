@@ -44,7 +44,10 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 - Suggestions leaderboard with fuzzy "did you mean" matching and merging of duplicates
 - Optional grade level, shown only for groups of 5 or more
 - Waste log
-- Weekly report with a short summary, built every Friday or on demand
+- Weekly report with a short summary, built every Friday or on demand (plain templates over the week's numbers; no AI service or API key is involved)
+- Menu presets: save a dish, a day or a week and load it onto any days, for as many weeks as you like
+- Replies to comments show the comment they answer, and can go to everyone or only to the student who wrote it
+- Vegetarian students are warned about meat (including meat sauces), seafood and egg, next to allergen warnings
 - English and Spanish
 - Offline queue and installable PWA
 - Printable QR posters

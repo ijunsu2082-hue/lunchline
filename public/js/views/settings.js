@@ -59,7 +59,6 @@ export function viewSchool() {
         <p class="tile-k">${icon("qr")}Student join</p>
         <p class="big-code">${esc(s.code)}</p>
         <p class="tile-s">Students scan the QR, enter the code, or search “${esc(s.name)}”. No account, no email.</p>
-        ${/^(localhost|127\.|\[::1\])/.test(location.hostname) ? `<div class="alert caution">${icon("info")}<p><strong>Testing on your computer?</strong> This QR points to <span class="mono">${esc(location.host)}</span>, which a phone can't open. Run <span class="mono">npm run dev:lan</span>, then open the app from the “On your phone” address it prints, and the QR will work.</p></div>` : ""}
         <div class="row-btns">
           <button class="btn primary" data-act="poster-open" data-kind="letter">${icon("printer")}Print QR poster</button>
           <button class="btn secondary" data-act="copy" data-text="${esc(inviteLink(s.code))}" data-label="Invite link">${icon("link")}Copy link</button>

@@ -25,7 +25,7 @@ export function viewMe() {
         <div class="cell-main"><p class="cell-t">${esc(t("me.grade"))}</p><p class="cell-s">${st.grade ? esc(st.grade === "other" ? t("setup.gradeOther") : t("grade.n", { g: st.grade })) : esc(t("common.notSet"))}</p></div>${icon("chevR")}
       </button>
       <button class="cell" data-act="edit" data-step="allergies">
-        <div class="cell-main"><p class="cell-t">${esc(t("me.allergies"))}</p><p class="cell-s">${allergies.length ? esc(listJoin(allergies)) : esc(t("common.none"))}</p></div>${icon("chevR")}
+        <div class="cell-main"><p class="cell-t">${esc(t("me.allergies"))}</p><p class="cell-s">${[st.vegetarian ? t("setup.vegetarian.short") : "", allergies.length ? listJoin(allergies) : ""].filter(Boolean).map(esc).join(" · ") || esc(t("common.none"))}</p></div>${icon("chevR")}
       </button>
       <button class="cell" data-act="edit" data-step="food">
         <div class="cell-main"><p class="cell-t">${esc(t("me.food"))}</p><p class="cell-s">${foods.length ? esc(listJoin(foods)) : esc(t("common.notSet"))}</p></div>${icon("chevR")}
