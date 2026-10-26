@@ -61,8 +61,8 @@ export default {
   "setup.otherAllergies": "Other allergies", "setup.otherPh": "e.g. kiwi, mustard, coconut", "setup.go": "Show me the menu", "setup.skip": "Skip for now",
   "grade.n": "Grade {g}",
 
-  "ideas.title": "Ideas", "ideas.lede": "What would you actually like the cafeteria to make? If someone's already asked for it, just add your vote.", "ideas.label": "Your idea",
-  "ideas.ph": "e.g. Korean fried chicken on Fridays", "ideas.post": "Post", "ideas.dym": "Did you mean", "ideas.similar": "Similar ideas",
+  "ideas.title": "What should be on the menu?", "ideas.lede": "Vote up the ideas you want. The kitchen reads the top of this list.", "ideas.suggest": "Suggest a dish", "ideas.label": "Your idea",
+  "ideas.ph": "Orange chicken, birria tacos...", "ideas.post": "Post idea", "ideas.dym": "Did you mean", "ideas.similar": "Similar ideas",
   "ideas.addVote": "Add my vote", "ideas.postNew": "No, post mine as a new idea", "ideas.checkFirst": "That looks a lot like an idea that's already here. You can add your vote to it, or post yours as something new.",
   "ideas.leaderboard": "Leaderboard", "ideas.thisWeek": "New this week", "ideas.vote": "vote", "ideas.votes": "votes",
   "ideas.meToo": "Me too: {text}. {n}", "ideas.yours": "Your idea", "ideas.kitchen": "Kitchen",

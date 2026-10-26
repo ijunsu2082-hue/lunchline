@@ -17,7 +17,6 @@
 //   audit/{id}/{ts}-{rand}               who changed what
 //   photo/{id}/{photoId}                 dish photo (binary)
 //   rl/…  used/…  ml/…  sess/…           rate limits, spent challenges, setup links, sessions
-//   seed/demo-v1                         marker: demo schools were created (see demo.mjs)
 
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -33,13 +32,12 @@ import { getSecret, makeChallenge, checkChallenge, powSolved, POW_BITS, makeVote
 import { clientIp, ipHash, limit } from "./ratelimit.mjs";
 import { findSimilar, similarity, SAME, tidyText } from "./similarity.mjs";
 import { computeInsights } from "./insights.mjs";
-import { sendMail, mailConfigured, inviteEmail } from "./mail.mjs";
+import { sendMail, mailConfigured, inviteEmail, magicLinkEmail } from "./mail.mjs";
 import { weeklySummary, reportData, weekWindow } from "./reports.mjs";
 import {
-  createMagic, consumeMagic, peekMagic, startSession, sessionCookie, endSession, addMember, removeMember, listMembers,
-  schoolsFor, membershipsFor, requireStaff, whoAmI, roleRank, checkPassword, setMemberPassword, PASSWORD_MIN, COOKIE,
+  createMagic, consumeMagic, startSession, sessionCookie, endSession, addMember, removeMember, listMembers,
+  schoolsFor, membershipsFor, requireStaff, whoAmI, roleRank, markJoined, INVITE_TTL, COOKIE,
 } from "./staff.mjs";
-import { DEMO_SCHOOLS, SEED_KEY, demoEnabled, masterEmail, masterSchoolName, demoId, demoDay, photoless } from "./demo.mjs";
 
 const GRADE_LIST = ["K", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const DEFAULT_GRADES = ["9", "10", "11", "12"];
@@ -67,12 +65,8 @@ export async function handle(req, store) {
         break;
 
       case "auth":
-        if (m === "POST" && id === "signup") return await authSignup(store, req);
-        if (m === "POST" && id === "login") return await authLogin(store, req);
-        if (m === "POST" && id === "setup-info") return json(await authSetupInfo(store, req));
-        if (m === "POST" && id === "setup") return await authSetup(store, req);
-        if (m === "POST" && id === "master") return await authMaster(store, req);
-        if (m === "POST" && (id === "request" || id === "verify")) updated(); // old email sign-in
+        if (m === "POST" && id === "request") return json(await authRequest(store, req));
+        if (m === "POST" && id === "verify") return await authVerify(store, req);
         if (m === "GET" && id === "me") return json(await authMe(store, req));
         if (m === "POST" && id === "logout") { await endSession(store, req); return json({ ok: true }, 200, { "Set-Cookie": sessionCookie("", req, 0) }); }
         break;
@@ -201,47 +195,7 @@ export async function createSchool(store, { name, tz, email, color, id, grades, 
   return school;
 }
 
-// ---------- demo schools ----------
-// The master school, owned by the master email. An existing school with that name is claimed rather than
-// copied; if it still has the old menu from before dishes had photos, those days are cleared so the
-// photo menu fills in. Returns { school, created }.
-async function masterSchool(store, email) {
-  const name = masterSchoolName();
-  const ids = (await listKeys(store, `name/${slug(name) || "school"}/`)).map(k => k.split("/")[2]);
-  let school = (await getAll(store, ids.map(id => `school/${id}`))).sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
-  let created = false;
-  if (!school) {
-    school = await createSchool(store, { name, tz: "America/Los_Angeles", email, color: DEFAULT_COLOR, id: demoId(name), demo: { offset: 0 } });
-    created = true;
-  } else if (!school.demo) {
-    const days = await getAll(store, await listKeys(store, `day/${school.id}/`));
-    await deleteAll(store, days.filter(photoless).map(d => `day/${school.id}/${d.date}`));
-    school = { ...school, demo: { offset: 0 } };
-    await store.setJSON(`school/${school.id}`, school);
-  }
-  if (!(await store.get(`staff/${school.id}/${emailHash(email)}`))) await addMember(store, school.id, email, "owner", "master code");
-  return { school, created };
-}
-
-// Runs once per store. The marker is written first so a second request doesn't seed alongside; if seeding
-// dies halfway, it runs again a minute later, and the fixed ids keep that from making copies.
-async function ensureDemo(store) {
-  if (!demoEnabled()) return;
-  const mark = await store.get(SEED_KEY, { type: "json" });
-  if (mark && (mark.done || Date.now() - mark.at < 60000)) return;
-  await store.setJSON(SEED_KEY, { at: Date.now() });
-  const email = masterEmail();
-  await masterSchool(store, email);
-  for (const [i, d] of DEMO_SCHOOLS.entries()) {
-    const id = demoId(d.name);
-    if (await store.get(`school/${id}`)) continue;
-    await createSchool(store, { name: d.name, tz: "America/Los_Angeles", email, color: d.color, id, grades: d.grades, demo: { offset: (i + 1) % 5 } });
-  }
-  await store.setJSON(SEED_KEY, { at: Date.now(), done: true });
-}
-
 async function findSchools(store, q) {
-  await ensureDemo(store);
   if (q.has("code")) {
     const code = normCode(q.get("code"));
     if (code.length !== 6) fail(400, "Join codes are 6 characters");
@@ -333,105 +287,68 @@ async function deleteSchool(store, req, id) {
 const originOf = req => (!globalThis.__LL_DEV && process.env.SITE_URL) || new URL(req.url).origin;
 
 // Signed in: starts a session that opens `schools` (null = every school of this email) and returns them.
-async function signedIn(store, req, email, schools, created = null, sample = false) {
+async function signedIn(store, req, email, schools, created = null) {
   const mine = await schoolsFor(store, email, schools);
   const session = await startSession(store, email, schools);
   return json({
     email,
     schools: mine.map(({ school, role }) => ({ school: staffSchool(school), role })),
     created: created ? staffSchool(created) : null,
-    sample,
   }, 200, { "Set-Cookie": sessionCookie(session, req) });
 }
 
-function newPassword(v) {
-  const p = typeof v === "string" ? v : "";
-  if (p.length < PASSWORD_MIN) fail(400, `Use a password with at least ${PASSWORD_MIN} characters.`);
-  if (p.length > 200) fail(400, "That password is too long (200 characters at most).");
-  return p;
+const loginLink = async (store, req, data, ttl) => `${originOf(req)}/?login=${await createMagic(store, data, ttl)}`;
+
+// Sends a sign-in link. Where no email service is set up, only local dev gets the link back on screen;
+// a live site refuses rather than pretending an email went out.
+async function deliver(to, msg, link) {
+  if (mailConfigured()) { await sendMail({ to, ...msg }); return {}; }
+  if (globalThis.__LL_DEV) { console.log(`\n--- email to ${to} ---\n${msg.subject}\n${link}\n--- end email ---\n`); return { dev_link: link }; }
+  fail(503, "Sign-in emails aren't set up on this site yet.");
 }
 
-const setupLink = async (store, req, schoolId, email) =>
-  `${originOf(req)}/?setup=${await createMagic(store, { email: normEmail(email), purpose: "setup", school: schoolId })}`;
-
-// A new school with its owner's email and password. The password opens this school only.
-async function authSignup(store, req) {
+// Asks for a sign-in link, or for a link that creates a new school once the email is confirmed.
+// Whether or not the email belongs to anyone, the answer is the same.
+async function authRequest(store, req) {
   const secret = await getSecret(store);
   const b = await body(req);
   const email = normEmail(b.email);
   if (!validEmail(email)) fail(400, "That doesn't look like an email address.");
-  const password = newPassword(b.password);
-  const name = str(b.name, 60);
-  if (name.length < 2) fail(400, "School name must be at least 2 characters");
-  await limit(store, `signup/${ipHash(secret, clientIp(req))}`, 10, 3600, "new schools from this network");
-  const school = await createSchool(store, {
-    name, email, color: HEX.test(b.color || "") ? b.color.toUpperCase() : DEFAULT_COLOR,
-    tz: typeof b.tz === "string" && validTz(b.tz) ? b.tz : "America/Chicago",
-  });
-  await setMemberPassword(store, school.id, email, password);
-  await audit(store, school.id, email, "created the school");
-  return signedIn(store, req, email, [school.id], school, !!b.sample);
-}
-
-// Opens every school where this email's password matches. Wrong email and wrong password get the same answer.
-async function authLogin(store, req) {
-  const secret = await getSecret(store);
-  const b = await body(req);
-  const email = normEmail(b.email);
-  const password = typeof b.password === "string" ? b.password.slice(0, 200) : "";
-  await limit(store, `loginip/${ipHash(secret, clientIp(req))}`, 30, 3600, "sign-in attempts");
-  await limit(store, `loginmail/${sha(email).slice(0, 16)}`, 10, 900, "sign-in attempts for that email");
-  const rows = validEmail(email) && password ? (await membershipsFor(store, email)).filter(r => r.staff.pw) : [];
-  const opens = [];
-  for (const r of rows) if (await checkPassword(r.staff.pw, password)) opens.push(r.school.id);
-  if (!rows.length) await checkPassword(null, password); // same work, so timing doesn't tell
-  if (!opens.length) fail(401, "That email and password don't match. New to the team? Ask your school's admin for a setup link.");
-  return signedIn(store, req, email, opens);
-}
-
-// Who a setup link is for, without using it up.
-async function authSetupInfo(store, req) {
-  const secret = await getSecret(store);
-  await limit(store, `verify/${ipHash(secret, clientIp(req))}`, 60, 3600, "attempts");
-  const b = await body(req);
-  const row = await peekMagic(store, b.token);
-  if (row.purpose !== "setup") fail(400, "That setup link isn't valid. Ask your admin for a new one.");
-  const school = await store.get(`school/${row.school}`, { type: "json" });
-  return { email: row.email, school: school?.name || "" };
-}
-
-// Sets (or resets) the password for the link's email at the link's school, and signs them in there.
-async function authSetup(store, req) {
-  const secret = await getSecret(store);
-  await limit(store, `verify/${ipHash(secret, clientIp(req))}`, 60, 3600, "attempts");
-  const b = await body(req);
-  const password = newPassword(b.password); // checked first, so a typo doesn't use up the link
-  const row = await consumeMagic(store, b.token);
-  if (row.purpose !== "setup") fail(400, "That setup link isn't valid. Ask your admin for a new one.");
-  if (!(await setMemberPassword(store, row.school, row.email, password))) fail(400, "You're not on that school's team anymore. Ask your admin to add you again.");
-  await audit(store, row.school, row.email, "set a password");
-  return signedIn(store, req, row.email, [row.school]);
-}
-
-// Master code: a shared secret from the MASTER_CODE environment variable that signs in as MASTER_EMAIL, the owner of
-// MASTER_SCHOOL and the demo schools. It exists so a live demo never depends on anyone's password. It is off unless
-// MASTER_CODE is set (8+ characters), it is compared in constant time, and wrong guesses are rate limited per network.
-async function authMaster(store, req) {
-  const want = process.env.MASTER_CODE || "";
-  if (want.length < 8) fail(403, "Master code sign-in isn't turned on for this site.");
-  const secret = await getSecret(store);
-  await limit(store, `master/${ipHash(secret, clientIp(req))}`, 10, 3600, "master code attempts");
-  const b = await body(req);
-  const given = Buffer.from(sha(String(b.code || "").trim())), expected = Buffer.from(sha(want));
-  if (!timingSafeEqual(given, expected)) fail(401, "That master code isn't right.");
-  const email = masterEmail();
-  let created = null;
-  if (!(await schoolsFor(store, email)).length) {
-    const m = await masterSchool(store, email);
-    if (m.created) { created = m.school; await audit(store, created.id, email, "created the school (master code)"); }
+  await limit(store, `reqip/${ipHash(secret, clientIp(req))}`, 30, 3600, "sign-in emails from this network");
+  await limit(store, `reqmail/${sha(email).slice(0, 16)}`, 5, 900, "sign-in emails for that address");
+  if (b.mode === "create") {
+    const name = str(b.name, 60);
+    if (name.length < 2) fail(400, "School name must be at least 2 characters");
+    const data = {
+      email, purpose: "create", name,
+      color: HEX.test(b.color || "") ? b.color.toUpperCase() : DEFAULT_COLOR,
+      tz: typeof b.tz === "string" && validTz(b.tz) ? b.tz : "America/Chicago",
+    };
+    const link = await loginLink(store, req, data);
+    return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "create", schoolName: name }), link)) };
   }
-  await ensureDemo(store);
-  return signedIn(store, req, email, null, created); // its menu fills itself, so no sample menu to load
+  if ((await membershipsFor(store, email)).length) {
+    const link = await loginLink(store, req, { email, purpose: "login" });
+    return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "login" }), link)) };
+  }
+  return { sent: true };
+}
+
+// Uses a link: confirms the email, creates the school if that's what it was for, and starts a session.
+async function authVerify(store, req) {
+  const secret = await getSecret(store);
+  await limit(store, `verify/${ipHash(secret, clientIp(req))}`, 60, 3600, "attempts");
+  const b = await body(req);
+  const row = await consumeMagic(store, b.token);
+  let created = null;
+  if (row.purpose === "create") {
+    created = await createSchool(store, { name: row.name, email: row.email, color: row.color, tz: row.tz });
+    await audit(store, created.id, row.email, "created the school");
+  } else if (row.purpose !== "login") fail(400, "That sign-in link isn't valid. Ask for a new one.");
+  const members = await membershipsFor(store, row.email);
+  if (!members.length) fail(400, "You're not on a school's team anymore. Ask your admin to add you again.");
+  await markJoined(store, row.email);
+  return signedIn(store, req, row.email, null, created);
 }
 
 async function authMe(store, req) {
@@ -445,15 +362,15 @@ async function getStaff(store, req, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "cook");
   const members = await listMembers(store, school.id);
   const me = user.email ? emailHash(user.email) : "";
-  // `ready`: they've set a password for this school.
-  return { members: members.map(m => ({ id: m.id, email: m.email, role: m.role, added_at: m.added_at, ready: !!m.pw, me: m.id === me })), legacy_key: !!school.admin_hash, me_role: user.role };
+  // `ready`: they have signed in at least once.
+  return { members: members.map(m => ({ id: m.id, email: m.email, role: m.role, added_at: m.added_at, ready: !!m.joined_at, me: m.id === me })), legacy_key: !!school.admin_hash, me_role: user.role };
 }
 
 // Best effort: a failed email never blocks the admin, who still has the link to copy.
 async function tryEmail(to, msg) {
   if (!mailConfigured()) return false;
   try { await sendMail({ to, ...msg }); return true; }
-  catch (e) { console.error("setup link email failed", e.message); return false; }
+  catch (e) { console.error("invite email failed", e.message); return false; }
 }
 
 async function inviteStaff(store, req) {
@@ -465,24 +382,23 @@ async function inviteStaff(store, req) {
   if (roleRank(role) > roleRank(user.role)) fail(403, "You can't give someone a higher role than your own.");
   const mem = await addMember(store, school.id, email, role, user.email);
   await audit(store, school.id, user.email, `added ${email} as ${role}`);
-  // The link lets the new member pick a password. It is emailed when an email service is set up;
+  // The invite is a sign-in link good for a week. It is emailed when an email service is set up;
   // either way it comes back here so the admin can copy it and pass it on.
-  const link = mem.pw ? "" : await setupLink(store, req, school.id, email);
-  const emailed = link ? await tryEmail(email, inviteEmail({ link, schoolName: school.name, role, by: user.email || "Your school's admin" })) : false;
-  return { member: { id: mem.id, email, role, ready: !!mem.pw }, link, emailed };
+  const link = await loginLink(store, req, { email, purpose: "login" }, INVITE_TTL);
+  const emailed = await tryEmail(email, inviteEmail({ link, schoolName: school.name, role, by: user.email || "Your school's admin" }));
+  return { member: { id: mem.id, email, role, ready: !!mem.joined_at }, link, emailed };
 }
 
-// A fresh setup link for a teammate who hasn't set a password yet, or who forgot it. It only ever
-// touches their password for this school.
+// A fresh sign-in link for a teammate who hasn't joined yet or lost their invite.
 async function memberLink(store, req, eh, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "admin");
   if (!/^[a-f0-9]{20}$/.test(eh)) fail(404, "That person isn't on your team.");
   const target = await store.get(`staff/${school.id}/${eh}`, { type: "json" });
   if (!target) fail(404, "That person isn't on your team.");
   if (roleRank(target.role) > roleRank(user.role)) fail(403, "You can't reset someone with a higher role.");
-  const link = await setupLink(store, req, school.id, target.email);
-  await audit(store, school.id, user.email, `made a setup link for ${target.email}`);
-  const emailed = await tryEmail(target.email, inviteEmail({ link, schoolName: school.name, role: target.role, by: user.email || "Your school's admin", reset: !!target.pw }));
+  const link = await loginLink(store, req, { email: target.email, purpose: "login" }, INVITE_TTL);
+  await audit(store, school.id, user.email, `made a sign-in link for ${target.email}`);
+  const emailed = await tryEmail(target.email, inviteEmail({ link, schoolName: school.name, role: target.role, by: user.email || "Your school's admin" }));
   return { email: target.email, link, emailed };
 }
 
@@ -593,6 +509,7 @@ function cleanItem(raw, schoolId) {
     carbs: nutrient(raw.carbs, 1000), fiber: nutrient(raw.fiber, 200), sodium: nutrient(raw.sodium, 10000),
     photo,
     reply: cleanProfanity(str(raw.reply, REPLY_MAX)),
+    reply_to: raw.reply ? cleanProfanity(str(raw.reply_to, 200)) : "",
   };
 }
 
@@ -613,20 +530,11 @@ function cleanDay(raw, schoolId) {
 }
 
 async function getMenu(store, q) {
-  await ensureDemo(store); // a returning student may open a menu before anyone has searched
   const school = await loadSchool(store, q.get("school"));
   const { from, to } = range(q, 62);
   const dates = eachDate(from, to);
   const days = await Promise.all(dates.map(d => store.get(`day/${school.id}/${d}`, { type: "json" })));
   const today = todayIn(school.tz);
-  if (school.demo) { // demo schools: a weekday nobody has saved yet gets the sample menu, stored so it can be rated
-    const fills = [];
-    dates.forEach((date, i) => {
-      const sample = !days[i] && demoDay(date, today, school.demo.offset || 0);
-      if (sample) { days[i] = cleanDay(sample, school.id); fills.push(store.setJSON(`day/${school.id}/${date}`, days[i])); }
-    });
-    await Promise.all(fills);
-  }
   const out = {};
   days.forEach(d => { if (d) out[d.date] = normDay(d); });
   return { days: out, today };
@@ -656,7 +564,8 @@ async function postReply(store, req) {
   const meal = day && MEALS.find(ml => day[ml].some(i => i.id === b.item_id));
   if (!meal) fail(404, "That dish isn't on the menu for that day.");
   const reply = cleanProfanity(str(b.text, REPLY_MAX));
-  day[meal] = day[meal].map(i => (i.id === b.item_id ? { ...i, reply } : i));
+  // `to` is the comment being answered, shown with the reply so students can tell what it's about.
+  day[meal] = day[meal].map(i => (i.id !== b.item_id ? i : { ...i, reply, reply_to: !reply ? "" : b.to !== undefined ? cleanProfanity(str(b.to, 200)) : i.reply_to || "" }));
   await store.setJSON(`day/${school.id}/${b.date}`, day);
   return { reply };
 }

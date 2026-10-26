@@ -9,8 +9,19 @@ globalThis.__LL_TODAY = "2026-10-21";
 console.log = () => {}; // keep the server's own logging out of the test output
 const { handle } = await import("../netlify/lib/api.mjs");
 
-const PW = "lunch-line-pass";
-const tokenOf = link => new URL(link).searchParams.get("setup");
+const tokenOf = link => new URL(link).searchParams.get("login");
+
+// Magic-link sign-up: ask for a link (local dev hands it back), then use it.
+async function createSchoolAs(c, email, name, extra = {}) {
+  const req = await c("POST", "auth/request", { mode: "create", email, name, tz: "America/Chicago", ...extra });
+  assert.equal(req.status, 200, JSON.stringify(req.body));
+  return c("POST", "auth/verify", { token: tokenOf(req.body.dev_link) });
+}
+async function signInAs(c, email) {
+  const req = await c("POST", "auth/request", { email });
+  assert.equal(req.status, 200);
+  return req.body.dev_link ? c("POST", "auth/verify", { token: tokenOf(req.body.dev_link) }) : null;
+}
 
 const TODAY = "2026-10-21";
 const dish = (id, name, extra = {}) => ({ id, name, allergens: [], may: [], diet: [], ...extra });
@@ -27,7 +38,7 @@ function solve(challenge, bits) {
 async function setup() {
   const store = memStore();
   const staff = client(handle, store, { ip: "9.9.9.9" });
-  const v = await staff("POST", "auth/signup", { email: "Cook@School.edu", password: PW, name: "Lincoln High", tz: "America/Chicago" });
+  const v = await createSchoolAs(staff, "Cook@School.edu", "Lincoln High");
   assert.equal(v.status, 200);
   const school = v.body.created;
   const menu = await staff("PUT", "menu", { school: school.id, days: [{ date: TODAY, breakfast: [], lunch: [dish("aaaaaa1", "Pizza"), dish("aaaaaa2", "Salad")] }] });
@@ -42,76 +53,79 @@ async function setup() {
   return { store, staff, school, device };
 }
 
-test("creating a school sets the owner's password, and signing in needs it", async () => {
+test("creating a school needs a confirmed email, and signing in works with a link, not a password", async () => {
   const store = memStore();
   const c = client(handle, store);
-  assert.equal((await c("POST", "auth/signup", { email: "nope", password: PW, name: "X School" })).status, 400);
-  assert.equal((await c("POST", "auth/signup", { email: "a@b.edu", password: "short", name: "Oak Middle" })).status, 400, "8 characters at least");
-  const v = await c("POST", "auth/signup", { email: "A@B.edu", password: PW, name: "Oak Middle" });
+  assert.equal((await c("POST", "auth/request", { mode: "create", email: "nope", name: "X School" })).status, 400);
+  assert.equal((await c("POST", "auth/request", { mode: "create", email: "a@b.edu", name: "X" })).status, 400);
+  const req = await c("POST", "auth/request", { mode: "create", email: "A@B.edu", name: "Oak Middle" });
+  assert.equal(req.status, 200);
+  assert.equal((await c("GET", "auth/me")).status, 401, "asking for a link signs nobody in");
+  assert.equal([...store._m.keys()].filter(k => k.startsWith("school/")).length, 0, "the school isn't made until the link is used");
+  const v = await c("POST", "auth/verify", { token: tokenOf(req.body.dev_link) });
   assert.equal(v.status, 200);
   assert.equal(v.body.created.name, "Oak Middle");
   assert.ok(v.headers.get("set-cookie").includes("HttpOnly"));
-  const me = await c("GET", "auth/me");
-  assert.equal(me.body.email, "a@b.edu");
-  assert.equal(me.body.schools[0].role, "owner");
-  assert.ok(![...store._m.values()].some(x => String(x.data).includes(PW)), "the password itself is never stored");
+  assert.equal((await c("GET", "auth/me")).body.schools[0].role, "owner");
+  assert.equal((await c("POST", "auth/verify", { token: tokenOf(req.body.dev_link) })).status, 400, "a link works once");
   await c("POST", "auth/logout");
   assert.equal((await c("GET", "auth/me")).status, 401);
-  assert.equal((await c("POST", "auth/login", { email: "a@b.edu", password: "wrong-password" })).status, 401);
-  const ok = await c("POST", "auth/login", { email: " a@B.EDU ", password: PW });
-  assert.equal(ok.status, 200);
-  assert.equal(ok.body.schools[0].school.name, "Oak Middle");
+  const back = await signInAs(c, " a@B.EDU ");
+  assert.equal(back.status, 200);
+  assert.equal(back.body.schools[0].school.name, "Oak Middle");
+  assert.equal(back.body.created, null);
+  assert.equal((await c("POST", "auth/login", { email: "a@b.edu", password: "x" })).status, 404, "the password route is gone");
 });
 
-test("a wrong email and a wrong password get the same answer", async () => {
+test("asking for a sign-in link gives the same answer whether or not the email is on a team", async () => {
   const { staff } = await setup();
-  const wrongPw = await staff("POST", "auth/login", { email: "cook@school.edu", password: "not-the-password" });
-  const unknown = await staff("POST", "auth/login", { email: "stranger@elsewhere.com", password: "not-the-password" });
-  assert.equal(wrongPw.status, 401);
-  assert.equal(unknown.status, 401);
-  assert.equal(wrongPw.body.error, unknown.body.error);
+  const known = await staff("POST", "auth/request", { email: "cook@school.edu" });
+  const unknown = await staff("POST", "auth/request", { email: "stranger@elsewhere.com" });
+  assert.equal(known.status, 200);
+  assert.equal(unknown.status, 200);
+  assert.equal(unknown.body.sent, true);
+  assert.equal(unknown.body.dev_link, undefined, "no link is made for a stranger");
 });
 
-test("sign-in attempts are rate limited per email", async () => {
+test("without an email service a live site refuses to pretend, and only local dev shows the link", async () => {
+  const { staff } = await setup();
+  delete process.env.RESEND_API_KEY; delete process.env.BREVO_API_KEY;
+  globalThis.__LL_DEV = false;
+  try {
+    const r = await staff("POST", "auth/request", { email: "cook@school.edu" });
+    assert.equal(r.status, 503);
+  } finally { globalThis.__LL_DEV = true; }
+});
+
+test("sign-in links are rate limited per email", async () => {
   const { store } = await setup();
   const results = [];
-  for (let i = 0; i < 11; i++) results.push((await client(handle, store, { ip: `3.3.3.${i}` })("POST", "auth/login", { email: "cook@school.edu", password: "guess-" + i })).status);
-  assert.deepEqual(results.slice(0, 10), Array(10).fill(401));
-  assert.equal(results[10], 429);
+  // setting the school up used one of the five requests this email gets per 15 minutes
+  for (let i = 0; i < 5; i++) results.push((await client(handle, store, { ip: `3.3.3.${i}` })("POST", "auth/request", { email: "cook@school.edu" })).status);
+  assert.deepEqual(results.slice(0, 4), Array(4).fill(200));
+  assert.equal(results[4], 429);
 });
 
-test("setup links: an invite sets a password once, and the password opens only that school", async () => {
+test("an invite is a sign-in link, and a sign-in opens every school the email is on", async () => {
   const { school, staff, store } = await setup();
-  // someone who already runs their own school...
   const x = client(handle, store, { ip: "4.4.4.4" });
-  const own = (await x("POST", "auth/signup", { email: "x@other.edu", password: "own-school-pass", name: "Other School" })).body.created;
-  // ...is added to Lincoln. Nothing is emailed; the admin gets a link to pass on.
+  const own = (await createSchoolAs(x, "x@other.edu", "Other School")).body.created;
   const inv = await staff("POST", "staff", { school: school.id, email: "x@other.edu", role: "cook" });
   assert.equal(inv.status, 201);
   assert.equal(inv.body.member.ready, false);
-  const token = tokenOf(inv.body.link);
-  // their own school's password doesn't open Lincoln
   await x("POST", "auth/logout");
-  const login1 = await x("POST", "auth/login", { email: "x@other.edu", password: "own-school-pass" });
-  assert.deepEqual(login1.body.schools.map(s => s.school.id), [own.id]);
-  assert.equal((await x("GET", `staff?school=${school.id}`)).status, 403);
-  // the link says who it's for without using it up; a too-short password doesn't use it up either
-  const info = await x("POST", "auth/setup-info", { token });
-  assert.deepEqual(info.body, { email: "x@other.edu", school: "Lincoln High" });
-  assert.equal((await x("POST", "auth/setup", { token, password: "short" })).status, 400);
-  const set = await x("POST", "auth/setup", { token, password: "lincoln-pass-1" });
+  assert.equal((await x("GET", `staff?school=${school.id}`)).status, 401);
+  const set = await x("POST", "auth/verify", { token: tokenOf(inv.body.link) });
   assert.equal(set.status, 200);
-  assert.deepEqual(set.body.schools.map(s => s.school.id), [school.id], "the link opens Lincoln only");
-  assert.equal((await x("GET", `staff?school=${own.id}`)).status, 403);
-  assert.equal((await x("POST", "auth/setup", { token, password: "lincoln-pass-2" })).status, 400, "a setup link works once");
-  const login2 = await x("POST", "auth/login", { email: "x@other.edu", password: "lincoln-pass-1" });
-  assert.deepEqual(login2.body.schools.map(s => s.school.id), [school.id]);
-  assert.equal((await staff("GET", `staff?school=${school.id}`)).body.members.find(m => m.email === "x@other.edu").ready, true);
-  // removed from the team: an unused link stops working
+  assert.deepEqual(set.body.schools.map(s => s.school.id).sort(), [school.id, own.id].sort());
+  assert.equal((await x("GET", `staff?school=${school.id}`)).status, 200);
+  assert.equal((await x("POST", "auth/verify", { token: tokenOf(inv.body.link) })).status, 400, "an invite works once");
+  assert.equal((await staff("GET", `staff?school=${school.id}`)).body.members.find(m => m.email === "x@other.edu").ready, true, "joined once they sign in");
+  // removed from the team before using the link: nothing to open
   const again = await staff("POST", "staff", { school: school.id, email: "gone@school.edu", role: "cook" });
   const gone = (await staff("GET", `staff?school=${school.id}`)).body.members.find(m => m.email === "gone@school.edu");
   await staff("DELETE", `staff/${gone.id}?school=${school.id}`);
-  assert.equal((await x("POST", "auth/setup", { token: tokenOf(again.body.link), password: "whatever-123" })).status, 400);
+  assert.equal((await x("POST", "auth/verify", { token: tokenOf(again.body.link) })).status, 400);
 });
 
 test("staff routes need a session, and a cookie alone isn't enough to change things", async () => {
@@ -145,7 +159,7 @@ test("only a device with a valid token can rate; the body can't pick the voter",
   assert.ok(keys[0].includes("device-aaaa-0001"), "the vote is stored under the token's device, not the body's");
   // a token for another school doesn't work here
   const other = client(handle, store);
-  const v2 = await other("POST", "auth/signup", { email: "x@y.edu", password: PW, name: "Other School" });
+  const v2 = await createSchoolAs(other, "x@y.edu", "Other School");
   const pow = await other("GET", `pow?school=${v2.body.created.id}`);
   const t2 = await other("POST", "token", { school: v2.body.created.id, voter_id: "device-bbbb-0002", challenge: pow.body.challenge, nonce: solve(pow.body.challenge, pow.body.bits) });
   const cross = await a.call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa1", vote: "bad" }, { token: t2.body.token });
@@ -244,7 +258,7 @@ test("roles: cooks can edit menus but not manage people; nobody can promote past
   const inv = await staff("POST", "staff", { school: school.id, email: "cook2@school.edu", role: "cook" });
   assert.equal(inv.status, 201);
   const cook = client(handle, store, { ip: "8.8.8.8" });
-  assert.equal((await cook("POST", "auth/setup", { token: tokenOf(inv.body.link), password: "cook-two-pass" })).status, 200);
+  assert.equal((await cook("POST", "auth/verify", { token: tokenOf(inv.body.link) })).status, 200);
   assert.equal((await cook("PUT", "menu", { school: school.id, days: [{ date: TODAY, lunch: [dish("ccccc01", "Soup")] }] })).status, 200);
   assert.equal((await cook("POST", "staff", { school: school.id, email: "x@y.edu", role: "cook" })).status, 403);
   assert.equal((await cook("PATCH", `schools/${school.id}`, { enrollment: 10 })).status, 403);
@@ -252,18 +266,17 @@ test("roles: cooks can edit menus but not manage people; nobody can promote past
   // an admin can invite cooks but not owners
   const invA = await staff("POST", "staff", { school: school.id, email: "admin@school.edu", role: "admin" });
   const admin = client(handle, store, { ip: "6.6.6.6" });
-  assert.equal((await admin("POST", "auth/setup", { token: tokenOf(invA.body.link), password: "admin-pass-1" })).status, 200);
+  assert.equal((await admin("POST", "auth/verify", { token: tokenOf(invA.body.link) })).status, 200);
   assert.equal((await admin("POST", "staff", { school: school.id, email: "z@y.edu", role: "owner" })).status, 403);
   assert.equal((await admin("POST", "staff", { school: school.id, email: "z@y.edu", role: "cook" })).status, 201);
-  // setup links: admins can make them for their level and below, cooks can't make any
+  // sign-in links: admins can make them for their level and below, cooks can't make any
   const members = (await staff("GET", `staff?school=${school.id}`)).body.members;
   const idOf = e => members.find(m => m.email === e).id;
   assert.equal((await cook("POST", `staff/${idOf("z@y.edu")}/link?school=${school.id}`)).status, 403);
   assert.equal((await admin("POST", `staff/${idOf("cook@school.edu")}/link?school=${school.id}`)).status, 403, "an admin can't reset the owner");
   const reset = await admin("POST", `staff/${idOf("cook2@school.edu")}/link?school=${school.id}`);
   assert.equal(reset.status, 200);
-  assert.equal((await cook("POST", "auth/setup", { token: tokenOf(reset.body.link), password: "cook-two-new" })).status, 200);
-  assert.equal((await cook("POST", "auth/login", { email: "cook2@school.edu", password: "cook-two-pass" })).status, 401, "the old password is gone");
+  assert.equal((await cook("POST", "auth/verify", { token: tokenOf(reset.body.link) })).status, 200);
   // the last owner can't be removed
   const owner = members.find(m => m.role === "owner");
   assert.equal((await staff("DELETE", `staff/${owner.id}?school=${school.id}`)).status, 400);
@@ -367,85 +380,7 @@ test("a school full of students behind one wifi address isn't locked out", async
   assert.equal(joined, 60);
 });
 
-test("the master code signs in as the owner, only when set, and wrong codes are refused", async () => {
-  const store = memStore();
-  const c = client(handle, store, { ip: "7.7.7.7" });
-  delete process.env.MASTER_CODE;
-  assert.equal((await c("POST", "auth/master", { code: "anything-long" })).status, 403, "off unless MASTER_CODE is set");
-  process.env.MASTER_CODE = "correct-horse-battery";
-  process.env.MASTER_EMAIL = "owner@example.org";
-  assert.equal((await c("POST", "auth/master", { code: "wrong-wrong-wrong" })).status, 401);
-  const ok = await c("POST", "auth/master", { code: "correct-horse-battery" });
-  assert.equal(ok.status, 200);
-  assert.equal(ok.body.email, "owner@example.org");
-  assert.equal(ok.body.created.name, "Irvine High School");
-  assert.ok(ok.headers.get("set-cookie").includes("HttpOnly"));
-  assert.equal((await c("GET", "auth/me")).body.schools[0].role, "owner");
-  const again = await c("POST", "auth/master", { code: "correct-horse-battery" });
-  assert.equal(again.body.created, null, "second use signs in to the same school");
-  delete process.env.MASTER_CODE; delete process.env.MASTER_EMAIL;
-});
-
-test("demo schools: seeded once, menus fill with photos, and the master school's photo-less days are replaced", async () => {
-  const store = memStore();
-  process.env.MASTER_EMAIL = "owner@example.org";
-  process.env.MASTER_CODE = "correct-horse-battery";
-  // an Irvine High that already exists, with one old photo-less day and one day staff gave a photo
-  const old = client(handle, store, { ip: "2.2.2.2" });
-  const irvine = (await old("POST", "auth/signup", { email: "first@irvine.edu", password: PW, name: "Irvine High School" })).body.created;
-  await old("PUT", "menu", { school: irvine.id, days: [
-    { date: "2026-10-21", lunch: [dish("old0001", "Chicken Gyro")] },
-    { date: "2026-10-22", lunch: [dish("own0001", "Staff Special", { photo: "/samples/pancakes.jpg" })] },
-  ] });
-  const anon = client(handle, store);
-  // opening Irvine's menu first (a returning student) seeds and fixes it too
-  const first = (await anon("GET", `menu?school=${irvine.id}&from=2026-10-21&to=2026-10-21`)).body.days["2026-10-21"];
-  assert.ok(first.lunch.every(i => i.photo));
-  const all = (await anon("GET", "schools?all=1")).body.schools;
-  assert.equal(all.length, 13, "12 demo schools plus Irvine, not a second Irvine");
-  assert.equal(all.filter(s => s.name === "Irvine High School").length, 1);
-  assert.equal((await anon("GET", "schools?all=1")).body.schools.length, 13, "seeding runs once");
-  // Irvine: old day replaced with the photo menu, the staff day kept, weekends left empty
-  const week = (await anon("GET", `menu?school=${irvine.id}&from=2026-10-19&to=2026-10-25`)).body.days;
-  assert.deepEqual(Object.keys(week).sort(), ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"]);
-  assert.equal(week["2026-10-22"].lunch[0].name, "Staff Special");
-  for (const d of ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-23"]) {
-    const items = ["breakfast", "snack", "lunch"].flatMap(m => week[d][m]);
-    assert.ok(items.length > 20 && items.every(i => /^\/samples\/[a-z0-9-]+\.jpg$/.test(i.photo)), `${d} is the photo menu`);
-  }
-  assert.ok(!week["2026-10-21"].lunch.some(i => i.name === "Chicken Gyro"));
-  // a demo school found by name has a photo menu that students can rate
-  const lincoln = (await anon("GET", "schools?q=lincoln")).body.schools[0];
-  assert.equal(lincoln.name, "Lincoln High School");
-  const today = (await anon("GET", `menu?school=${lincoln.id}&from=${TODAY}&to=${TODAY}`)).body.days[TODAY];
-  assert.ok(today.lunch.length && today.lunch.every(i => i.photo));
-  const c = client(handle, store, { ip: "5.5.5.5" });
-  const pow = await c("GET", `pow?school=${lincoln.id}`);
-  const t = await c("POST", "token", { school: lincoln.id, voter_id: "device-demo-0001", challenge: pow.body.challenge, nonce: solve(pow.body.challenge, pow.body.bits) });
-  assert.equal((await c("POST", "votes", { school: lincoln.id, date: TODAY, item_id: today.lunch[0].id, vote: "good" }, { token: t.body.token })).status, 200);
-  // the master code opens all of them, Irvine included, and the first owner keeps their access
-  const master = await client(handle, store, { ip: "7.7.7.8" })("POST", "auth/master", { code: "correct-horse-battery" });
-  assert.equal(master.body.schools.length, 13);
-  assert.equal(master.body.created, null);
-  assert.equal((await old("GET", `staff?school=${irvine.id}`)).status, 200);
-  delete process.env.MASTER_CODE; delete process.env.MASTER_EMAIL;
-});
-
-test("a page from before passwords gets a clear reload message, not a dead end", async () => {
-  const { staff, school } = await setup();
-  for (const [method, path, body] of [
-    ["POST", "auth/request", { email: "a@b.edu", mode: "create", name: "Old Page School" }],
-    ["POST", "auth/verify", { token: "x".repeat(32) }],
-    ["POST", "reports/send", { school: school.id }],
-    ["PATCH", "staff/me", { school: school.id, reports: true }],
-  ]) {
-    const r = await staff(method, path, body);
-    assert.equal(r.status, 410, path);
-    assert.match(r.body.error, /reload this page/i, path);
-  }
-});
-
-test("a setup link is emailed when an email service is set up, and still comes back to copy when it isn't", async () => {
+test("an invite link is emailed when an email service is set up, and still comes back to copy when it isn't", async () => {
   const { staff, school } = await setup();
   const realFetch = globalThis.fetch, sent = [];
   const save = { b: process.env.BREVO_API_KEY, r: process.env.RESEND_API_KEY, f: process.env.FROM_EMAIL };

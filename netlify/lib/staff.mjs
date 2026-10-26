@@ -1,84 +1,59 @@
-// Staff identity: passwords, setup links, sessions, school membership and roles.
+// Staff identity: emailed sign-in links, sessions, school membership and roles. No passwords.
 //
-// A password belongs to one membership (one email at one school), so an admin
-// can only ever hand out access to their own school, and a session only opens
-// the schools whose password was given.
-//
-//   ml/{sha(token)}              pending setup link   { email, purpose: "setup", school, exp }
+//   ml/{sha(token)}              pending link         { email, purpose: "login" | "create", name?, exp }
 //   sess/{sha(token)}            staff session        { email, schools (null = every school of that email), exp }
-//   staff/{school}/{emailHash}   member of a school   { email, role, added_at, added_by, pw? }
+//   staff/{school}/{emailHash}   member of a school   { email, role, added_at, added_by, joined_at? }
 //   member/{emailHash}/{school}  index: schools an email belongs to (key only)
 //   admin/{sha(key)}             legacy shared key -> school (still honoured until retired)
 
-import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { randomBytes } from "node:crypto";
 import { ROLES } from "./vocab.mjs";
 import { fail, sha, emailHash, normEmail, normCode, loadSchool, listKeys, getAll } from "./util.mjs";
 
-const scrypt = promisify(scryptCb);
-const SETUP_TTL = 7 * 24 * 3600 * 1000;
+export const LOGIN_TTL = 15 * 60 * 1000;
+export const INVITE_TTL = 7 * 24 * 3600 * 1000;
 const SESSION_TTL = 30 * 24 * 3600 * 1000;
 export const COOKIE = "ll_session";
 
 export const roleRank = r => ROLES.indexOf(r) + 1; // 0 when unknown
 
-// ---------- passwords ----------
-export const PASSWORD_MIN = 8;
-
-async function hashPassword(password) {
-  const salt = randomBytes(16).toString("base64url");
-  return { salt, hash: (await scrypt(password, salt, 32)).toString("base64url") };
-}
-
-// Always runs scrypt, even with no stored password, so a wrong email takes as long as a wrong password.
-export async function checkPassword(pw, password) {
-  const got = await scrypt(String(password), pw?.salt || "no-password-here", 32);
-  const want = pw?.hash ? Buffer.from(pw.hash, "base64url") : Buffer.alloc(32);
-  return !!pw?.hash && want.length === got.length && timingSafeEqual(got, want);
-}
-
-// Sets the password for one email at one school. False when they aren't on that team.
-export async function setMemberPassword(store, schoolId, email, password) {
-  const key = `staff/${schoolId}/${emailHash(email)}`;
-  const row = await store.get(key, { type: "json" });
-  if (!row) return false;
-  await store.setJSON(key, { ...row, pw: await hashPassword(password) });
-  return true;
-}
-
-// ---------- setup links ----------
-// An admin hands one to a teammate so they can set (or reset) their password for that school.
-export async function createMagic(store, data) {
+// ---------- sign-in links ----------
+// Staff never have a password. A link goes to their inbox, works once, and opens the dashboard.
+// Sign-in and create-a-school links last 15 minutes; a teammate's invite lasts 7 days.
+export async function createMagic(store, data, ttl = LOGIN_TTL) {
   const token = randomBytes(24).toString("base64url");
-  await store.setJSON(`ml/${sha(token)}`, { ...data, exp: Date.now() + SETUP_TTL });
+  await store.setJSON(`ml/${sha(token)}`, { ...data, exp: Date.now() + ttl });
   return token;
 }
 
 async function readMagic(store, token) {
-  if (typeof token !== "string" || token.length < 20 || token.length > 80) fail(400, "That setup link isn't valid. Ask your admin for a new one.");
+  if (typeof token !== "string" || token.length < 20 || token.length > 80) fail(400, "That sign-in link isn't valid. Ask for a new one.");
   const key = `ml/${sha(token)}`;
   const row = await store.get(key, { type: "json" });
-  if (!row) fail(400, "That setup link was already used or isn't valid. Ask your admin for a new one.");
+  if (!row) fail(400, "That sign-in link was already used or isn't valid. Ask for a new one.");
   return { key, row };
-}
-
-// Look without using it up (to show who the link is for).
-export async function peekMagic(store, token) {
-  const { row } = await readMagic(store, token);
-  if (row.exp < Date.now()) fail(400, "That setup link expired. Ask your admin for a new one.");
-  return row;
 }
 
 // Single use: read, delete, then check expiry.
 export async function consumeMagic(store, token) {
   const { key, row } = await readMagic(store, token);
   await store.delete(key);
-  if (row.exp < Date.now()) fail(400, "That setup link expired. Ask your admin for a new one.");
+  if (row.exp < Date.now()) fail(400, "That sign-in link expired. Ask for a new one.");
   return row;
 }
 
+// First sign-in for an email: marks every team it's on as joined, so admins can see who has arrived.
+export async function markJoined(store, email) {
+  const eh = emailHash(email);
+  for (const k of await listKeys(store, `member/${eh}/`)) {
+    const key = `staff/${k.split("/")[2]}/${eh}`;
+    const row = await store.get(key, { type: "json" });
+    if (row && !row.joined_at) await store.setJSON(key, { ...row, joined_at: new Date().toISOString() });
+  }
+}
+
 // ---------- sessions ----------
-// `schools` lists the schools this session opens; null opens every school the email belongs to (master code).
+// `schools` lists the schools this session opens; null opens every school the email belongs to .
 export async function startSession(store, email, schools = null) {
   const token = randomBytes(32).toString("base64url");
   await store.setJSON(`sess/${sha(token)}`, { email: normEmail(email), schools, exp: Date.now() + SESSION_TTL });
@@ -117,7 +92,7 @@ export async function endSession(store, req) {
 export async function addMember(store, schoolId, email, role, by = "") {
   const e = normEmail(email), eh = emailHash(e);
   const existing = await store.get(`staff/${schoolId}/${eh}`, { type: "json" });
-  const row = { email: e, role, added_at: existing?.added_at || new Date().toISOString(), added_by: existing?.added_by || by, ...(existing?.pw ? { pw: existing.pw } : {}) };
+  const row = { email: e, role, added_at: existing?.added_at || new Date().toISOString(), added_by: existing?.added_by || by, ...(existing?.joined_at ? { joined_at: existing.joined_at } : {}) };
   await Promise.all([
     store.setJSON(`staff/${schoolId}/${eh}`, row),
     store.set(`member/${eh}/${schoolId}`, "1"),

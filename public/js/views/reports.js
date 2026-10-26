@@ -1,5 +1,5 @@
 // Reports: the weekly kitchen report (a short summary with the numbers beside
-// it), built every Monday morning or on demand.
+// it), built every Friday afternoon or on demand.
 import { $, esc, plural, D, shortDay } from "../util.js";
 import { state, school } from "../state.js";
 import { api } from "../api.js";
@@ -30,7 +30,7 @@ function reportCard(r, latest) {
 
 export function viewReports() {
   const rs = state.reports;
-  const top = head("Reports", "Your week in lunch", "Each Monday we put together a plain-English summary of how the week went, with the numbers right beside it.");
+  const top = head("Reports", "Your week in lunch", "Each Friday we put together a plain-English summary of how the week went, with the numbers right beside it.");
   if (!rs) { loadReports(); return top + skeleton(3); }
   if (rs.error) return top + `<div class="empty"><p>${esc(rs.error)}</p></div>`;
   return `${top}
@@ -38,8 +38,8 @@ export function viewReports() {
       <section class="tile wide mail-card">
         <span class="mail-ic">${icon("sparkles")}</span>
         <div class="mail-body">
-          <h2>Your Monday report</h2>
-          <p>Every Monday morning a short summary of what students ate, what to fix, and what they said shows up here. You can also build this week's right now.</p>
+          <h2>Your Friday report</h2>
+          <p>Every Friday afternoon a short summary of what students ate, what to fix, and what they said shows up here. You can also build this week's right now.</p>
           <div class="mail-actions">
             <button class="btn primary" data-act="report-now">${icon("sparkles")}Build this week's report</button>
           </div>

@@ -8,12 +8,11 @@ import { icon, mark } from "../icons.js";
 import { t, LANGS } from "../i18n.js";
 import { applyTheme, PRESET_GROUPS, colorName, isHex } from "../theme.js";
 import { render, toast, registerActions, focusTitle } from "../ui.js";
-import { startFlow, obExit, setMode, leaveToWelcome, sampleDays } from "../session.js";
+import { startFlow, obExit, setMode, leaveToWelcome } from "../session.js";
 import { welcomeHTML } from "./welcome.js";
 
-const STAFF_FLOWS = ["signin", "create", "invite"];
+const STAFF_FLOWS = ["signin", "create", "verify"];
 const validEmail = s => /.+@.+\..+/.test(s.trim());
-const PASSWORD_MIN = 8;
 
 // ---------- shells ----------
 const blobs = '<svg class="fl-blobs" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-20 210c60-70 120-30 170-80s40-110 120-120 130 60 150 20v250H-20z" fill="rgba(255,255,255,.05)"/><path d="M240 320c10-70 70-90 120-70s60 70 60 70z" fill="rgba(255,255,255,.07)"/></svg>';
@@ -145,54 +144,50 @@ const STEPS = {
     return { title: esc(t("me.food")), lede: esc(t("me.food.why")), body: cuisineChips(d), cta: t("common.save"), ready: true };
   },
   login(d) {
+    if (d.sentTo) return sentView(d);
     return {
-      title: "Welcome back", lede: "Sign in with the email and password you use for your school's cafeteria account.",
+      title: "Welcome back", lede: "Enter your school email and we'll send you a link that signs you in. No password to remember.",
       body: `<label class="label" for="in-email">School email</label>
         <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
-        <label class="label" for="in-pw">Password</label>
-        <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="current-password" aria-describedby="ob-err">
-        <p class="help">${icon("shield")}New to the team, or forgot your password? Your school's admin can send you a setup link. Students never need to sign in.</p>
-        <details class="master"><summary>Have a master code?</summary>
-          <label class="label" for="in-master">Master code</label>
-          <div class="master-row"><input class="input" id="in-master" type="password" autocomplete="off" maxlength="80" aria-describedby="ob-err"><button type="button" class="btn secondary" data-act="master-staff">Open</button></div>
-        </details>`,
-      cta: "Sign in", ready: validEmail(d.email) && d.password.length > 0,
+        <p class="help">${icon("shield")}New to the team? Your school's admin can add your email first. Students never need to sign in.</p>`,
+      cta: "Email me a sign-in link", ready: validEmail(d.email),
     };
   },
   create(d) {
+    if (d.sentTo) return sentView(d);
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Chicago";
     return {
-      title: "Let's set up your school", lede: "Tell us the school's name and pick a password, and you'll get a join code and a QR poster you can print right away.",
+      title: "Let's set up your school", lede: "Tell us the school's name and your email. We'll send a link to confirm it, and you'll get a join code and a QR poster you can print right away.",
       body: `<label class="label" for="in-sn">School name</label>
         <input class="input lg" id="in-sn" data-bind="schoolName" value="${esc(d.schoolName)}" maxlength="60" placeholder="e.g. Lincoln High School" autocomplete="organization">
         <label class="label" for="in-email">Your email</label>
         <input class="input lg" id="in-email" type="email" inputmode="email" data-bind="email" value="${esc(d.email)}" maxlength="120" placeholder="you@school.edu" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="ob-err">
-        <label class="label" for="in-pw">Password</label>
-        <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="new-password" aria-describedby="pw-help ob-err">
-        <p class="help" id="pw-help">Use at least ${PASSWORD_MIN} characters. This email and password are what you'll use to sign in from now on.</p>
-        <label class="check">
-          <input type="checkbox" class="sr-only" data-bind-check="sample"${d.sample ? " checked" : ""}>
-          <span class="check-box">${icon("check")}</span>
-          <span class="check-text"><strong>Start with a sample menu</strong><span>Four weeks of breakfast, snack and lunch with photos, so you can try everything right away. Edit or delete any dish.</span></span>
-        </label>
         <p class="help">${icon("clock")}We've set your time zone to ${esc(tz.replace(/_/g, " "))}. You can fine-tune grades and other details after you're in.</p>`,
-      cta: "Create my school", ready: d.schoolName.trim().length >= 2 && validEmail(d.email) && d.password.length >= PASSWORD_MIN,
+      cta: "Email me a link", ready: d.schoolName.trim().length >= 2 && validEmail(d.email),
     };
   },
-  // Reached from a setup link an admin shared (?setup=…).
-  newpass(d) {
+  // Reached from an emailed link (?login=...).
+  verify(d) {
     return {
-      title: d.setupSchool ? `Welcome to ${esc(d.setupSchool)}` : "Choose your password",
-      lede: d.setupEmail
-        ? `Pick a password for <strong>${esc(d.setupEmail)}</strong>. You'll use it to sign in from now on.`
-        : "Checking your setup link…",
-      body: `<label class="label" for="in-pw">New password</label>
-        <input class="input lg" id="in-pw" type="password" data-bind="password" value="${esc(d.password)}" maxlength="200" autocomplete="new-password" aria-describedby="pw-help ob-err"${d.setupEmail ? "" : " disabled"}>
-        <p class="help" id="pw-help">At least ${PASSWORD_MIN} characters.</p>`,
-      cta: "Set password and sign in", ready: !!d.setupEmail && d.password.length >= PASSWORD_MIN,
+      title: d.verifyFailed ? "That link didn't work" : "Signing you in",
+      lede: d.verifyFailed ? "It may have been used already or expired. Links work once and last 15 minutes." : "One moment.",
+      body: "", noBack: true,
+      foot: d.verifyFailed ? `<button type="button" class="btn primary lg" data-act="staff-tab" data-tab="signin">Get a new link</button>` : "",
     };
   },
 };
+
+// After a link is requested: say where it went, and in local development offer the link right here.
+function sentView(d) {
+  return {
+    title: "Check your email",
+    lede: `We sent a link to <strong>${esc(d.sentTo)}</strong>. Tap it on this device and you're in. It works once and lasts 15 minutes.`,
+    body: `${d.devLink ? `<div class="alert caution">${icon("link")}<p><strong>Local development.</strong> No email service is connected, so open the link here instead: <a href="${esc(d.devLink)}">sign in now</a>.</p></div>` : ""}
+      <p class="help">${icon("shield")}Nothing there? Check spam, or go back and make sure the address is right.</p>`,
+    foot: `<button type="button" class="btn secondary lg" data-act="resend-link">Send it again</button><button type="button" class="link center" data-act="change-email">Use a different email</button>`,
+    ready: true,
+  };
+}
 
 // The colors schools reach for most; the full set lives in School settings.
 const QUICK_COLORS = PRESET_GROUPS.flatMap(([, l]) => l).filter(([n]) => ["Scarlet", "Cardinal", "Maroon", "Orange", "Gold", "Kelly green", "Forest", "Hunter", "Teal", "Sky", "Royal", "Navy", "Purple", "Pink", "Black"].includes(n));
@@ -257,15 +252,9 @@ export async function obSubmit() {
     } catch (e) { ob.busy = false; render(); obError(e.message); }
     return;
   }
-  if (step === "login" || step === "create" || step === "newpass") {
-    obBusy(true); obError("");
-    try {
-      const out = step === "login" ? await api("POST", "auth/login", { email: d.email.trim(), password: d.password })
-        : step === "create" ? await api("POST", "auth/signup", { email: d.email.trim(), password: d.password, name: d.schoolName.trim(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, sample: d.sample, color: d.color })
-        : await api("POST", "auth/setup", { token: d.token, password: d.password });
-      ob.busy = false;
-      await finishSignIn(out);
-    } catch (e) { ob.busy = false; render(); obError(e.message); }
+  if (step === "login" || step === "create") {
+    if (d.sentTo) return;
+    await requestLink();
     return;
   }
   obNext();
@@ -331,38 +320,36 @@ export async function enterAdmin(out, via = "email") {
   setMode("admin");
 }
 
-// After any successful sign-in: open the staff view, and load the sample menu into a brand-new school.
-async function finishSignIn(out) {
-  await enterAdmin(out);
-  if (out.created && out.sample) {
-    const start = D.monday(zoned(out.created.tz).date);
-    try { await api("PUT", "menu", { school: out.created.id, days: sampleDays(start, 4) }); }
-    catch { toast("Your school is ready, but the sample menu didn't load. Add it from the Menu tab.", true); }
-  }
-  toast(out.created ? `${out.created.name} is ready` : `Signed in to ${state.admin.school.name}`);
+// Asks the server to email a sign-in link (or a create-school link), then shows the "check your email" view.
+async function requestLink() {
+  const ob = state.ob, d = ob.d, create = ob.flow === "create";
+  obBusy(true); obError("");
+  try {
+    const out = await api("POST", "auth/request", create
+      ? { mode: "create", email: d.email.trim(), name: d.schoolName.trim(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, color: d.color }
+      : { email: d.email.trim() });
+    d.sentTo = d.email.trim(); d.devLink = out.dev_link || "";
+    ob.busy = false; render(true);
+  } catch (e) { ob.busy = false; render(); obError(e.message); }
 }
 
-// Opened from a setup link: show who it's for, then ask for a password.
-export async function openSetupLink(token) {
-  startFlow("invite", { token });
+// Opened from an emailed link (?login=...): confirm it, then open the staff view.
+export async function openLoginLink(token) {
+  startFlow("verify");
   try {
-    const info = await api("POST", "auth/setup-info", { token });
-    if (state.ob?.flow !== "invite") return;
-    state.ob.d.setupEmail = info.email; state.ob.d.setupSchool = info.school;
-    render(true);
-  } catch (e) { obError(e.message); }
+    const out = await api("POST", "auth/verify", { token });
+    await enterAdmin(out);
+    toast(out.created ? `${out.created.name} is ready` : `Signed in to ${state.admin.school.name}`);
+  } catch (e) {
+    if (state.ob?.flow !== "verify") return;
+    state.ob.d.verifyFailed = true; render(true); obError(e.message);
+  }
 }
 
 // ---------- clicks ----------
 registerActions({
-  async "master-staff"(el) {
-    const code = $("#in-master")?.value.trim();
-    if (!code) { obError("Enter the master code."); return; }
-    el.disabled = true; obError("");
-    try { await finishSignIn(await api("POST", "auth/master", { code })); }
-    catch (e) { obError(e.message); }
-    finally { el.disabled = false; }
-  },
+  "resend-link"() { state.ob.d.sentTo = ""; requestLink(); },
+  "change-email"() { state.ob.d.sentTo = ""; state.ob.d.devLink = ""; render(true); },
   role(el) {
     const r = el.dataset.role;
     if (r === "student") startFlow("student");
@@ -417,7 +404,7 @@ registerActions({
   "staff-tab"(el) {
     const ob = state.ob;
     if (ob.flow === el.dataset.tab) return;
-    ob.flow = el.dataset.tab; ob.steps = [el.dataset.tab === "create" ? "create" : "login"]; ob.i = 0; ob.err = "";
+    ob.d.sentTo = ""; ob.d.devLink = ""; ob.flow = el.dataset.tab; ob.steps = [el.dataset.tab === "create" ? "create" : "login"]; ob.i = 0; ob.err = "";
     render();
     $("[data-act=staff-tab][aria-selected=true]")?.focus();
   },

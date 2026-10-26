@@ -181,7 +181,7 @@ export function viewInsights() {
         ${st.comments.length ? `<ul class="feed">${st.comments.slice(0, 40).map(c => `<li>
           <span class="pill v-${c.vote}">${icon(rateIcon(c.vote))}${t("rate." + c.vote)}</span>
           <div class="feed-main"><p class="feed-q">“${esc(c.comment)}”</p><p class="feed-m"><strong>${esc(c.name)}</strong> · ${mealName(c.meal)} · ${shortDay(c.date)}</p></div>
-          <div class="feed-act"><button class="btn ghost xs" data-act="reply-dish" data-date="${c.date}" data-id="${c.item_id}" data-name="${esc(c.name)}" data-reply="">${icon("megaphone")}Reply</button>
+          <div class="feed-act"><button class="btn ghost xs" data-act="reply-dish" data-date="${c.date}" data-id="${c.item_id}" data-name="${esc(c.name)}" data-reply="" data-to="${esc(c.comment)}">${icon("megaphone")}Reply</button>
           <button class="btn ghost xs" data-act="hide-comment" data-date="${c.date}" data-id="${c.item_id}" data-cid="${c.cid}">${icon("eyeOff")}Hide</button></div>
         </li>`).join("")}</ul>` : '<p class="muted small">No written comments in this period.</p>'}</section>
 
@@ -229,9 +229,11 @@ registerActions({
   range(el) { state.range = el.dataset.range; render(); document.querySelector(`[data-act="range"][data-range="${state.range}"]`)?.focus(); },
   "refresh-ins"() { state.insights = null; render(); document.querySelector('[data-act="refresh-ins"]')?.focus(); },
   "reply-dish"(el) {
-    openSheet(`<form class="sheet-form" data-form="reply-dish" data-date="${el.dataset.date}" data-id="${el.dataset.id}">
+    const to = el.dataset.to || "";
+    openSheet(`<form class="sheet-form" data-form="reply-dish" data-date="${el.dataset.date}" data-id="${el.dataset.id}" data-to="${esc(to)}">
       <h2 id="sheet-title">Reply on “${esc(el.dataset.name)}”</h2>
-      <p class="muted">Students see this on the dish card: “We heard you.” Say what you're changing.</p>
+      ${to ? `<blockquote class="replying">${icon("megaphone")}<span><small>Replying to</small>“${esc(to)}”</span></blockquote>` : ""}
+      <p class="muted">Students see your note on the dish${to ? ", with the comment it answers" : ""}. Say what you're changing.</p>
       <label class="label" for="reply-in">Your note</label>
       <input class="input" id="reply-in" maxlength="${REPLY_MAX}" value="${esc(el.dataset.reply)}" placeholder="e.g. The oven was down. Fixed for Thursday.">
       <div class="modal-btns"><button type="button" class="btn secondary" data-act="sheet-close">Cancel</button><button class="btn primary" type="submit">Post reply</button></div>
@@ -262,7 +264,7 @@ export async function submitStaffForm(f) {
     const text = $("#reply-in").value.trim();
     closeSheet();
     try {
-      await api("POST", "replies", { school: school().id, date: f.dataset.date, item_id: f.dataset.id, text });
+      await api("POST", "replies", { school: school().id, date: f.dataset.date, item_id: f.dataset.id, text, ...(f.dataset.to ? { to: f.dataset.to } : {}) });
       state.insights = null; state.aWeeks = {}; render(); toast(text ? "Reply posted" : "Reply removed");
     } catch (e) { toast(e.message, true); }
   }

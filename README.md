@@ -17,7 +17,7 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 | Front end | Vanilla JavaScript (ES modules, no framework, no bundler), hand-written CSS, Public Sans (self-hosted) |
 | Back end | One Netlify Function that routes `/api/*`, plus a scheduled Netlify Function for the weekly report |
 | Storage | Netlify Blobs (one key per record) |
-| Auth | Email and password (scrypt), cookie sessions and roles (cook, admin, owner). Setup links for new teammates. An optional master code for demos |
+| Auth | Emailed one-time sign-in links (no passwords), cookie sessions and roles (cook, admin, owner) |
 | Weekly report summary | Plain text built from the week's numbers |
 | Anti-abuse | Signed device tokens, SHA-256 proof-of-work in a Web Worker, rate limits, suspicious-rating detection |
 | Offline and install | Service worker, offline rating queue, web app manifest |
@@ -29,7 +29,7 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 
 **Students.** Scan the poster QR code (or type the 6-character school code). No account, no install needed. The week's menu shows with photos and allergen flags. Tap Good, Mid or Bad on a dish, optionally add a note, and suggest dishes or upvote classmates' suggestions.
 
-**Staff.** Sign in with an email and password. Cooks edit the menu, reply to students, log waste, hide comments and manage suggestions; admins can also change school settings (grades, enrollment), invite or remove people and see the activity log; owners can do everything, including deleting the school. The dashboard shows what is liked, what is disliked, and how that lines up with the waste log.
+**Staff.** Sign in with an emailed link. Cooks edit the menu, reply to students, log waste, hide comments and manage suggestions; admins can also change school settings (grades, enrollment), invite or remove people and see the activity log; owners can do everything, including deleting the school. The dashboard shows what is liked, what is disliked, and how that lines up with the waste log.
 
 **Parents.** Staff can print a Family menu card or copy a family link (`/?parent=CODE`). It opens a read-only menu with allergens and ingredients and needs no sign-in.
 
@@ -37,14 +37,14 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 
 - QR join with no student accounts
 - Breakfast, snack and lunch menus, with allergens and nutrition facts (calories, protein, fat, saturated fat, carbs, fiber, sodium) per dish. The sample menu is Irvine High School's snack and lunch flyer for the week of October 19, 2026, with nutrition and allergen text taken as written from the district's 2026-27 high school nutrition sheet. Dishes the sheet doesn't list are left blank and say to ask nutrition services
-- Staff email and password sign-in with roles: cook, admin, owner. Admins add teammates with a setup link they copy and pass on (also emailed when `BREVO_API_KEY` or `RESEND_API_KEY` is set), and an optional master code covers live demos
+- Staff sign in with an emailed one-time link, with roles: cook, admin, owner. Admins add teammates by email; the invite is a link that is emailed and can also be copied
 - A dozen demo schools (plus the master school) whose photo menus fill themselves, so there's always something to try
 - Device tokens with proof-of-work, rate limits, and suspicious-rating detection
 - Allergen flagging
 - Suggestions leaderboard with fuzzy "did you mean" matching and merging of duplicates
 - Optional grade level, shown only for groups of 5 or more
 - Waste log
-- Weekly report with a short summary, built every Monday or on demand
+- Weekly report with a short summary, built every Friday or on demand
 - English and Spanish
 - Offline queue and installable PWA
 - Printable QR posters
@@ -72,19 +72,18 @@ public/
   sw.js, manifest.webmanifest         offline support and install
 netlify/
   functions/api.mjs                   entry point for /api/*
-  functions/weekly-report.mjs         scheduled function, Mondays 13:00 UTC
+  functions/weekly-report.mjs         scheduled function, Fridays 20:00 UTC
   lib/
     api.mjs         router and all endpoints
     vocab.mjs       shared constants (allergens, roles, limits)
     util.mjs        errors, text cleaning, dates, Blobs helpers
     tokens.mjs      signed device tokens and proof-of-work
     ratelimit.mjs   fixed-window rate limits
-    staff.mjs       passwords, setup links, sessions, roles
-    demo.mjs        demo schools and their self-filling photo menus
+    staff.mjs       sign-in links, sessions, roles
     insights.mjs    turns ratings into what the kitchen sees
     similarity.mjs  fuzzy matching for suggestions
     reports.mjs     weekly report data and summary
-scripts/  dev.mjs (local server), seed-demo.mjs, check.mjs
+scripts/  dev.mjs (local server), mailtest.mjs, check.mjs
 test/     node:test suites
 ```
 
@@ -98,9 +97,8 @@ npm test           # server tests
 npm run check      # translations, imports, offline file list
 ```
 
-Staff sign in with an email and password, so sign-in never depends on a mail service. To add someone, an admin adds their email under School > Your team and copies the setup link that appears; the new teammate opens it and picks a password. The same "Reset link" covers a forgotten password. A password belongs to one school's team, so an admin can never change anyone's access to another school. Local settings go in a `.env` file (git ignores it); the dev server reads it.
+Staff have no passwords. They enter their email and get a one-time link that lasts 15 minutes (an invite from an admin lasts 7 days). The email service is required in production; locally, with no key set, the sign-in screen shows the link instead of emailing it. To add someone, an admin adds their email under School > Your team. Local settings go in a `.env` file (git ignores it); the dev server reads it.
 
-**Master code.** For live demos, set `MASTER_CODE` (8+ characters) and optionally `MASTER_EMAIL` and `MASTER_SCHOOL`. On the staff sign-in screen, "Have a master code?" then signs in as that email, as the owner of that school and the demo schools, creating the school with the sample menu on first use. It is off unless `MASTER_CODE` is set, is compared in constant time, and wrong guesses are rate limited. Treat it like a password.
 
 **Testing the QR code from a phone.** A QR made at `localhost` can't be opened by a phone. Run `npm run dev:lan`, then open the app from the "On your phone" address it prints (on your computer too). The QR codes in the School tab then point at an address your phone can reach, on the same wifi.
 
@@ -127,7 +125,7 @@ What is and is not guaranteed:
 - Proof-of-work and rate limits raise the cost of fake votes. They cannot make fake votes impossible, and the suspicious-rating detection is a heuristic that can miss things or flag honest ones.
 - Students have no accounts and LunchLine does not collect names. Votes are stored against a hash of the device id.
 - Grade level is optional. A grade group with fewer than 5 students is hidden so no one can be picked out.
-- Staff identity is an email address with a password per school (stored as a scrypt hash, never in plain text); sessions are cookie-based and setup links are single use and expire after 7 days.
+- Staff identity is a verified email address. Sign-in links are single use and expire (15 minutes, or 7 days for invites); sessions are cookie-based. Asking for a link gives the same answer whether or not the address is on a team.
 - Student comments are shown to staff only; they are not sent to any other service.
 - Security headers (strict Content-Security-Policy and others) are set in `netlify.toml`.
 
@@ -135,7 +133,7 @@ What is and is not guaranteed:
 
 **Optional email.** Set `BREVO_API_KEY` (free, one verified sender address is enough) or `RESEND_API_KEY`, plus `FROM_EMAIL`, and teammate setup links are also emailed. Check it with `npm run mailtest -- you@example.com`. Without a key, admins copy the link as before.
 
-Deploy on Netlify. The `main` branch builds production; other branches and previews are skipped (see `netlify.toml`). Set the environment variables from `.env.example` in the Netlify dashboard, at minimum `SITE_URL` (so setup links point at the live site) and, for demos, `MASTER_CODE`. No email service is needed.
+Deploy on Netlify. The `main` branch builds production; other branches and previews are skipped (see `netlify.toml`). Set the environment variables from `.env.example` in the Netlify dashboard: `SITE_URL` (so emailed links point at the live site) and an email key, `BREVO_API_KEY` or `RESEND_API_KEY` with `FROM_EMAIL`. Without an email key, staff cannot sign in on the live site.
 
 ## Known limitations and roadmap
 

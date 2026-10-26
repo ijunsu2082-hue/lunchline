@@ -62,7 +62,7 @@ export default {
   "setup.otherAllergies": "Otras alergias", "setup.otherPh": "p. ej. kiwi, mostaza, coco", "setup.go": "Ver el menú", "setup.skip": "Omitir por ahora",
   "grade.n": "Grado {g}",
 
-  "ideas.title": "Ideas", "ideas.lede": "¿Qué debería preparar la cafetería? Si alguien ya lo pidió, suma tu voto.", "ideas.label": "Tu idea",
+  "ideas.title": "¿Qué debería estar en el menú?", "ideas.lede": "Vota por las ideas que quieres. La cocina lee lo más votado.", "ideas.suggest": "Sugiere un plato", "ideas.label": "Tu idea",
   "ideas.ph": "p. ej. Pollo frito coreano los viernes", "ideas.post": "Publicar", "ideas.dym": "¿Quisiste decir", "ideas.similar": "Ideas parecidas",
   "ideas.addVote": "Sumar mi voto", "ideas.postNew": "No, publicar la mía como idea nueva", "ideas.checkFirst": "Parece una idea que ya está aquí. Suma tu voto o publícala como nueva.",
   "ideas.leaderboard": "Clasificación", "ideas.thisWeek": "Nuevas esta semana", "ideas.vote": "voto", "ideas.votes": "votos",

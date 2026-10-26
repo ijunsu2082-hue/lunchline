@@ -1,8 +1,8 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { sendMail, mailConfigured, demoLinks } from "../netlify/lib/mail.mjs";
+import { sendMail, mailConfigured } from "../netlify/lib/mail.mjs";
 
-const KEYS = ["RESEND_API_KEY", "BREVO_API_KEY", "ALLOW_DEMO_LOGIN_LINKS", "FROM_EMAIL"];
+const KEYS = ["RESEND_API_KEY", "BREVO_API_KEY", "FROM_EMAIL"];
 let saved, realFetch, calls;
 
 beforeEach(() => {
@@ -21,17 +21,10 @@ afterEach(() => {
 
 const msg = { to: "cook@school.edu", subject: "Hi", html: "<p>Hi</p>", text: "Hi" };
 
-test("with no email service and no demo mode, sending is refused with a clear message", async () => {
+test("with no email service, sending is refused with a clear message", async () => {
   await assert.rejects(() => sendMail(msg), e => e.status === 503 && /email/i.test(e.message));
   assert.equal(calls.length, 0);
   assert.equal(mailConfigured(), false);
-  assert.equal(demoLinks(), false);
-});
-
-test("demo mode shows the link instead of emailing, and never calls out", async () => {
-  process.env.ALLOW_DEMO_LOGIN_LINKS = "true";
-  assert.deepEqual(await sendMail(msg), { dev: true });
-  assert.equal(calls.length, 0);
 });
 
 test("Resend gets the key, sender and recipient", async () => {

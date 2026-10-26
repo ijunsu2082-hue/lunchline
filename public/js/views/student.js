@@ -186,7 +186,7 @@ function replyBanner() {
     }
   }
   if (!best) return "";
-  return `<article class="banner b-reply"><div class="bn-text"><p class="bn-big">${esc(t("bn.heard"))}</p><p class="bn-title">${esc(best.it.name)}</p><p class="bn-sub">“${esc(best.it.reply)}”</p></div>${best.it.photo ? `<img class="bn-img" src="${esc(best.it.photo)}" alt="" decoding="async">` : `<span class="bn-ico">${icon("megaphone")}</span>`}</article>`;
+  return `<article class="banner b-reply"><div class="bn-text"><p class="bn-big">${esc(t("bn.heard"))}</p><p class="bn-title">${esc(best.it.name)}</p><p class="bn-sub">${best.it.reply_to ? `Re: “${esc(best.it.reply_to)}”<br>` : ""}“${esc(best.it.reply)}”</p></div>${best.it.photo ? `<img class="bn-img" src="${esc(best.it.photo)}" alt="" decoding="async">` : `<span class="bn-ico">${icon("megaphone")}</span>`}</article>`;
 }
 
 function ideaBanner() {
@@ -375,7 +375,7 @@ function sheetHTML(item) {
       <h2 class="ds-name" id="sheet-title">${esc(item.name)}</h2>
       ${item.desc ? `<p class="ds-desc">${esc(item.desc)}</p>` : ""}
       ${asked ? `<div class="alert info">${icon("lightbulb")}<p>${esc(t("dish.askedBy", { n: asked.count }))}</p></div>` : ""}
-      ${item.reply ? `<div class="reply">${icon("megaphone")}<div><p class="reply-k">${esc(t("dish.reply"))}</p><p>${esc(item.reply)}</p></div></div>` : ""}
+      ${item.reply ? `<div class="reply">${icon("megaphone")}<div><p class="reply-k">${esc(t("dish.reply"))}</p>${item.reply_to ? `<p class="reply-to">In reply to “${esc(item.reply_to)}”</p>` : ""}<p>${esc(item.reply)}</p></div></div>` : ""}
       ${f.warn ? `<div class="alert danger">${icon("alert")}<p><strong>${esc(t("dish.has", { a: listJoin(f.hits.contains).toLowerCase() }))}</strong> ${esc(t("dish.allergic"))}${f.hits.may.length ? " " + esc(t("dish.mayAlso", { a: listJoin(f.hits.may).toLowerCase() })) : ""}</p></div>` : ""}
       ${f.caution ? `<div class="alert caution">${icon("alert")}<p><strong>${esc(t("dish.mayContain", { a: listJoin(f.hits.may).toLowerCase() }))}</strong> ${esc(t("dish.askStaff"))}</p></div>` : ""}
       ${readOnly() ? "" : `<div class="rate" id="sh-rate-${id}">${sheetRate(item, date)}</div>`}

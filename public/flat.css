@@ -75,7 +75,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 .sent-card { background: var(--bg-2); border: 0; }
 .sent-card .i { color: var(--ink); }
 .dev-note { border-radius: 6px; }
-.master summary { color: var(--ink-2); font-weight: 650; }
 
 /* student app: a top bar instead of a side rail, and a plain page */
 .app.student { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; max-width: 760px; box-shadow: none; border-radius: 0; margin: 0 auto; background: #fff; }
@@ -203,3 +202,31 @@ body[data-mode="admin"] .tile, body[data-mode="admin"] .card, body[data-mode="ad
 .link { text-decoration-color: var(--brand); }
 .toast { width: max-content; }
 body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211; color: #fff; }
+
+/* ideas: a plain ranked list, one row per idea, the vote on the right */
+.board { gap: 0; margin-top: 18px; border-top: 1px solid var(--line); }
+.board .bd, body[data-mode="admin"] .board .bd { background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 18px 2px; align-items: start; gap: 14px; }
+.board .bd-rank { width: 22px; height: auto; background: none; color: var(--ink-2); font-weight: 600; font-size: .95rem; display: block; padding-top: 3px; text-align: left; }
+.board .bd-text { font-weight: 650; font-size: 1.05rem; line-height: 1.35; }
+.board .bd-text .status { margin-left: 10px; vertical-align: 2px; }
+.board .bd-reply { display: block; background: none; padding: 0; margin-top: 4px; font-size: .92rem; color: var(--ink-2); }
+.board .bd-reply strong { color: var(--ink); font-weight: 650; }
+.board .bd-meta { margin-top: 6px; }
+.status { font-size: .72rem; font-weight: 650; padding: 2px 9px; border-radius: 999px; background: var(--bg-2); color: var(--ink-2); }
+.status.s-planned { background: #FBEBD3; color: #7A4A0A; }
+.status.s-on_menu { background: #DDF0E3; color: #1B6A3C; }
+.status.s-not_now { background: var(--bg-2); color: var(--ink-2); }
+.vote-btn, .bd-count { min-width: 56px; padding: 8px 8px 7px; border-radius: 8px; border: 1px solid var(--line-2, #CFCAC1); background: #fff; color: var(--ink); gap: 0; font-variant-numeric: tabular-nums; font-weight: 700; }
+.vote-btn .i, .bd-count .i { width: 16px; height: 16px; color: var(--ink-2); }
+.vote-btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.vote-btn[aria-pressed="true"] .i { color: #fff; }
+.suggest { margin-top: 36px; }
+.suggest h2 { font-size: 1.1rem; font-family: var(--font); font-weight: 700; margin: 0 0 12px; }
+.suggest .idea-form { display: grid; gap: 10px; margin: 0; }
+.suggest .idea-form .btn { width: 100%; justify-content: center; }
+.suggest .idea-form .btn:disabled { background: #A19D96; color: #fff; opacity: 1; }
+.replying { margin: 0 0 14px; padding: 12px 14px; background: var(--bg-2); border-radius: 8px; display: flex; gap: 10px; align-items: flex-start; font-size: .95rem; }
+.replying .i { width: 16px; height: 16px; margin-top: 3px; flex: none; color: var(--ink-2); }
+.replying small { display: block; font-size: .75rem; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
+.reply-to { font-size: .88rem; color: var(--ink-2); margin: 2px 0 6px; font-style: normal; }
+.reply-to::before { content: ""; }

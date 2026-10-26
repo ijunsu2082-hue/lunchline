@@ -9,10 +9,8 @@ export const escHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&a
 // Which way out is configured?
 //   RESEND_API_KEY  -> Resend   (free test sender only reaches the account owner; verify a domain to email anyone)
 //   BREVO_API_KEY   -> Brevo    (free; works with one verified sender address, no domain needed)
-//   neither         -> local dev prints the email, or ALLOW_DEMO_LOGIN_LINKS=true shows the link on screen
-// Returns { sent: true } when an email went out, { dev: true } when it was only shown / printed.
+//   neither         -> only local dev works, where the link is printed to the console and shown on the sign-in screen
 export const mailConfigured = () => !!(process.env.RESEND_API_KEY || process.env.BREVO_API_KEY);
-export const demoLinks = () => !!globalThis.__LL_DEV || process.env.ALLOW_DEMO_LOGIN_LINKS === "true";
 
 function sender() {
   const raw = process.env.FROM_EMAIL || "LunchLine <onboarding@resend.dev>";
@@ -44,10 +42,6 @@ export async function sendMail({ to, subject, html, text }) {
     await post("https://api.brevo.com/v3/smtp/email", { "api-key": process.env.BREVO_API_KEY }, { sender: { name: from.name, email: from.email }, to: [{ email: to }], subject, htmlContent: html, textContent: text }, "Brevo");
     return { sent: true };
   }
-  if (demoLinks()) {
-    if (globalThis.__LL_DEV) console.log(`\n--- email to ${to} ---\nSubject: ${subject}\n\n${text}\n--- end email ---\n`);
-    return { dev: true };
-  }
   throw new HttpError(503, "This server can't send email yet. Whoever runs LunchLine needs to add an email key (see .env.example).");
 }
 
@@ -62,7 +56,7 @@ function layout(title, inner, preheader = "") {
 <span style="font-weight:800;font-size:18px;vertical-align:middle;margin-left:8px">LunchLine</span></td></tr>
 <tr><td style="padding:18px 28px 28px"><h1 style="font-size:22px;line-height:1.25;margin:0 0 14px">${escHtml(title)}</h1>${inner}</td></tr>
 </table>
-<p style="font-size:12px;color:#7A6F66;margin:14px 0 0">Sent by LunchLine, a student project built for Neighborhood Hacks.</p>
+<p style="font-size:12px;color:#7A6F66;margin:14px 0 0">Sent by LunchLine.</p>
 </td></tr></table></body></html>`;
 }
 
@@ -83,16 +77,13 @@ export function magicLinkEmail({ link, purpose, schoolName }) {
   };
 }
 
-export function inviteEmail({ link, schoolName, role, by, reset = false }) {
-  const title = reset ? `Reset your LunchLine password for ${schoolName}` : `${by} added you to ${schoolName}`;
-  const lead = reset
-    ? `Tap the button to choose a new password for <strong>${escHtml(schoolName)}</strong>.`
-    : `You can now sign in as <strong>${escHtml(role)}</strong> for ${escHtml(schoolName)}. Tap the button to choose your password.`;
+export function inviteEmail({ link, schoolName, role, by }) {
+  const title = `${by} added you to ${schoolName}`;
   return {
-    subject: reset ? `Reset your password for ${schoolName} on LunchLine` : `You're invited to ${schoolName} on LunchLine`,
-    html: layout(title, `<p style="font-size:15px;line-height:1.55;margin:0">${lead}</p>${button(link, "Choose a password")}
+    subject: `You're on the ${schoolName} team on LunchLine`,
+    html: layout(title, `<p style="font-size:15px;line-height:1.55;margin:0">You can now sign in as <strong>${escHtml(role)}</strong> for ${escHtml(schoolName)}. Tap the button to open the dashboard. There's no password to remember; next time, just ask for a new link.</p>${button(link, "Open the dashboard")}
       <p style="font-size:13px;color:#7A6F66;line-height:1.5;margin:0">This link works once and expires in 7 days. If you weren't expecting it, you can ignore this email.</p>`, title),
-    text: `${title}\n\n${reset ? "Choose a new password" : "Choose your password"} here (works once, expires in 7 days):\n${link}`,
+    text: `${title}\n\nOpen the dashboard (works once, expires in 7 days):\n${link}`,
   };
 }
 
@@ -111,7 +102,7 @@ export function reportEmail({ schoolName, link, report }) {
     <h2 style="font-size:15px;margin:0">Fix or drop these</h2>${list(report.needs.map(d => `${d.name} · ${d.pct}% disliked (${d.n})`), "Nothing is standing out.")}
     ${b.length ? `<h2 style="font-size:15px;margin:0">Worth knowing</h2>${list(b, "")}` : ""}
     ${button(link, "Open the full dashboard")}
-    <p style="font-size:12px;color:#7A6F66;margin:0">You get this every Monday. Turn it off in School settings.</p>`;
+    <p style="font-size:12px;color:#7A6F66;margin:0">You get this every Friday. Turn it off in School settings.</p>`;
   const textLines = [title, "", `${report.good_pct}% rated Good · ${report.ratings} ratings · ${report.students} students`, "", report.summary, "",
     "Make more of these:", ...report.loved.map(d => `- ${d.name} (${d.pct}% Good, ${d.n})`), "", "Fix or drop these:", ...report.needs.map(d => `- ${d.name} (${d.pct}% disliked, ${d.n})`), "", link];
   return { subject: title, html: layout(title, inner, report.summary.slice(0, 90)), text: textLines.join("\n") };

@@ -48,14 +48,13 @@ function board(admin) {
   if (!ideas) { loadIdeas(); return skeleton(3); }
   if (ideas.error) return errorBox(ideas.error, "retry-ideas");
   let list = sorted(ideas.filter(i => !(admin && false)));
-  if (!admin && state.ideaView === "week") list = list.filter(i => i.fresh);
-  if (!list.length) return `<div class="empty"><p>${esc(admin ? "Nobody's suggested anything yet. Students can post ideas from the Ideas tab in their app." : t(state.ideaView === "week" ? "ideas.emptyWeek" : "ideas.empty"))}</p></div>`;
-  return `<ol class="board">${list.map((it, i) => `<li class="bd${i < 3 ? " top t" + (i + 1) : ""}">
+  if (!list.length) return `<div class="empty"><p>${esc(admin ? "Nobody's suggested anything yet. Students can post ideas from the Ideas tab in their app." : t("ideas.empty"))}</p></div>`;
+  return `<ol class="board">${list.map((it, i) => `<li class="bd">
     <span class="bd-rank" aria-hidden="true">${i + 1}</span>
     <div class="bd-main">
-      <p class="bd-text">${esc(it.text)}</p>
-      <p class="bd-meta">${statusChip(it)}${it.own ? `<span>${esc(t("ideas.yours"))}</span>` : ""}<span>${esc(timeAgo(it.created_at, k => t("ago." + k)))}</span>${it.dish ? `<span>${icon("calendar")}${esc(D.fmt(it.dish.date, { weekday: "short" }))}</span>` : ""}</p>
-      ${it.reply ? `<p class="bd-reply">${icon("megaphone")}<span><strong>${esc(admin ? "Your reply" : t("ideas.kitchen"))}:</strong> ${esc(it.reply)}</span></p>` : ""}
+      <p class="bd-text">${esc(it.text)}${statusChip(it)}</p>
+      ${it.reply ? `<p class="bd-reply"><strong>${esc(admin ? "You" : t("ideas.kitchen"))}:</strong> ${esc(it.reply)}</p>` : ""}
+      ${it.own || it.dish ? `<p class="bd-meta">${it.own ? `<span>${esc(t("ideas.yours"))}</span>` : ""}${it.dish ? `<span>${icon("calendar")}${esc(D.fmt(it.dish.date, { weekday: "short" }))}</span>` : ""}</p>` : ""}
       ${admin ? staffControls(it) : ""}
     </div>
     ${admin
@@ -65,25 +64,25 @@ function board(admin) {
 }
 
 export function viewIdeasStudent() {
-  const week = state.ideaView === "week";
   return `${head("", esc(t("ideas.title")), esc(t("ideas.lede")))}
-    <form class="idea-form" data-form="idea">
-      <label class="sr-only" for="idea-in">${esc(t("ideas.label"))}</label>
-      <input class="input" id="idea-in" maxlength="${IDEA_MAX}" value="${esc(state.ideaDraft)}" placeholder="${esc(t("ideas.ph"))}" autocomplete="off" enterkeyhint="send" data-idea-input>
-      <button class="btn primary" type="submit">${icon("plus")}${esc(t("ideas.post"))}</button>
-    </form>
-    <div id="idea-matches" aria-live="polite">${matchesHTML()}</div>
-    <div class="seg narrow" role="group" aria-label="${esc(t("ideas.title"))}">
-      <button data-act="idea-view" data-view="all" aria-pressed="${!week}">${esc(t("ideas.leaderboard"))}</button>
-      <button data-act="idea-view" data-view="week" aria-pressed="${week}">${esc(t("ideas.thisWeek"))}</button>
-    </div>
-    ${board(false)}`;
+    ${board(false)}
+    <section class="suggest" aria-labelledby="suggest-t">
+      <h2 id="suggest-t">${esc(t("ideas.suggest"))}</h2>
+      <form class="idea-form" data-form="idea">
+        <label class="sr-only" for="idea-in">${esc(t("ideas.label"))}</label>
+        <input class="input" id="idea-in" maxlength="${IDEA_MAX}" value="${esc(state.ideaDraft)}" placeholder="${esc(t("ideas.ph"))}" autocomplete="off" enterkeyhint="send" data-idea-input>
+        <div id="idea-matches" aria-live="polite">${matchesHTML()}</div>
+        <button class="btn primary lg" type="submit"${state.ideaDraft.trim().length < 2 ? " disabled" : ""}>${esc(t("ideas.post"))}</button>
+      </form>
+    </section>`;
 }
 
 let simTimer, simSeq = 0;
 export function onIdeaInput(input) {
   state.ideaDraft = input.value;
   state.ideaForce = false;
+  const post = input.form?.querySelector("button[type=submit]");
+  if (post) post.disabled = input.value.trim().length < 2;
   clearTimeout(simTimer);
   const q = input.value.trim(), seq = ++simSeq;
   if (q.length < 3) { state.ideaMatches = []; const b = $("#idea-matches"); if (b) b.innerHTML = ""; return; }

@@ -6,7 +6,6 @@ import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { t } from "../i18n.js";
 import { render, toast, registerActions, head, errorBox, skeleton, currentTab, openSheet, closeSheet, sheetEl, askConfirm } from "../ui.js";
-import { sampleDays } from "../session.js";
 import { dayChips } from "./student.js";
 import { adminGone } from "./staff.js";
 
@@ -63,7 +62,6 @@ export function viewKitchen() {
         <button class="btn primary" data-act="add-dish">${icon("plus")}Add to ${mealName(state.aMeal)}</button>
         ${state.aMeal === "snack" && !items.length && day.breakfast.length ? `<button class="btn secondary" data-act="snack-same">${icon("copy")}Same as breakfast</button>` : ""}
         ${items.length ? `<button class="btn secondary" data-act="copy-day">${icon("copy")}Copy to next day</button>` : ""}
-        ${weekEmpty ? `<button class="btn secondary" data-act="fill-sample">Fill this week with sample dishes</button>` : ""}
       </div>`;
   }
   return `${head("Menu", "What's being served", "Pick a day, then add or change the food for it. Students see your changes the moment you save.")}
@@ -81,23 +79,12 @@ async function saveAdminDay(date, day) {
   state.insights = null;
 }
 
-async function fillSample() {
-  const mon = state.aWeek;
-  const btn = $('[data-act="fill-sample"]');
-  if (btn) { btn.disabled = true; btn.textContent = "Adding…"; }
-  try {
-    const res = await api("PUT", "menu", { school: school().id, days: sampleDays(mon, 1) });
-    state.aWeeks[mon] = { days: res.days }; state.insights = null;
-    render(); toast("Sample dishes added. Tap any dish to edit it.");
-  } catch (e) { toast(e.message, true); render(); }
-}
-
 async function copyDay() {
   const wk = state.aWeeks[state.aWeek], src = wk?.days[state.aDay];
   if (!src) return;
   let next = D.add(state.aDay, 1);
   if (D.isWeekend(next)) next = D.add(D.monday(next), 7);
-  const clone = { date: next, ...Object.fromEntries(MEALS.map(m => [m, (src[m] || []).map(i => ({ ...i, id: "", reply: "" }))])) };
+  const clone = { date: next, ...Object.fromEntries(MEALS.map(m => [m, (src[m] || []).map(i => ({ ...i, id: "", reply: "", reply_to: "" }))])) };
   try {
     const res = await api("PUT", "menu", { school: school().id, days: [clone] });
     const w = state.aWeeks[D.monday(next)];
@@ -256,7 +243,7 @@ export function onEditorInput(target) {
 async function snackSame() {
   const wk = state.aWeeks[state.aWeek], day = wk?.days[state.aDay];
   if (!day || !day.breakfast.length) return;
-  const next = { ...day, snack: day.breakfast.map(i => ({ ...i, id: "", reply: "" })) };
+  const next = { ...day, snack: day.breakfast.map(i => ({ ...i, id: "", reply: "", reply_to: "" })) };
   try { await saveAdminDay(state.aDay, next); render(); toast("Snack is now the same as breakfast. Edit any dish to change it."); }
   catch (e) { toast(e.message, true); }
 }
@@ -273,7 +260,6 @@ registerActions({
   "retry-aweek"() { delete state.aWeeks[state.aWeek]; render(); },
   "add-dish"() { openEditor(null); },
   "edit-dish"(el) { openEditor(el.dataset.id); },
-  "fill-sample"() { fillSample(); },
   "copy-day"() { copyDay(); },
   "ed-delete"() { deleteDish(); },
   "ed-photo-remove"() { state.edit.item.photo = ""; $("#ed-photo-box").innerHTML = photoFieldHTML(); },

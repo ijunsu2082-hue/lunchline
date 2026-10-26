@@ -1,5 +1,6 @@
 // The landing page. Real food photography, a serif headline, and plain talk.
-// Styles: landing.css. Motion: startWelcomeMotion (scroll reveals, nav, count-up), all off for reduced motion.
+// Styles: landing.css. Two colour themes (orange, olive), switched in the footer.
+// Motion: startWelcomeMotion (scroll reveals, nav, count-up), all off for reduced motion.
 import { esc, $, $$, reducedMotion } from "../util.js";
 import { icon, mark } from "../icons.js";
 
@@ -10,13 +11,18 @@ const ROW_TWO = ["pancakes", "beef-vindaloo", "pepperoni-pizza", "caesar-salad",
 const strip = names => `<div class="lx-track" aria-hidden="true">${[...names, ...names].map(n => `<figure>${photo(n)}</figure>`).join("")}</div>`;
 
 const STEPS = [
-  { n: "01", photo: "cheese-pizza", t: "Scan the code on the tray line.", p: "There's a poster at the cafeteria with a QR code on it. Point your camera at it and today's menu opens right there, with photos, calories, and what's in each dish. You don't download anything or make an account." },
-  { n: "02", photo: "teriyaki-chicken-bowl", t: "Tap how it actually was.", p: "Every dish has three buttons: good, mid, or bad. That's the whole job. If something was cold, or amazing, you can leave a quick note, and nobody will ever see your name next to it." },
-  { n: "03", photo: "orange-chicken-rice", t: "The kitchen reads it, and answers.", p: "The cooks see which dishes people finish and which ones end up in the trash, along with what you wrote. They can reply right under the dish, so you can tell when someone listened." },
+  { photo: "cheese-pizza", t: "Scan the QR on the poster near the line.", p: "Today's menu opens right on your phone. No app to download and no account to make." },
+  { photo: "teriyaki-chicken-bowl", t: "Vote Good, Mid or Bad under each dish.", p: "Any allergens you've flagged show up in red, so you know before you eat." },
+  { photo: "orange-chicken-rice", t: "The kitchen answers on the dish.", p: "The cooks read your comments, fix what's wrong, and reply right under the dish." },
 ];
 
+const THEME_KEY = "ll_lx_theme";
+const THEMES = [["orange", "Orange"], ["olive", "Olive"]];
+const savedTheme = () => { try { const v = localStorage.getItem(THEME_KEY); return THEMES.some(t => t[0] === v) ? v : "orange"; } catch { return "orange"; } };
+
 export function welcomeHTML() {
-  return `<div class="lx">
+  const theme = savedTheme();
+  return `<div class="lx" data-theme="${theme}">
     <header class="lx-nav" id="lx-nav">
       <div class="lx-wrap lx-nav-in">
         <a class="lx-brand" href="/" aria-label="LunchLine home">${mark(30)}<span>LunchLine</span></a>
@@ -28,14 +34,12 @@ export function welcomeHTML() {
     <section class="lx-hero">
       <div class="lx-wrap lx-hero-grid">
         <div class="lx-hero-copy">
-          <p class="lx-kicker">A lunch rating app made by students</p>
-          <h1 class="lx-h1">Tell the kitchen what you <em>actually</em> thought of lunch.</h1>
-          <p class="lx-lede">Scan the code on the tray line, tap a thumb under each dish, and the people who cook your food finally find out what worked and what went straight in the trash. No app, no account, and no name attached.</p>
+          <h1 class="lx-h1">Tell the kitchen what you actually ate.</h1>
+          <p class="lx-lede">Scan the code on the tray line and tap a thumb under each dish. The people who cook your food find out what worked and what went in the trash. No app, no account, no name attached.</p>
           <div class="lx-cta">
             <button class="lx-btn solid" data-act="role" data-role="student">I'm a student${icon("arrowR")}</button>
             <button class="lx-btn line" data-act="role" data-role="create">I run a cafeteria</button>
           </div>
-          <p class="lx-fine">Students join with the six-letter code their school shares, or just scan the poster.</p>
         </div>
         <div class="lx-hero-card" aria-hidden="true">
           <div class="lx-card">
@@ -60,24 +64,19 @@ export function welcomeHTML() {
       <div class="lx-wrap lx-prob-grid">
         <p class="lx-big" data-count="39" aria-hidden="true"><span class="num">39</span><span class="unit">lb</span></p>
         <div class="lx-reveal">
-          <h2 class="lx-h2" id="lx-prob-t"><span class="sr-only">39 pounds. </span>That's how much food the average student threw away in one school year.</h2>
-          <p class="lx-p">A 2019 audit by the World Wildlife Fund weighed the trash at 46 schools across the country and found about 39 pounds of wasted food per student. Cafeteria staff see those full trash cans every afternoon. What they can't see is which dish was in them, or why it got left behind.</p>
-          <p class="lx-p">Meanwhile, plenty of us have opinions about lunch. They just never leave the lunch table. LunchLine is a quick way to get them to the people who can actually change the menu.</p>
-          <p class="lx-src">Source: <a href="https://www.worldwildlife.org/publications/food-waste-warrior-report-2019/" target="_blank" rel="noopener">WWF, Food Waste Warriors report (2019)</a></p>
+          <h2 class="lx-h2" id="lx-prob-t"><span class="sr-only">39 pounds. </span>Food each student throws away in a school year.</h2>
+          <p class="lx-p">The <a href="https://www.worldwildlife.org/publications/food-waste-warrior-report-2019/" target="_blank" rel="noopener">World Wildlife Fund weighed the trash</a> at 46 schools in 2019 and found about 39 pounds per student. Cafeteria staff see those full cans every afternoon. They just can't see which dish was in them, or why.</p>
         </div>
       </div>
     </section>
 
     <section class="lx-how" id="how" aria-labelledby="lx-how-t">
       <div class="lx-wrap">
-        <div class="lx-reveal lx-how-head">
-          <p class="lx-kicker">How it works</p>
-          <h2 class="lx-h2" id="lx-how-t">It takes about ten seconds, and it's anonymous.</h2>
-        </div>
+        <h2 class="lx-h2 lx-reveal lx-how-head" id="lx-how-t">Ten seconds, and nobody knows it was you.</h2>
         <ol class="lx-steps">${STEPS.map((s, i) => `
           <li class="lx-step ${i % 2 ? "flip" : ""} lx-reveal">
             <div class="lx-step-photo">${photo(s.photo)}</div>
-            <div class="lx-step-text"><span class="lx-n">${s.n}</span><h3>${esc(s.t)}</h3><p>${esc(s.p)}</p></div>
+            <div class="lx-step-text"><h3>${esc(s.t)}</h3><p>${esc(s.p)}</p></div>
           </li>`).join("")}
         </ol>
       </div>
@@ -85,17 +84,17 @@ export function welcomeHTML() {
 
     <section class="lx-both" aria-labelledby="lx-both-t">
       <div class="lx-wrap">
-        <h2 class="lx-h2 lx-reveal" id="lx-both-t">One app, two very different jobs.</h2>
+        <h2 class="lx-h2 lx-reveal" id="lx-both-t">One app, two jobs.</h2>
         <div class="lx-two">
           <article class="lx-reveal">
             <img class="lx-shot" src="/img/app-student.jpg" alt="The student menu on a phone, showing dishes with photos and Good, Mid and Bad buttons" width="780" height="1688" loading="lazy" decoding="async">
             <p class="lx-cap">Example: the student menu on a phone.</p><h3>For students</h3>
-            <p>See what's for breakfast, snack, and lunch before you get in line. Flag your allergies once and any dish that has them, or might, gets a clear red warning. Suggest something you'd love to eat, and when your classmates agree, it climbs the list the kitchen sees.</p>
+            <p>See the menu before you get in line, and suggest dishes you'd like. When classmates agree, your idea climbs the list the kitchen reads.</p>
           </article>
           <article class="lx-reveal">
             <img class="lx-shot wide" src="/img/app-staff.jpg" alt="The staff dashboard showing the share of Good ratings, the top dishes and the ones to fix" width="1280" height="860" loading="lazy" decoding="async">
             <p class="lx-cap">Example: the kitchen dashboard, filled with test ratings from a trial run.</p><h3>For the kitchen</h3>
-            <p>Post the week's menu once, and watch the ratings come in. The dashboard shows what people loved next to what needs fixing, with the comments that explain why. Log the trash each day and you can finally see whether the two line up.</p>
+            <p>Post the week's menu once and watch ratings come in. See what people loved next to what needs fixing, and log the trash to check the two line up.</p>
           </article>
         </div>
       </div>
@@ -104,7 +103,7 @@ export function welcomeHTML() {
     <section class="lx-final" aria-labelledby="lx-final-t">
       <div class="lx-final-bg" aria-hidden="true">${photo("pepperoni-pizza")}</div>
       <div class="lx-wrap lx-final-in lx-reveal">
-        <h2 class="lx-h2" id="lx-final-t">Ready to hear what your school really thinks?</h2>
+        <h2 class="lx-h2" id="lx-final-t">Ready to hear what your school thinks?</h2>
         <p class="lx-p">It's free, it works on any phone, and setting up a school takes a couple of minutes.</p>
         <div class="lx-cta">
           <button class="lx-btn light" data-act="role" data-role="student">Join my school${icon("arrowR")}</button>
@@ -113,7 +112,10 @@ export function welcomeHTML() {
       </div>
     </section>
 
-    <footer class="lx-foot"><div class="lx-wrap"><span>LunchLine is a student project, built for Neighborhood Hacks 2026.</span></div></footer>
+    <footer class="lx-foot"><div class="lx-wrap lx-foot-in">
+      <span>We hope LunchLine can help your school!</span>
+      <div class="lx-theme" role="group" aria-label="Page colors">${THEMES.map(([id, label]) => `<button type="button" data-lx-theme="${id}" aria-pressed="${id === theme}">${label}</button>`).join("")}</div>
+    </div></footer>
   </div>`;
 }
 
@@ -122,6 +124,11 @@ export const toggleDemoPause = () => false;
 export function startWelcomeMotion() {
   const root = $(".lx");
   if (!root) return;
+  $$("[data-lx-theme]", root).forEach(b => b.addEventListener("click", () => {
+    root.dataset.theme = b.dataset.lxTheme;
+    try { localStorage.setItem(THEME_KEY, b.dataset.lxTheme); } catch {}
+    $$("[data-lx-theme]", root).forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  }));
   const nav = $("#lx-nav");
   const onScroll = () => nav && nav.classList.toggle("stuck", window.scrollY > 12);
   onScroll();

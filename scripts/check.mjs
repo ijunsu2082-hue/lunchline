@@ -91,7 +91,7 @@ for (const u of listed) {
 if (!listedPaths.has("/")) bad("sw", "public/sw.js does not precache /");
 const expected = [
   ...jsFiles.map(f => "/" + relative(PUB, f).split(sep).join("/")),
-  "/vendor/qrcode.mjs", "/i18n/en.js", "/i18n/es.js", "/styles.css", "/landing.css", "/flat.css", "/sample.js", "/logo.svg", "/icon.svg",
+  "/vendor/qrcode.mjs", "/i18n/en.js", "/i18n/es.js", "/styles.css", "/landing.css", "/flat.css", "/logo.svg", "/icon.svg",
   ...readdirSync(join(PUB, "fonts")).filter(n => n.endsWith(".woff2")).map(n => "/fonts/" + n),
 ];
 for (const p of expected) if (!listedPaths.has(p)) bad("sw", `${p} exists but is not in the public/sw.js precache list`);

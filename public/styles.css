@@ -693,7 +693,3 @@ dialog.sheet { animation: slide-up .42s var(--ease); } dialog.modal { animation:
 .nutri-edit summary { cursor: pointer; font-weight: 800; padding: 12px 0; }
 .nutri-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 
-/* master code on the staff sign-in screen */
-.master { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
-.master summary { cursor: pointer; font-weight: 750; min-height: 44px; display: flex; align-items: center; }
-.master-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
