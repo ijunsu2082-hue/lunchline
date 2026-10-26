@@ -128,7 +128,7 @@ export function viewInsights() {
   const s = state.admin.school, ins = state.insights;
   const ranges = [["7", "7 days"], ["30", "30 days"], ["all", "All time"]];
   const top = `${head("Insights", "Here's what students are saying", "These are the ratings and comments from your students. We set aside anything that looks like a script or a bot, so you can trust the numbers.",
-    `<button class="icon-btn outlined" data-act="refresh-ins" aria-label="Refresh">${icon("refresh")}</button>`)}
+    `<button class="icon-btn outlined" data-act="export-ins" aria-label="Download ratings as a spreadsheet" title="Download CSV">${icon("copy")}</button><button class="icon-btn outlined" data-act="refresh-ins" aria-label="Refresh">${icon("refresh")}</button>`)}
     <div class="seg narrow" role="group" aria-label="Time range">${ranges.map(([k, l]) => `<button data-act="range" data-range="${k}" aria-pressed="${state.range === k}">${l}</button>`).join("")}</div>`;
   if (!ins || ins.range !== state.range) { loadInsights(); return top + skeleton(4, "bento"); }
   if (ins.error) return top + errorBox(ins.error, "refresh-ins");
@@ -227,6 +227,17 @@ function gradeTile(st) {
 // ---------- clicks ----------
 registerActions({
   range(el) { state.range = el.dataset.range; render(); document.querySelector(`[data-act="range"][data-range="${state.range}"]`)?.focus(); },
+  "export-ins"() {
+    const st = state.insights && state.insights.stats;
+    if (!st || !st.dishes) { toast("Nothing to export yet", true); return; }
+    const cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Dish", "Meals", "Good", "Mid", "Bad", "Ratings", "Percent good"], ...st.dishes.map(d => [d.name, d.meals.join(" & "), d.t.good, d.t.mid, d.t.bad, d.t.total, pct(d.t)])];
+    const url = URL.createObjectURL(new Blob([rows.map(r => r.map(cell).join(",")).join("
+")], { type: "text/csv" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: `${school().name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-ratings-${state.range || "7d"}.csv` });
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast("Spreadsheet downloaded");
+  },
   "refresh-ins"() { state.insights = null; render(); document.querySelector('[data-act="refresh-ins"]')?.focus(); },
   "reply-dish"(el) {
     const to = el.dataset.to || "";

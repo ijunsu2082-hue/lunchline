@@ -32,14 +32,14 @@ export function viewMe() {
       </button>
     </div>
     <div class="group">
-      <div class="cell stack">
+      <div class="cell col">
         <div class="cell-main"><p class="cell-t">${esc(t("me.style"))}</p><p class="cell-s">${esc(t("me.style.why"))}</p></div>
         <div class="seg narrow" role="group" aria-label="${esc(t("me.style"))}">
           <button data-act="style" data-style="thumbs" aria-pressed="${style !== "faces"}">${icon("thumbUp")}${esc(t("me.thumbs"))}</button>
           <button data-act="style" data-style="faces" aria-pressed="${style === "faces"}">${icon("smile")}${esc(t("me.faces"))}</button>
         </div>
       </div>
-      <div class="cell stack">
+      <div class="cell col">
         <div class="cell-main"><p class="cell-t">${esc(t("me.lang"))}</p></div>
         <div class="seg narrow" role="group" aria-label="${esc(t("me.lang"))}">
           ${LANGS.map(([k, l]) => `<button data-act="lang" data-lang="${k}" lang="${k}" aria-pressed="${lang === k}">${esc(l)}</button>`).join("")}

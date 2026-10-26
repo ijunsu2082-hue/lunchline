@@ -162,7 +162,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 @font-face { font-family: "Fraunces"; font-style: italic; font-weight: 100 900; font-display: swap; src: url("/fonts/fraunces-latin-wght-italic.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122; }
 :root { --display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif; --warm: #F6F3EE; }
 .page-head h1, .st-school, .stitch-name, .ds-name, .meal-t, .fl-title, .ob-title, .tile-big, .card-head h2, .side-brand strong, .sheet-title h2, .sheet-form h2, .modal-in h2, .big-code, .bn-big, .mail-body h2 {
-  font-family: var(--display); font-weight: 600; letter-spacing: -.025em; font-optical-sizing: auto; }
+  font-family: var(--font); font-weight: 750; letter-spacing: -.02em; }
 .page-head h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.05; }
 .page-head .sub, .lede, .fl-lede { font-size: 1.05rem; line-height: 1.6; max-width: 40em; }
 .st-school { font-size: 1.9rem; }
@@ -185,7 +185,7 @@ dialog.modal { border-radius: 16px; }
 .dc-photo { border-radius: 12px; overflow: hidden; box-shadow: 0 1px 0 var(--line); }
 .dc-photo img { transition: transform .9s cubic-bezier(.2, .8, .2, 1); }
 @media (hover: hover) { .dc:hover .dc-photo img { transform: scale(1.05); } }
-.dc-name { font-family: var(--display); font-weight: 600; font-size: 1.08rem; letter-spacing: -.01em; }
+.dc-name { font-weight: 700; font-size: 1.08rem; letter-spacing: -.01em; }
 .rb { border-radius: 10px; width: 48px; height: 40px; transition: transform .15s, background .2s, color .2s; }
 .rb.on { transform: translateY(-1px); }
 .day { border-radius: 12px; }
@@ -230,3 +230,43 @@ body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211;
 .replying small { display: block; font-size: .75rem; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
 .reply-to { font-size: .88rem; color: var(--ink-2); margin: 2px 0 6px; font-style: normal; }
 .reply-to::before { content: ""; }
+
+/* student top bar: everything fits at phone width, school name wraps instead of cutting off */
+.st-school { white-space: normal; overflow: visible; text-overflow: clip; }
+@media (max-width: 480px) {
+  .rail { padding-left: 8px; padding-right: 8px; gap: 0; }
+  .rail-mark { margin-right: 4px; }
+  .rail-list { min-width: 0; }
+  .rail-i { padding: 0 9px; }
+  .rail-t { font-size: .88rem; }
+  .rail-me { margin-left: 2px; flex: none; }
+}
+/* staff: a single day's waste isn't a full-width block */
+.spark span { max-width: 28px; }
+.spark { gap: 6px; }
+.board.compact .bd { padding: 10px 2px; align-items: center; }
+.board.compact .bd-count { min-width: 44px; padding: 5px 6px; }
+.board.compact { margin-top: 0; }
+@media (min-width: 560px) { .dish-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* phone widths: segmented controls stay on one row, idea tools don't balloon */
+@media (max-width: 520px) {
+  .seg { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg button { padding: 8px 12px; white-space: nowrap; flex: none; }
+  .seg.mini button { padding: 4px 9px; font-size: .76rem; }
+  .bd-tools { gap: 6px; margin-top: 8px; }
+  .bd-tools .seg { margin: 0; }
+  .board .bd { grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; }
+}
+@media (max-width: 520px) {
+  .seg.mini { flex-wrap: wrap; overflow: visible; border-radius: 12px; }
+  .seg.mini button { min-height: 30px; }
+  .bd-tools .btn.sm { min-height: 34px; padding: 0 12px; }
+  .board .bd-count, .board .vote-btn { min-width: 48px; }
+}
+@media (max-width: 520px) {
+  .bd-tools .seg.mini { flex-wrap: nowrap; padding: 2px; }
+  .bd-tools .seg.mini button { padding: 3px 7px; font-size: .72rem; min-height: 28px; }
+  .bd-tools .btn.ghost.sm { padding: 0 8px; }
+}
