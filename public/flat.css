@@ -333,3 +333,30 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .spark-box .spark { width: 100%; }
 @media (min-width: 900px) { .tile.waste .spark-box { grid-column: 2; grid-row: 1 / span 3; } }
 @media (max-width: 899px) { .spark-box { justify-items: stretch; } }
+
+/* food thrown away: bars with pounds on top, an average line and labeled axes */
+.tile.waste { display: block; }
+.waste-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px 24px; }
+.waste-top .waste-form { margin-top: 0; }
+.waste-chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin: 18px 0 6px; }
+.waste-chart-head .seg { margin: 0; }
+.wchart { display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: 190px auto auto; column-gap: 8px; margin-top: 6px; }
+.wy { position: relative; grid-row: 1; font-size: .72rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.wy span { position: absolute; right: 0; transform: translateY(50%); }
+.wy .wy-t { top: -4px; bottom: auto; transform: none; font-weight: 700; }
+.wplot { position: relative; grid-row: 1; margin-top: 18px; }
+.wgrid { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed #E1DCD2; }
+.wcols { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: clamp(3px, 1.2%, 12px); align-items: end; }
+.wcol { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.wbar { width: 100%; max-width: 54px; background: var(--brand); border-radius: 6px 6px 2px 2px; min-height: 0; transition: height .5s cubic-bezier(.2, .8, .2, 1); }
+.wv { font-size: .72rem; font-weight: 750; color: var(--ink); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+.wx { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: .7rem; color: var(--ink-2); white-space: nowrap; }
+.wx.off { visibility: hidden; } .wx.now { color: var(--ink); font-weight: 800; }
+.wavg { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #131211; pointer-events: none; z-index: 2; }
+.wavg span { position: absolute; right: 0; bottom: 4px; font-size: .72rem; font-weight: 800; background: #fff; padding: 1px 7px; border-radius: 999px; border: 1px solid #131211; }
+.wx-title { grid-column: 2; grid-row: 3; text-align: center; font-size: .74rem; font-weight: 650; color: var(--ink-2); margin: 26px 0 0; }
+@media (max-width: 520px) { .wchart { grid-template-rows: 160px auto auto; } .wv { font-size: .64rem; } }
+.wy .wy-t { top: -22px; }
+.wavg span { bottom: auto; top: 5px; }
+.wchart { grid-template-columns: 50px minmax(0, 1fr); }
+.wy span { white-space: nowrap; }

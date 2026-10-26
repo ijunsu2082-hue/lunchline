@@ -244,18 +244,37 @@ export function viewInsights() {
 function wasteTile(st, log, ins) {
   const span = D.span(ins.from, ins.to), group = pickGroup(span, state.wgroup || "auto");
   const cols = buckets(ins.from, ins.to, group, st.waste.byDate, () => 0, (a, v) => a + v).filter(([, v], i, all) => v > 0 || (i > 0 && i < all.length - 1));
-  const max = Math.max(1, ...cols.map(([, v]) => v));
   const round = n => Math.round(n * 10) / 10;
+  const logged = cols.filter(([, v]) => v > 0), avg = logged.length ? logged.reduce((n, [, v]) => n + v, 0) / logged.length : 0;
+  const tallest = Math.max(1, ...cols.map(([, v]) => v));
+  const unit = Math.pow(10, Math.floor(Math.log10(tallest))) / 2;
+  const top = Math.max(10, Math.ceil((tallest * 1.12) / unit) * unit); // a round number just above the tallest bar
+  const every = Math.ceil(cols.length / 12), showVals = cols.length <= 20;
+  const ticks = [top, top / 2, 0];
+  const word = group === "day" ? "day" : group === "week" ? "week" : "month";
+  const chart = cols.length ? `<div class="wchart" role="img" aria-label="Pounds thrown away by ${word}. Average ${round(avg)} pounds per ${word}.">
+      <div class="wy" aria-hidden="true">${ticks.map((t, i) => `<span style="bottom:${(100 * t) / top}%">${round(t)}${i === 0 ? " lb" : ""}</span>`).join("")}</div>
+      <div class="wplot">
+        ${ticks.map(t => `<i class="wgrid" style="bottom:${(100 * t) / top}%"></i>`).join("")}
+        <div class="wcols" style="--n:${cols.length}">${cols.map(([k, v], i) => `<div class="wcol" title="${esc(bucketLong(k, group))}: ${round(v)} lb">
+          ${showVals ? `<span class="wv">${v ? round(v) : ""}</span>` : ""}<div class="wbar" style="height:${v ? Math.max(1.5, (100 * v) / top) : 0}%"></div>
+          <span class="wx${i % every ? " off" : ""}${isNow(k, group) ? " now" : ""}">${esc(bucketLabel(k, group, span))}</span></div>`).join("")}</div>
+        ${avg ? `<div class="wavg" style="bottom:${(100 * avg) / top}%"><span>Average ${round(avg)} lb</span></div>` : ""}
+      </div>
+      <p class="wx-title" aria-hidden="true">${group === "day" ? "Day" : group === "week" ? "Week starting" : "Month"}</p>
+    </div>` : "";
   return `<section class="tile waste">
-    <p class="tile-k">${icon("leaf")}Food thrown away</p>
-    <p class="tile-big">${st.waste.days ? `${st.waste.pounds}<small> lb</small>` : "—"}</p>
-    <p class="tile-s">${st.waste.days ? `across ${plural(st.waste.days, "logged day")}${st.waste.days ? ` · about ${Math.round((st.waste.pounds / st.waste.days) * 10) / 10} lb a day` : ""}` : "Weigh the trash once a day to see if ratings match what's wasted."}</p>
-    ${cols.length ? `<div class="spark-box">${groupSeg("wgroup", group)}<div class="spark" role="img" aria-label="Pounds thrown away by ${group}">${cols.map(([k, v]) => `<span style="height:${Math.max(v ? 8 : 3, (100 * v) / max)}%" title="${esc(bucketLong(k, group))}: ${round(v)} lb"></span>`).join("")}</div></div>` : ""}
-    <form class="waste-form" data-form="waste">
-      <label class="sr-only" for="waste-lb">Pounds thrown away today</label>
-      <input class="input sm" id="waste-lb" type="number" inputmode="decimal" min="0" max="5000" step="0.1" placeholder="Pounds today" required>
-      <button class="btn secondary sm" type="submit">Log</button>
-    </form>
+    <div class="waste-top">
+      <div><p class="tile-k">${icon("leaf")}Food thrown away</p>
+        <p class="tile-big">${st.waste.days ? `${st.waste.pounds}<small> lb</small>` : "—"}</p>
+        <p class="tile-s">${st.waste.days ? `across ${plural(st.waste.days, "logged day")} · about ${Math.round((st.waste.pounds / st.waste.days) * 10) / 10} lb a day` : "Weigh the trash once a day to see if ratings match what is wasted."}</p></div>
+      <form class="waste-form" data-form="waste">
+        <label class="sr-only" for="waste-lb">Pounds thrown away today</label>
+        <input class="input sm" id="waste-lb" type="number" inputmode="decimal" min="0" max="5000" step="0.1" placeholder="Pounds today" required>
+        <button class="btn secondary sm" type="submit">Log</button>
+      </form>
+    </div>
+    ${cols.length ? `<div class="waste-chart-head"><span class="muted small">Pounds thrown away, by ${word}</span>${groupSeg("wgroup", group)}</div>${chart}` : ""}
   </section>`;
 }
 
