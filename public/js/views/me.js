@@ -25,21 +25,21 @@ export function viewMe() {
         <div class="cell-main"><p class="cell-t">${esc(t("me.grade"))}</p><p class="cell-s">${st.grade ? esc(st.grade === "other" ? t("setup.gradeOther") : t("grade.n", { g: st.grade })) : esc(t("common.notSet"))}</p></div>${icon("chevR")}
       </button>
       <button class="cell" data-act="edit" data-step="allergies">
-        <div class="cell-main"><p class="cell-t">${esc(t("me.allergies"))}</p><p class="cell-s">${allergies.length ? esc(listJoin(allergies)) : esc(t("common.none"))}</p></div>${icon("chevR")}
+        <div class="cell-main"><p class="cell-t">${esc(t("me.allergies"))}</p><p class="cell-s">${[st.vegetarian ? t("setup.vegetarian.short") : "", allergies.length ? listJoin(allergies) : ""].filter(Boolean).map(esc).join(" · ") || esc(t("common.none"))}</p></div>${icon("chevR")}
       </button>
       <button class="cell" data-act="edit" data-step="food">
         <div class="cell-main"><p class="cell-t">${esc(t("me.food"))}</p><p class="cell-s">${foods.length ? esc(listJoin(foods)) : esc(t("common.notSet"))}</p></div>${icon("chevR")}
       </button>
     </div>
     <div class="group">
-      <div class="cell stack">
+      <div class="cell col">
         <div class="cell-main"><p class="cell-t">${esc(t("me.style"))}</p><p class="cell-s">${esc(t("me.style.why"))}</p></div>
         <div class="seg narrow" role="group" aria-label="${esc(t("me.style"))}">
           <button data-act="style" data-style="thumbs" aria-pressed="${style !== "faces"}">${icon("thumbUp")}${esc(t("me.thumbs"))}</button>
           <button data-act="style" data-style="faces" aria-pressed="${style === "faces"}">${icon("smile")}${esc(t("me.faces"))}</button>
         </div>
       </div>
-      <div class="cell stack">
+      <div class="cell col">
         <div class="cell-main"><p class="cell-t">${esc(t("me.lang"))}</p></div>
         <div class="seg narrow" role="group" aria-label="${esc(t("me.lang"))}">
           ${LANGS.map(([k, l]) => `<button data-act="lang" data-lang="${k}" lang="${k}" aria-pressed="${lang === k}">${esc(l)}</button>`).join("")}

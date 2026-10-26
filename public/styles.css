@@ -367,7 +367,7 @@ body.is-ob::before { display: none; }
 .cell { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 14px 16px; text-align: left; min-height: 62px; }
 .cell + .cell { border-top: 1px solid var(--line); }
 button.cell:hover { background: var(--brand-soft); }
-.cell.stack { flex-direction: column; align-items: flex-start; } .cell.stack .seg { margin: 0; }
+.cell.col { flex-direction: column; align-items: flex-start; } .cell.col .seg { margin: 0; }
 .cell-main { min-width: 0; } .cell-t { font-weight: 800; } .cell-s { color: var(--ink-2); font-size: .85rem; overflow-wrap: anywhere; }
 .cell.danger .cell-t { color: var(--bad-t); }
 
@@ -693,7 +693,3 @@ dialog.sheet { animation: slide-up .42s var(--ease); } dialog.modal { animation:
 .nutri-edit summary { cursor: pointer; font-weight: 800; padding: 12px 0; }
 .nutri-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 
-/* master code on the staff sign-in screen */
-.master { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
-.master summary { cursor: pointer; font-weight: 750; min-height: 44px; display: flex; align-items: center; }
-.master-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }

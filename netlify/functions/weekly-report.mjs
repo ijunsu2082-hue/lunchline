@@ -1,4 +1,4 @@
-// Every Monday morning: build each school's weekly report so it's waiting in the
+// Every Friday afternoon: build each school's weekly report so it's waiting in the
 // Reports tab. Schools with no staff are skipped.
 
 import { getStore } from "@netlify/blobs";
@@ -21,4 +21,4 @@ export default async () => {
   console.log(`weekly reports: ${built} built`);
 };
 
-export const config = { schedule: "0 13 * * 1" }; // Mondays 13:00 UTC
+export const config = { schedule: "0 20 * * 5" }; // Fridays 20:00 UTC, after lunch

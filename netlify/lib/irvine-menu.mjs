@@ -1,6 +1,6 @@
-// Sample week an organizer can load to try LunchLine. Index 0 = Monday.
+// Irvine High School's weekly menu (from the school flyer and district nutrition sheet), Monday to Friday.
 // Each day is { breakfast, snack, lunch }.
-// Every sample dish has a photo in public/samples/ (credits in CREDITS.md);
+// Every dish has a photo in public/samples/ (credits in CREDITS.md);
 // never add a dish without one.
 // The packaged snacks are real products; their calories, ingredients, and
 // allergens come from the labels. Everything else is a typical school-lunch
@@ -56,7 +56,7 @@ const DISH = {
     ingredients: "Corn tortillas (corn masa, water, lime), ground beef, taco seasoning (chili pepper, cumin, garlic, onion, salt, paprika), onion, cilantro, lime, salsa",
     allergens: [] },
   quesadilla: { name: "Cheese Quesadilla", photo: "/samples/quesadilla.jpg", desc: "Grilled flour tortilla filled with melted Monterey Jack, with salsa.", cuisine: "mexican", diet: ["vegetarian"], calories: 420,
-    ingredients: "Flour tortilla (enriched wheat flour, water, soybean oil, baking powder, salt), Monterey Jack cheese (milk, cultures, salt, enzymes), salsa (tomatoes, onion, jalapeño, cilantro, lime)",
+    ingredients: "Flour tortilla (enriched wheat flour, water, soybean oil, baking powder, salt), Monterey Jack cheese (milk, cultures, salt, enzymes), salsa (tomatoes, onion, jalapeÃ±o, cilantro, lime)",
     allergens: ["gluten", "dairy", "soy"] },
   spaghetti: { name: "Spaghetti & Meatballs", photo: "/samples/spaghetti-meatballs.jpg", desc: "Whole-grain spaghetti with marinara and three beef meatballs.", cuisine: "italian", calories: 560,
     ingredients: "Whole-grain spaghetti (whole durum wheat flour, durum semolina), marinara (tomatoes, onion, garlic, olive oil, basil, oregano), beef meatballs (beef, breadcrumbs [wheat flour, yeast, salt], eggs, parmesan cheese, garlic, parsley)",
@@ -457,7 +457,7 @@ const HOT = [
   item("Breakfast Sandwiches", null, { img:"breakfast-sandwich", cuisine: "american" }),
   item("Ham & Swiss Croissants", null, { img:"ham-swiss-croissant", cuisine: "american" }),
   item("Cheesy Pull-Aparts", null, { photo: "pullAparts", diet: ["vegetarian"] }),
-  item("Pizza Bosco Sticks", /^Bosco Pizza/, { photo:"pullAparts", cuisine: "italian" }),
+  item("Pizza Bosco Sticks", /^Bosco Pizza/, { img:"pizza-bosco-sticks", cuisine: "italian" }),
   item("Mini Pancakes", /^Mini Pancakes/, { photo: "pancakes", diet: ["vegetarian"] }),
   item("Mini Cinnis", /^Mini Cinnis/, { img:"mini-cinnis", diet: ["vegetarian"] }),
 ];
@@ -491,7 +491,7 @@ const FAVORITES = [
   item("Papa John's Pizza (Pepperoni)", /^Pizza Papa John Pepperoni/, { photo: "pepperoniPizza", cuisine: "italian" }),
   item("Pick Up Stix (Chicken)", /^Pick Up Stix House Chicken/, { img:"orange-chicken-rice", cuisine: "chinese" }),
   item("Pick Up Stix (Tofu)", /^Pick Up Stix House Tofu/, { img:"tofu-fried-rice", cuisine: "chinese", diet: ["vegetarian"] }),
-  item("Cheesy Bosco Sticks", /^Bosco Sticks/, { photo:"pullAparts", cuisine: "italian", diet: ["vegetarian"] }),
+  item("Cheesy Bosco Sticks", /^Bosco Sticks/, { img:"cheesy-bosco-sticks", cuisine: "italian", diet: ["vegetarian"] }),
   item("Garlic Toast", null, { img:"garlic-toast", diet: ["vegetarian"] }),
   item("Chicken Items (variety)", null, { photo: "tenders" }),
   item("Spicy / Regular Chicken Sandwiches (variety)", null, { img: "chicken-sandwich" }),
@@ -507,7 +507,3 @@ export const SAMPLE_PLAN = FEATURED.map(featured => ({
   snack: [...QUICK, ...BAKERY],
   lunch: [...featured, ...FAVORITES],
 }));
-
-// This file is a module for both sides: the server imports SAMPLE_PLAN for the demo schools, and the page
-// reads these globals (window.SAMPLE_DISHES is for the welcome screen).
-if (typeof window !== "undefined") Object.assign(window, { SAMPLE_PLAN, SAMPLE_WEEK: SAMPLE_PLAN, SAMPLE_DISHES: DISH });

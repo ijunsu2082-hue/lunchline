@@ -3,9 +3,11 @@
 //   b) every en.js key has a Spanish entry
 //   c) relative imports resolve and named imports are really exported
 //   d) the service worker's precache list matches the files on disk
+//   e) every browser module parses (a stray newline in a string once took the whole site down)
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname, resolve, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PUB = join(ROOT, "public");
@@ -91,12 +93,18 @@ for (const u of listed) {
 if (!listedPaths.has("/")) bad("sw", "public/sw.js does not precache /");
 const expected = [
   ...jsFiles.map(f => "/" + relative(PUB, f).split(sep).join("/")),
-  "/vendor/qrcode.mjs", "/i18n/en.js", "/i18n/es.js", "/styles.css", "/landing.css", "/flat.css", "/sample.js", "/logo.svg", "/icon.svg",
+  "/vendor/qrcode.mjs", "/i18n/en.js", "/i18n/es.js", "/styles.css", "/landing.css", "/flat.css", "/logo.svg", "/icon.svg",
   ...readdirSync(join(PUB, "fonts")).filter(n => n.endsWith(".woff2")).map(n => "/fonts/" + n),
 ];
 for (const p of expected) if (!listedPaths.has(p)) bad("sw", `${p} exists but is not in the public/sw.js precache list`);
 const cacheName = (sw.match(/const CACHE = "([^"]+)"/) || [])[1];
 if (!cacheName) bad("sw", "public/sw.js has no CACHE constant");
+
+// ---- e) every browser module parses
+for (const f of jsFiles) {
+  const r = spawnSync(process.execPath, ["--check", f], { encoding: "utf8" });
+  if (r.status !== 0) bad("syntax", `${rel(f)} doesn't parse: ${(r.stderr.split("\n").find(l => /Error/.test(l)) || "").trim()}`);
+}
 
 // ---- summary
 console.log(`i18n: ${used} key uses checked against ${en.length} English keys (${es.size} Spanish)`);

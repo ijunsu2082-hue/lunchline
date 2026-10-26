@@ -4,7 +4,7 @@
 //   LL_TODAY=2026-10-19 node scripts/dev.mjs
 //   LL_LAN=1 node scripts/dev.mjs   (also reachable from your phone on the same wifi)
 import http from "node:http";
-// Local settings (master code etc.) live in .env, which git ignores. See .env.example.
+// Local settings live in .env, which git ignores. See .env.example.
 try { process.loadEnvFile(new URL("../.env", import.meta.url)); } catch { /* no .env: everything still works with defaults */ }
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";

@@ -1,5 +1,5 @@
 // Moving between "who is using the app": welcome, student, parent, staff.
-import { LS, D, zoned } from "./util.js";
+import { LS, zoned } from "./util.js";
 import { state, MEALS } from "./state.js";
 import { applyTheme, resetTheme } from "./theme.js";
 import { render, go, TABS } from "./ui.js";
@@ -7,7 +7,7 @@ import { render, go, TABS } from "./ui.js";
 export function resetData() {
   Object.assign(state, {
     week: null, day: null, meal: null, touched: false, weeks: {}, mine: {}, ideas: null,
-    aWeek: null, aDay: null, aWeeks: {}, insights: null, team: null, teamLink: null, reports: null, audit: null, today: null,
+    aWeek: null, aDay: null, aWeeks: {}, insights: null, lastIns: null, showHidden: false, team: null, teamLink: null, reports: null, audit: null, today: null,
     bannerAt: 0, dishOpen: null, ideaDraft: "", ideaMatches: [],
   });
   state.openComment.clear(); state.cDraft = {};
@@ -33,7 +33,7 @@ export const FLOWS = {
   parent: ["school"],
   signin: ["login"],
   create: ["create"],
-  invite: ["newpass"],
+  verify: ["verify"],
 };
 
 export function startFlow(flow, data = {}, opts = {}) {
@@ -44,9 +44,9 @@ export function startFlow(flow, data = {}, opts = {}) {
     exit: opts.exit || "welcome",
     d: {
       findBy: "code", code: "", q: "", results: null, all: null, school: null,
-      grade: "", allergies: [], allergyOther: "", allergyOtherOn: false, cuisines: [], cuisineOther: "", cuisineOtherOn: false,
-      email: "", password: "", schoolName: "", sample: true, picking: null,
-      token: "", setupEmail: "", setupSchool: "",
+      grade: "", vegetarian: false, allergies: [], allergyOther: "", allergyOtherOn: false, cuisines: [], cuisineOther: "", cuisineOtherOn: false,
+      email: "", password: "", schoolName: "", picking: null,
+      sentTo: "", devLink: "", verifyFailed: false,
       ...(flow === "edit" && st ? { ...st, allergyOtherOn: !!st.allergyOther, cuisineOtherOn: !!st.cuisineOther, allergies: [...st.allergies], cuisines: [...st.cuisines] } : {}),
       ...data,
     },
@@ -58,19 +58,6 @@ export function startFlow(flow, data = {}, opts = {}) {
 export function obExit() {
   if (state.ob.exit === "app" && state.mode) { state.ob = null; render(true); }
   else startFlow("welcome");
-}
-
-// A sample menu to try everything right away: `weeks` weeks starting at `monday`.
-export function sampleDays(monday, weeks) {
-  const plan = window.SAMPLE_PLAN || window.SAMPLE_WEEK || [];
-  const days = [];
-  for (let w = 0; w < weeks; w++) {
-    for (let i = 0; i < 5 && plan.length; i++) {
-      const day = plan[(w * 5 + i) % plan.length];
-      days.push({ date: D.add(monday, w * 7 + i), ...Object.fromEntries(MEALS.map(m => [m, (day[m] || []).map(x => ({ ...x }))])) });
-    }
-  }
-  return days;
 }
 
 export const mealLabelKey = m => ("meal." + (MEALS.includes(m) ? m : "lunch"));

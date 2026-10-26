@@ -10,7 +10,7 @@ import {
 } from "./ui.js";
 import { startFlow, setMode, leaveToWelcome } from "./session.js";
 import {
-  renderOb, obSubmit, refreshCta, obError, searchSchools, syncGrade, enterAdmin, openSetupLink,
+  renderOb, obSubmit, refreshCta, obError, searchSchools, syncGrade, enterAdmin, openLoginLink,
 } from "./views/flows.js";
 import { startWelcomeMotion, toggleDemoPause } from "./views/welcome.js";
 import { studentShell, viewMenu, bindCarousel, onCommentInput, flushQueue, loadWeek } from "./views/student.js";
@@ -20,6 +20,7 @@ import { staffShell, viewInsights, submitStaffForm } from "./views/staff.js";
 import { viewKitchen, saveEditor, uploadPhoto, onEditorInput } from "./views/menu-editor.js";
 import { viewSchool, onColorInput, submitSettingsForm } from "./views/settings.js";
 import { viewReports } from "./views/reports.js";
+import { submitPresetForm } from "./views/presets.js";
 import "./views/qr.js";
 
 const main = $("#main");
@@ -68,6 +69,7 @@ function renderNow(focus) {
     applyTheme(tab === "school" && state.draftColor ? state.draftColor : s.theme?.color);
   }
   if (!state.today) state.today = zoned(school().tz).date; // until the server's clock says otherwise
+  const keepY = focus ? 0 : window.scrollY; // an edit refreshes the page in place; only navigating jumps to the top
   const body = VIEWS[state.mode][tab]();
   wasSkeleton = body.includes('aria-busy="true"');
   main.className = state.mode === "admin" ? "wide" : "";
@@ -82,6 +84,7 @@ function renderNow(focus) {
   }
   if (state.mode !== "admin") bindCarousel();
   if (focus) { focusTitle(); window.scrollTo(0, 0); }
+  else if (keepY) window.scrollTo(0, keepY);
 }
 setRenderer(render_);
 
@@ -112,7 +115,8 @@ document.addEventListener("submit", e => {
   if (kind === "ob") obSubmit();
   else if (kind === "editor") saveEditor();
   else if (kind === "idea" || kind === "idea-menu" || kind === "idea-reply") submitIdeaForm(f);
-  else if (kind === "reply-dish" || kind === "waste") submitStaffForm(f);
+  else if (kind === "reply-dish" || kind === "waste" || kind === "custom-range") submitStaffForm(f);
+  else if (kind === "preset-save" || kind === "preset-load") submitPresetForm(f);
   else if (kind === "school-grades" || kind === "invite") submitSettingsForm(f);
 });
 
@@ -179,15 +183,12 @@ async function start() {
   setLang(preferredLang());
   const params = new URLSearchParams(location.search);
   const login = params.get("login");
-  const setup = params.get("setup");
   const join = normCode(params.get("join"));
   const parent = normCode(params.get("parent"));
   if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 
-  // a new teammate (or one who forgot their password) following the setup link an admin shared
-  if (setup) { await openSetupLink(setup); return; }
-  // an old emailed sign-in link, from before sign-in used passwords
-  if (login) { startFlow("signin"); obError("Sign-in links aren't used anymore. Sign in with your email and password."); return; }
+  // a sign-in or invite link from the inbox
+  if (login) { await openLoginLink(login); return; }
 
   // an existing staff session (cookie) or an old staff key
   let mode = LS.get("ll_mode");

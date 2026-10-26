@@ -113,3 +113,7 @@ DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
+
+## Fraunces
+
+Fraunces is licensed under the SIL Open Font License 1.1 (https://github.com/undercasetype/Fraunces). It is self-hosted here.
