@@ -45,6 +45,8 @@ Our mission is to give every cafeteria that missing half of the picture, at no c
 - Optional grade level, shown only for groups of 5 or more
 - Waste log
 - Weekly report with a short summary, built every Friday or on demand (plain templates over the week's numbers; no AI service or API key is involved)
+- Emails use the school's own color and logo; the logo is drawn as a PNG on demand at `/api/logo.png?c=RRGGBB`
+- Irvine High School's month of simulated activity comes from `node scripts/seed-irvine.mjs` (local) or `--production` with `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN`; the dashboard says the data is simulated
 - Menu presets: save a dish, a day or a week and load it onto any days, for as many weeks as you like
 - Replies to comments show the comment they answer, and can go to everyone or only to the student who wrote it
 - Vegetarian students are warned about meat (including meat sauces), seafood and egg, next to allergen warnings

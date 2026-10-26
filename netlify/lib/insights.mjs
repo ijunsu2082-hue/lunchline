@@ -67,7 +67,7 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
   flagVotes(votes);
   const total = T(), byDate = {}, byMeal = Object.fromEntries(MEALS.map(m => [m, T()])), byCuisine = {}, byDish = {};
   const who = new Set(), gradeWho = {}, byGrade = {}, byGradeDish = {};
-  const comments = [];
+  const comments = [], hiddenComments = [];
   let flagged = 0;
 
   for (const v of votes) {
@@ -91,6 +91,7 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
       const gd = (byGradeDish[v.grade] ||= {})[k] ||= { name: m.it.name, t: T() };
       add(gd.t, v.vote);
     }
+    if (v.comment && v.hidden) hiddenComments.push({ cid: v.who, date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment, updated_at: v.updated_at, name: m.it.name, meal: m.meal });
     if (v.comment && !v.hidden) comments.push({ cid: v.who, date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment, updated_at: v.updated_at, name: m.it.name, meal: m.meal, ...(v.kr ? { kr: v.kr } : {}) });
   }
   for (const v of votes) { // flagged rows still count against their dish's confidence
@@ -100,6 +101,7 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
     if (d) d.flagged++;
   }
   comments.sort((a, b) => b.date.localeCompare(a.date) || b.updated_at.localeCompare(a.updated_at));
+  hiddenComments.sort((a, b) => b.date.localeCompare(a.date) || b.updated_at.localeCompare(a.updated_at));
 
   const dishes = Object.values(byDish).map(d => ({
     key: d.key, name: d.name, t: d.t, meals: [...d.meals], photo: d.photo, last: d.last,
@@ -127,7 +129,7 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
   for (const w of waste) { poundsByDate[w.date] = w.pounds; pounds += w.pounds; }
 
   return {
-    total, byDate, byMeal, byCuisine, dishes, loved, needs, comments, grades,
+    total, byDate, byMeal, byCuisine, dishes, loved, needs, comments, hiddenComments, grades,
     students: who.size,
     participation: enrollment > 0 ? Math.min(100, Math.round((100 * who.size) / enrollment)) : null,
     flagged,

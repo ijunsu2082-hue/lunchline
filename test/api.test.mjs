@@ -483,3 +483,34 @@ test("presets: save a dish, a day and a week, share them with the team, and keep
   assert.equal((await staff("DELETE", `presets/${list[0].id}?school=${school.id}`)).status, 200);
   assert.equal((await staff("GET", `presets?school=${school.id}`)).body.presets.length, 2);
 });
+
+test("the logo is drawn as a PNG in any school's color, and emails carry it", async () => {
+  const store = memStore();
+  const res = await handle(new Request("http://localhost:8888/api/logo.png?c=1F7A4D"), store);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "image/png");
+  const bytes = Buffer.from(await res.arrayBuffer());
+  assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], "a real PNG");
+  const junk = await handle(new Request("http://localhost:8888/api/logo.png?c=<script>"), store);
+  assert.equal(junk.status, 200, "bad colors fall back instead of failing");
+  const { inviteEmail } = await import("../netlify/lib/mail.mjs");
+  const m = inviteEmail({ link: "http://x/?login=abc", schoolName: "Lincoln", role: "cook", by: "a@b.edu", color: "#B91C1C" });
+  assert.match(m.html, /api\/logo\.png\?c=B91C1C/);
+  assert.match(m.html, /background:#B91C1C/);
+});
+
+test("a hidden comment can be unhidden, and shows up in the hidden list meanwhile", async () => {
+  const { school, staff, device } = await setup();
+  const kid = await device("device-hide-0001");
+  await kid.call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa1", vote: "bad", comment: "too salty" }, { token: kid.token });
+  const get = async () => (await staff("GET", `insights?school=${school.id}&from=${TODAY}&to=${TODAY}`)).body.stats;
+  const c = (await get()).comments[0];
+  assert.equal((await staff("POST", "votes/hide", { school: school.id, date: TODAY, item_id: "aaaaaa1", cid: c.cid })).body.hidden, true);
+  let st = await get();
+  assert.equal(st.comments.length, 0);
+  assert.equal(st.hiddenComments.length, 1);
+  assert.equal((await staff("POST", "votes/hide", { school: school.id, date: TODAY, item_id: "aaaaaa1", cid: c.cid, hidden: false })).body.hidden, false);
+  st = await get();
+  assert.equal(st.comments.length, 1);
+  assert.equal(st.hiddenComments.length, 0);
+});

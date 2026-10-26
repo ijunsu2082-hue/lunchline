@@ -457,7 +457,7 @@ const HOT = [
   item("Breakfast Sandwiches", null, { img:"breakfast-sandwich", cuisine: "american" }),
   item("Ham & Swiss Croissants", null, { img:"ham-swiss-croissant", cuisine: "american" }),
   item("Cheesy Pull-Aparts", null, { photo: "pullAparts", diet: ["vegetarian"] }),
-  item("Pizza Bosco Sticks", /^Bosco Pizza/, { photo:"pullAparts", cuisine: "italian" }),
+  item("Pizza Bosco Sticks", /^Bosco Pizza/, { img:"pizza-bosco-sticks", cuisine: "italian" }),
   item("Mini Pancakes", /^Mini Pancakes/, { photo: "pancakes", diet: ["vegetarian"] }),
   item("Mini Cinnis", /^Mini Cinnis/, { img:"mini-cinnis", diet: ["vegetarian"] }),
 ];
@@ -491,7 +491,7 @@ const FAVORITES = [
   item("Papa John's Pizza (Pepperoni)", /^Pizza Papa John Pepperoni/, { photo: "pepperoniPizza", cuisine: "italian" }),
   item("Pick Up Stix (Chicken)", /^Pick Up Stix House Chicken/, { img:"orange-chicken-rice", cuisine: "chinese" }),
   item("Pick Up Stix (Tofu)", /^Pick Up Stix House Tofu/, { img:"tofu-fried-rice", cuisine: "chinese", diet: ["vegetarian"] }),
-  item("Cheesy Bosco Sticks", /^Bosco Sticks/, { photo:"pullAparts", cuisine: "italian", diet: ["vegetarian"] }),
+  item("Cheesy Bosco Sticks", /^Bosco Sticks/, { img:"cheesy-bosco-sticks", cuisine: "italian", diet: ["vegetarian"] }),
   item("Garlic Toast", null, { img:"garlic-toast", diet: ["vegetarian"] }),
   item("Chicken Items (variety)", null, { photo: "tenders" }),
   item("Spicy / Regular Chicken Sandwiches (variety)", null, { img: "chicken-sandwich" }),

@@ -33,6 +33,7 @@ import { clientIp, ipHash, limit } from "./ratelimit.mjs";
 import { findSimilar, similarity, SAME, tidyText } from "./similarity.mjs";
 import { computeInsights } from "./insights.mjs";
 import { sendMail, mailConfigured, inviteEmail, magicLinkEmail } from "./mail.mjs";
+import { logoPng } from "./logo.mjs";
 import { SAMPLE_PLAN as IRVINE_PLAN } from "./irvine-menu.mjs";
 import { weeklySummary, reportData, weekWindow } from "./reports.mjs";
 import {
@@ -104,6 +105,11 @@ export async function handle(req, store) {
         if (m === "POST" && !id) return json(await postReply(store, req));
         break;
 
+      case "logo.png": { // the mark in a school's color, for emails
+        const c = "#" + String(q.get("c") || "FF5A1F").replace(/[^0-9a-fA-F]/g, "").padEnd(6, "0").slice(0, 6);
+        return new Response(logoPng(c), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000, immutable" } });
+      }
+
       case "presets":
         if (m === "GET" && !id) return json(await listPresets(store, req, q));
         if (m === "POST" && !id) return json(await savePreset(store, req), 201);
@@ -173,7 +179,7 @@ async function getAudit(store, req, q) {
 }
 
 // ---------- schools ----------
-const staffSchool = s => ({ ...publicSchool(s), enrollment: s.enrollment || 0 });
+const staffSchool = s => ({ ...publicSchool(s), enrollment: s.enrollment || 0, ...(s.sim_data ? { sim_data: true } : {}) });
 
 // `id`, `grades` and `demo` are only set by the demo seeding below.
 export async function createSchool(store, { name, tz, email, color, id, grades, demo }) {
@@ -300,7 +306,7 @@ const MIGRATION = "migrate/no-demo-v1";
 const migrated = new WeakSet();
 export async function ensureMigrated(store) {
   if (migrated.has(store)) return;
-  if (await store.get(MIGRATION)) { migrated.add(store); return; }
+  if (await store.get(MIGRATION)) { await fixBoscoPhotos(store); migrated.add(store); return; }
   await store.setJSON(MIGRATION, { at: Date.now() });
   const schools = await getAll(store, await listKeys(store, "school/"));
   for (const school of schools.filter(x => x.demo)) {
@@ -309,13 +315,32 @@ export async function ensureMigrated(store) {
       await fillIrvineMenu(store, school);
     } else await purgeSchool(store, school);
   }
+  await fixBoscoPhotos(store);
   migrated.add(store);
 }
 
+// The two Bosco stick dishes used to share the Pull-Aparts photo. Give days already stored their own pictures.
+const BOSCO_PHOTOS = { "pizza bosco sticks": "/samples/pizza-bosco-sticks.jpg", "cheesy bosco sticks": "/samples/cheesy-bosco-sticks.jpg" };
+async function fixBoscoPhotos(store) {
+  if (await store.get("migrate/bosco-photos-v1")) return;
+  await store.setJSON("migrate/bosco-photos-v1", { at: Date.now() });
+  for (const school of await getAll(store, await listKeys(store, "school/"))) {
+    if (slug(school.name) !== slug("Irvine High School")) continue;
+    for (const day of await getAll(store, await listKeys(store, `day/${school.id}/`))) {
+      let changed = false;
+      for (const m of MEALS) for (const it of day[m] || []) {
+        const want = BOSCO_PHOTOS[String(it.name).trim().toLowerCase()];
+        if (want && it.photo === "/samples/cheesy-pull-aparts.jpg") { it.photo = want; changed = true; }
+      }
+      if (changed) await store.setJSON(`day/${school.id}/${day.date}`, day);
+    }
+  }
+}
+
 // Weekdays from two weeks back to eight weeks ahead that nobody has saved yet get Irvine's flyer menu.
-async function fillIrvineMenu(store, school) {
+export async function fillIrvineMenu(store, school, back = 14, ahead = 56) {
   const today = todayIn(school.tz);
-  for (let n = -14; n <= 56; n++) {
+  for (let n = -back; n <= ahead; n++) {
     const date = addDays(today, n), dow = new Date(date + "T00:00:00Z").getUTCDay();
     if (dow === 0 || dow === 6 || await store.get(`day/${school.id}/${date}`)) continue;
     const plan = IRVINE_PLAN[dow - 1];
@@ -369,11 +394,12 @@ async function authRequest(store, req) {
       tz: typeof b.tz === "string" && validTz(b.tz) ? b.tz : "America/Chicago",
     };
     const link = await loginLink(store, req, data);
-    return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "create", schoolName: name }), link)) };
+    return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "create", schoolName: name, color: data.color }), link)) };
   }
-  if ((await membershipsFor(store, email)).length) {
+  const mine = await membershipsFor(store, email);
+  if (mine.length) {
     const link = await loginLink(store, req, { email, purpose: "login" });
-    return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "login" }), link)) };
+    return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "login", color: mine[0].school.theme?.color }), link)) };
   }
   return { sent: true };
 }
@@ -429,7 +455,7 @@ async function inviteStaff(store, req) {
   // The invite is a sign-in link good for a week. It is emailed when an email service is set up;
   // either way it comes back here so the admin can copy it and pass it on.
   const link = await loginLink(store, req, { email, purpose: "login" }, INVITE_TTL);
-  const emailed = await tryEmail(email, inviteEmail({ link, schoolName: school.name, role, by: user.email || "Your school's admin" }));
+  const emailed = await tryEmail(email, inviteEmail({ link, schoolName: school.name, role, by: user.email || "Your school's admin", color: school.theme?.color }));
   return { member: { id: mem.id, email, role, ready: !!mem.joined_at }, link, emailed };
 }
 
@@ -442,7 +468,7 @@ async function memberLink(store, req, eh, q) {
   if (roleRank(target.role) > roleRank(user.role)) fail(403, "You can't reset someone with a higher role.");
   const link = await loginLink(store, req, { email: target.email, purpose: "login" }, INVITE_TTL);
   await audit(store, school.id, user.email, `made a sign-in link for ${target.email}`);
-  const emailed = await tryEmail(target.email, inviteEmail({ link, schoolName: school.name, role: target.role, by: user.email || "Your school's admin" }));
+  const emailed = await tryEmail(target.email, inviteEmail({ link, schoolName: school.name, role: target.role, by: user.email || "Your school's admin", color: school.theme?.color }));
   return { email: target.email, link, emailed };
 }
 
@@ -733,10 +759,11 @@ async function hideComment(store, req) {
   const keys = (await listKeys(store, `vote/${school.id}/${b.date}/`)).filter(k => k.endsWith("/" + b.item_id));
   for (const row of await getAll(store, keys)) {
     if (sha(school.id + row.voter_id).slice(0, 12) !== b.cid) continue;
-    await store.setJSON(`vote/${school.id}/${row.date}/${row.voter_id}/${row.item_id}`, { ...row, hidden: true });
+    const hide = b.hidden !== false;
+    await store.setJSON(`vote/${school.id}/${row.date}/${row.voter_id}/${row.item_id}`, { ...row, hidden: hide });
     await store.delete(`votecache/${school.id}/${b.date}`);
-    await audit(store, school.id, user.email, `hid a comment on ${b.date}`);
-    return { hidden: true };
+    await audit(store, school.id, user.email, `${hide ? "hid" : "unhid"} a comment on ${b.date}`);
+    return { hidden: hide };
   }
   fail(404, "That comment is gone.");
 }

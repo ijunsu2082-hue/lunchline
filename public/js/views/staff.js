@@ -67,6 +67,7 @@ export async function loadInsights() {
   state.loading.delete("ins");
   if (state.mode !== "admin") return;
   state.insights = result;
+  if (!result.error) state.lastIns = result; // shown while the next load runs, so edits refresh without a flash
   if (!state.ob && currentTab() === "insights") render();
 }
 
@@ -125,12 +126,16 @@ function rankList(list, kind) {
 
 // ---------- the dashboard ----------
 export function viewInsights() {
-  const s = state.admin.school, ins = state.insights;
+  const s = state.admin.school;
+  const fresh = state.insights && state.insights.range === state.range ? state.insights : null;
+  const ins = fresh || (state.lastIns && state.lastIns.range === state.range ? state.lastIns : null);
   const ranges = [["7", "7 days"], ["30", "30 days"], ["all", "All time"]];
   const top = `${head("Insights", "Here's what students are saying", "These are the ratings and comments from your students. We set aside anything that looks like a script or a bot, so you can trust the numbers.",
     `<button class="icon-btn outlined" data-act="export-ins" aria-label="Download ratings as a spreadsheet" title="Download CSV">${icon("copy")}</button><button class="icon-btn outlined" data-act="refresh-ins" aria-label="Refresh">${icon("refresh")}</button>`)}
-    <div class="seg narrow" role="group" aria-label="Time range">${ranges.map(([k, l]) => `<button data-act="range" data-range="${k}" aria-pressed="${state.range === k}">${l}</button>`).join("")}</div>`;
-  if (!ins || ins.range !== state.range) { loadInsights(); return top + skeleton(4, "bento"); }
+    <div class="seg narrow" role="group" aria-label="Time range">${ranges.map(([k, l]) => `<button data-act="range" data-range="${k}" aria-pressed="${state.range === k}">${l}</button>`).join("")}</div>
+    ${s.sim_data ? `<p class="sim-note">${icon("info")}These ratings, comments and ideas are simulated, to show how a month of activity looks.</p>` : ""}`;
+  if (!fresh) loadInsights();
+  if (!ins) return top + skeleton(4, "bento");
   if (ins.error) return top + errorBox(ins.error, "refresh-ins");
   const st = ins.data.stats, ideas = ins.data.ideas, wasteLog = ins.data.waste_log;
   if (!st.total.total) {
@@ -184,7 +189,13 @@ export function viewInsights() {
             ${c.kr ? `<p class="feed-r">${icon("megaphone")}<span><strong>You replied${c.kr.public ? " to everyone" : " privately"}:</strong> ${esc(c.kr.text)}</span></p>` : ""}</div>
           <div class="feed-act"><button class="btn ghost xs" data-act="reply-dish" data-date="${c.date}" data-id="${c.item_id}" data-name="${esc(c.name)}" data-reply="${esc(c.kr ? c.kr.text : "")}" data-to="${esc(c.comment)}" data-cid="${c.cid}" data-public="${c.kr ? !!c.kr.public : true}">${icon("megaphone")}${c.kr ? "Edit reply" : "Reply"}</button>
           <button class="btn ghost xs" data-act="hide-comment" data-date="${c.date}" data-id="${c.item_id}" data-cid="${c.cid}">${icon("eyeOff")}Hide</button></div>
-        </li>`).join("")}</ul>` : '<p class="muted small">No written comments in this period.</p>'}</section>
+        </li>`).join("")}</ul>` : '<p class="muted small">No written comments in this period.</p>'}
+        ${(st.hiddenComments || []).length ? `<div class="hidden-comments"><button class="link" data-act="toggle-hidden" aria-expanded="${!!state.showHidden}">${state.showHidden ? "Hide" : "Show"} ${plural(st.hiddenComments.length, "hidden comment")}</button>
+          ${state.showHidden ? `<ul class="feed muted-feed">${st.hiddenComments.map(c => `<li>
+            <span class="pill v-${c.vote}">${icon(rateIcon(c.vote))}${t("rate." + c.vote)}</span>
+            <div class="feed-main"><p class="feed-q">“${esc(c.comment)}”</p><p class="feed-m"><strong>${esc(c.name)}</strong> · ${mealName(c.meal)} · ${shortDay(c.date)}</p></div>
+            <div class="feed-act"><button class="btn ghost xs" data-act="unhide-comment" data-date="${c.date}" data-id="${c.item_id}" data-cid="${c.cid}">${icon("eye")}Unhide</button></div>
+          </li>`).join("")}</ul>` : ""}</div>` : ""}</section>
 
       ${ideas.length ? `<div class="tile wide flush">${ideasCard(ideas)}</div>` : ""}
 
@@ -257,9 +268,16 @@ registerActions({
   async "hide-comment"(el) {
     try {
       await api("POST", "votes/hide", { school: school().id, date: el.dataset.date, item_id: el.dataset.id, cid: el.dataset.cid });
-      state.insights = null; render(); toast("Comment hidden. The rating still counts.");
+      state.insights = null; render(); toast("Comment hidden. You can unhide it under the comments.");
     } catch (e) { toast(e.message, true); }
   },
+  async "unhide-comment"(el) {
+    try {
+      await api("POST", "votes/hide", { school: school().id, date: el.dataset.date, item_id: el.dataset.id, cid: el.dataset.cid, hidden: false });
+      state.insights = null; render(); toast("Comment is showing again.");
+    } catch (e) { toast(e.message, true); }
+  },
+  "toggle-hidden"() { state.showHidden = !state.showHidden; render(); },
   async "as-student"() {
     const { startFlow } = await import("../session.js");
     if (state.student?.school.id === state.admin.school.id) setMode("student");

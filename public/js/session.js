@@ -7,7 +7,7 @@ import { render, go, TABS } from "./ui.js";
 export function resetData() {
   Object.assign(state, {
     week: null, day: null, meal: null, touched: false, weeks: {}, mine: {}, ideas: null,
-    aWeek: null, aDay: null, aWeeks: {}, insights: null, team: null, teamLink: null, reports: null, audit: null, today: null,
+    aWeek: null, aDay: null, aWeeks: {}, insights: null, lastIns: null, showHidden: false, team: null, teamLink: null, reports: null, audit: null, today: null,
     bannerAt: 0, dishOpen: null, ideaDraft: "", ideaMatches: [],
   });
   state.openComment.clear(); state.cDraft = {};

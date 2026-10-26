@@ -69,6 +69,7 @@ function renderNow(focus) {
     applyTheme(tab === "school" && state.draftColor ? state.draftColor : s.theme?.color);
   }
   if (!state.today) state.today = zoned(school().tz).date; // until the server's clock says otherwise
+  const keepY = focus ? 0 : window.scrollY; // an edit refreshes the page in place; only navigating jumps to the top
   const body = VIEWS[state.mode][tab]();
   wasSkeleton = body.includes('aria-busy="true"');
   main.className = state.mode === "admin" ? "wide" : "";
@@ -83,6 +84,7 @@ function renderNow(focus) {
   }
   if (state.mode !== "admin") bindCarousel();
   if (focus) { focusTitle(); window.scrollTo(0, 0); }
+  else if (keepY) window.scrollTo(0, keepY);
 }
 setRenderer(render_);
 

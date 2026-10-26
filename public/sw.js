@@ -5,14 +5,14 @@
 // The app's own files go to the network first, so a new version shows on the
 // very next visit after a deploy (serving a saved copy first left people on an
 // old version for a visit). The cache is the fallback when there's no signal.
-const CACHE = "ll-v39";
+const CACHE = "ll-v42";
 
 // The app shell: every file the page needs to start.
 const SHELL = [
-  "/", "/styles.css?v=39", "/landing.css?v=39", "/flat.css?v=39", "/js/main.js?v=39",
+  "/", "/styles.css?v=42", "/landing.css?v=42", "/flat.css?v=42", "/js/main.js?v=42",
   "/js/api.js", "/js/i18n.js", "/js/icons.js", "/js/pow-worker.js", "/js/session.js",
   "/js/state.js", "/js/theme.js", "/js/ui.js", "/js/util.js",
-  "/js/views/flows.js", "/js/views/ideas.js", "/js/views/me.js", "/js/views/menu-editor.js", "/js/views/presets.js",
+  "/js/views/flows.js", "/js/views/ideas.js", "/js/views/me.js", "/js/views/menu-editor.js", "/js/views/presets.js", "/js/views/tour.js",
   "/js/views/qr.js", "/js/views/reports.js", "/js/views/settings.js", "/js/views/staff.js",
   "/js/views/student.js", "/js/views/welcome.js",
   "/vendor/qrcode.mjs", "/i18n/en.js", "/i18n/es.js",
