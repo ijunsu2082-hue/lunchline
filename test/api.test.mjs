@@ -422,8 +422,8 @@ test("an invite link is emailed when an email service is set up, and still comes
 test("the old sample schools are removed once, and Irvine High keeps its own menu", async () => {
   const store = memStore();
   const { createSchool } = await import("../netlify/lib/api.mjs");
-  const lincoln = await createSchool(store, { name: "Lincoln High School", email: "ajaysriramsankar@gmail.com", tz: "America/Los_Angeles", demo: { offset: 1 } });
-  const irvine = await createSchool(store, { name: "Irvine High School", email: "ajaysriramsankar@gmail.com", tz: "America/Los_Angeles", demo: { offset: 0 } });
+  const lincoln = await createSchool(store, { name: "Lincoln High School", email: "master@example.com", tz: "America/Los_Angeles", demo: { offset: 1 } });
+  const irvine = await createSchool(store, { name: "Irvine High School", email: "master@example.com", tz: "America/Los_Angeles", demo: { offset: 0 } });
   const real = await createSchool(store, { name: "Oak Real School", email: "someone@oak.edu", tz: "America/Chicago" });
   const anon = client(handle, store);
   const names = (await anon("GET", "schools?all=1")).body.schools.map(s => s.name).sort();
@@ -436,7 +436,7 @@ test("the old sample schools are removed once, and Irvine High keeps its own men
   assert.ok((await anon("GET", `menu?school=${real.id}&from=2026-10-19&to=2026-10-25`)).body.days && Object.keys((await anon("GET", `menu?school=${real.id}&from=2026-10-19&to=2026-10-25`)).body.days).length === 0, "a real school gets nothing it didn't enter");
   // old master email only opens its own school
   const owner = client(handle, store, { ip: "6.1.1.1" });
-  const link = (await owner("POST", "auth/request", { email: "ajaysriramsankar@gmail.com" })).body.dev_link;
+  const link = (await owner("POST", "auth/request", { email: "master@example.com" })).body.dev_link;
   const me = await owner("POST", "auth/verify", { token: tokenOf(link) });
   assert.deepEqual(me.body.schools.map(s => s.school.name), ["Irvine High School"]);
 });

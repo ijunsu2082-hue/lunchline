@@ -1027,7 +1027,7 @@ async function getPhoto(store, schoolId, photoId) {
   const r = await store.getWithMetadata(`photo/${schoolId}/${photoId}`, { type: "arrayBuffer" });
   if (!r) fail(404, "Not found");
   return new Response(r.data, {
-    headers: { "Content-Type": r.metadata?.type || "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable" },
+    headers: { "Content-Type": r.metadata?.type || "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'" },
   });
 }
 

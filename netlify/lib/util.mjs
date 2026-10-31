@@ -18,7 +18,7 @@ export const fail = (status, message, extra) => { throw new HttpError(status, me
 
 // send json back
 export const json = (data, status = 200, headers = {}) =>
-  Response.json(data, { status, headers: { "Cache-Control": "no-store", ...headers } });
+  Response.json(data, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers } });
 
 // read the request body
 export async function body(req) {
