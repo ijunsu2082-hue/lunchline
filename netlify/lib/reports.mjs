@@ -1,14 +1,15 @@
-// The weekly kitchen report: aggregate numbers and a short plain-text summary.
-
+// weekly report
 import { addDays } from "./util.mjs";
 import { pctGood, pctBad } from "./insights.mjs";
 
-// Boil the week's stats down to what the report stores and shows.
+// numbers the report keeps
 export function reportData(school, stats, prev, topIdeas = []) {
+  // shrink a dish down
   const trim = d => ({ name: d.name, pct: 0, n: d.t.total });
   const loved = stats.loved.filter(d => d.t.total >= 3).slice(0, 3).map(d => ({ ...trim(d), pct: pctGood(d.t) }));
   const needs = stats.needs.filter(d => d.t.total >= 3).slice(0, 3).map(d => ({ ...trim(d), pct: pctBad(d.t) }));
   const prevPct = prev && prev.total.total ? pctGood(prev.total) : null;
+  // short highlight lines
   const bullets = [];
   if (prevPct !== null && stats.total.total) {
     const diff = pctGood(stats.total) - prevPct;
@@ -27,6 +28,7 @@ export function reportData(school, stats, prev, topIdeas = []) {
   };
 }
 
+// the paragraph at the top
 export function weeklySummary(d) {
   if (!d.ratings) return "No ratings came in this week. Put the QR poster where students line up, and remind them it takes one tap.";
   const parts = [`${d.good_pct}% of ${d.ratings} ratings were Good, from ${d.students} student${d.students === 1 ? "" : "s"}.`];
@@ -35,4 +37,5 @@ export function weeklySummary(d) {
   return parts.join(" ");
 }
 
+// this week and last week dates
 export const weekWindow = today => ({ from: addDays(today, -6), to: today, prevFrom: addDays(today, -13), prevTo: addDays(today, -7) });

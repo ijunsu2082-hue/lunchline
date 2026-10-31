@@ -1,3 +1,4 @@
+// email sending tests
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { sendMail, mailConfigured } from "../netlify/lib/mail.mjs";

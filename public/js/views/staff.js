@@ -1,4 +1,4 @@
-// The staff app: sidebar shell and the Insights dashboard.
+// staff side: sidebar and insights
 import { $, esc, plural, listJoin, LS, D, shortDay, pct, foodTile } from "../util.js";
 import { state, school, MEALS, RATINGS, REPLY_MAX } from "../state.js";
 import { api } from "../api.js";
@@ -11,7 +11,8 @@ import { ideasCard } from "./ideas.js";
 const cuisineName = k => (k ? (t("cuisine." + k) !== "cuisine." + k ? t("cuisine." + k) : k.charAt(0).toUpperCase() + k.slice(1)) : "No cuisine set");
 const mealName = m => m.charAt(0).toUpperCase() + m.slice(1);
 
-// ---------- shell ----------
+// sidebar
+// page layout
 export function staffShell(content) {
   const s = state.admin.school, tab = currentTab(), a = state.admin;
   const nav = TABS.admin.map(([k, l, ic]) => `<a href="#${k}" class="side-i${k === tab ? " on" : ""}"${k === tab ? ' aria-current="page"' : ""}>${icon(ic)}<span>${l}</span></a>`).join("");
@@ -30,8 +31,10 @@ export function staffShell(content) {
   </div>`;
 }
 
-// ---------- data ----------
+// date ranges and loading
+// key for the chosen range
 const rangeKey = () => (state.range === "custom" ? `custom:${state.customFrom}:${state.customTo}` : state.range);
+// from and to dates
 function rangeDates() {
   const to = state.today;
   if (state.range === "7") return { from: D.add(to, -6), to };
@@ -50,7 +53,7 @@ function rangeDates() {
   return { from, to };
 }
 
-// Charts group by day, week or month. "auto" picks whichever fits the time frame.
+// group charts by day, week or month
 const GROUPS = [["day", "Day"], ["week", "Week"], ["month", "Month"]];
 const pickGroup = (span, want = "auto") => {
   const g = want === "auto" ? (span <= 31 ? "day" : span <= 150 ? "week" : "month") : want;
@@ -81,12 +84,13 @@ const bucketLabel = (k, group, span) => (group === "day" ? (span <= 7 ? D.fmt(k,
 const bucketLong = (k, group) => (group === "day" ? shortDay(k) : group === "week" ? `Week of ${shortDay(k)}` : D.fmt(k + "-01", { month: "long", year: "numeric" }));
 const isNow = (k, group) => (group === "day" ? k === state.today : group === "week" ? k === D.monday(state.today) : k === state.today.slice(0, 7));
 
-// Long lists fold away, so a month of comments doesn't mean a mile of scrolling.
+// long lists fold up
 const folded = k => !!(state.fold && state.fold[k]);
 const moreOpen = k => !!(state.more && state.more[k]);
 const foldBtn = k => `<button class="fold-btn${folded(k) ? " is-folded" : ""}" data-act="fold" data-key="${k}" aria-expanded="${!folded(k)}" aria-label="${folded(k) ? "Expand" : "Collapse"} this section">${icon("chevD")}</button>`;
 const moreBtn = (k, total, shown) => (total > shown ? `<button class="link more-btn" data-act="more" data-key="${k}" aria-expanded="${moreOpen(k)}">${moreOpen(k) ? "Show fewer" : `Show all ${total}`}</button>` : "");
 
+// load dashboard numbers
 export async function loadInsights() {
   if (state.loading.has("ins")) return;
   state.loading.add("ins");
@@ -112,23 +116,25 @@ export async function loadInsights() {
   state.loading.delete("ins");
   if (state.mode !== "admin") return;
   state.insights = result;
-  if (!result.error) state.lastIns = result; // shown while the next load runs, so edits refresh without a flash
+  if (!result.error) state.lastIns = result; // show the old one while loading, no flash
   if (!state.ob && currentTab() === "insights") render();
 }
 
+// school is gone
 export function adminGone() {
   LS.del("ll_admin"); LS.del("ll_admin_school"); state.admin = null;
   toast("You were signed out. Sign in again with your email and password.", true);
   if (state.student) setMode("student"); else leaveToWelcome();
 }
 
-// ---------- small chart pieces ----------
+// chart bits
 const stackBar = (t2, label) => `<div class="stack${t2.total ? "" : " is-empty"}" role="img" aria-label="${esc(label ? label + ": " : "")}${t2.good} good, ${t2.mid} mid, ${t2.bad} bad">${
   ["good", "mid", "bad"].map(k => (t2[k] ? `<span class="s-${k}" style="width:${(100 * t2[k]) / t2.total}%"></span>` : "")).join("")}</div>`;
 const legend = `<ul class="legend" aria-hidden="true"><li><span class="s-good"></span>Good</li><li><span class="s-mid"></span>Mid</li><li><span class="s-bad"></span>Bad</li></ul>`;
 const ring = (p, label, sub = "") => `<div class="ring" style="--p:${Math.max(0, Math.min(100, p))}" role="img" aria-label="${esc(label)}"><div class="ring-in"><strong>${Math.round(p)}%</strong>${sub ? `<span>${esc(sub)}</span>` : ""}</div></div>`;
 const conf = d => `<span class="conf c-${d.confidence}" title="${d.raters} different phones rated this">${d.confidence === "high" ? "Solid" : d.confidence === "medium" ? "Fair" : "Early"} · ${d.raters}</span>`;
 
+// ratings chart
 function dailyChart(st, from, to, group) {
   const span = D.span(from, to);
   const zero = () => ({ good: 0, mid: 0, bad: 0, total: 0 });
@@ -141,6 +147,7 @@ function dailyChart(st, from, to, group) {
     <span class="col-x${isNow(c.key, group) ? " now" : ""}">${esc(c.x)}</span></div>`).join("")}</div>`;
 }
 
+// best and worst list
 function rankList(list, kind) {
   if (!list.length) return `<p class="muted small">Not enough rated dishes yet.</p>`;
   return `<ol class="rank">${list.map((d, i) => {
@@ -156,7 +163,7 @@ function rankList(list, kind) {
   }).join("")}</ol>`;
 }
 
-// ---------- the dashboard ----------
+// the dashboard
 export function viewInsights() {
   const s = state.admin.school;
   state.fold ||= {}; state.more ||= {};
@@ -241,6 +248,7 @@ export function viewInsights() {
     </div>`;
 }
 
+// food thrown away
 function wasteTile(st, log, ins) {
   const span = D.span(ins.from, ins.to), group = pickGroup(span, state.wgroup || "auto");
   const cols = buckets(ins.from, ins.to, group, st.waste.byDate, () => 0, (a, v) => a + v).filter(([, v], i, all) => v > 0 || (i > 0 && i < all.length - 1));
@@ -248,7 +256,7 @@ function wasteTile(st, log, ins) {
   const logged = cols.filter(([, v]) => v > 0), avg = logged.length ? logged.reduce((n, [, v]) => n + v, 0) / logged.length : 0;
   const tallest = Math.max(1, ...cols.map(([, v]) => v));
   const unit = Math.pow(10, Math.floor(Math.log10(tallest))) / 2;
-  const top = Math.max(10, Math.ceil((tallest * 1.12) / unit) * unit); // a round number just above the tallest bar
+  const top = Math.max(10, Math.ceil((tallest * 1.12) / unit) * unit); // round number above the tallest bar
   const every = Math.ceil(cols.length / 12), showVals = cols.length <= 20;
   const ticks = [top, top / 2, 0];
   const word = group === "day" ? "day" : group === "week" ? "week" : "month";
@@ -278,6 +286,7 @@ function wasteTile(st, log, ins) {
   </section>`;
 }
 
+// by grade
 function gradeTile(st) {
   if (!st.grades.length) {
     return `<section class="tile wide"><div class="card-head"><h2>${icon("grad")}By grade</h2></div><p class="muted small">When students pick their grade, you'll see what each grade likes and struggles with here. Students choose it in one tap and can skip it.</p></section>`;
@@ -294,7 +303,7 @@ function gradeTile(st) {
   </section>`;
 }
 
-// ---------- clicks ----------
+// clicks
 registerActions({
   range(el) {
     state.range = el.dataset.range;
@@ -349,7 +358,7 @@ registerActions({
     if (state.student?.school.id === state.admin.school.id) setMode("student");
     else {
       const s = state.admin.school;
-      // View it as a student would: a device token and the grade / allergy screen.
+      // preview as a student
       const { ensureToken } = await import("../api.js");
       ensureToken(s.id).catch(() => {});
       startFlow("student", { school: s }, { steps: ["setup"], exit: "app" });
@@ -357,6 +366,7 @@ registerActions({
   },
 });
 
+// forms
 export async function submitStaffForm(f) {
   if (f.dataset.form === "custom-range") {
     const from = $("#cr-from").value, to = $("#cr-to").value;

@@ -1,20 +1,17 @@
-// Consistency checker: no dependencies. Run with `npm run check`.
-//   a) every t("key") used in public/js exists in i18n/en.js
-//   b) every en.js key has a Spanish entry
-//   c) relative imports resolve and named imports are really exported
-//   d) the service worker's precache list matches the files on disk
-//   e) every browser module parses (a stray newline in a string once took the whole site down)
+// checks everything lines up: npm run check
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname, resolve, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
+// paths
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PUB = join(ROOT, "public");
 const problems = [];
 const bad = (section, msg) => problems.push({ section, msg });
 const rel = p => relative(ROOT, p).split(sep).join("/");
 
+// list all files
 function walk(dir) {
   return readdirSync(dir).flatMap(n => {
     const p = join(dir, n);
@@ -24,12 +21,13 @@ function walk(dir) {
 const jsFiles = walk(join(PUB, "js")).filter(f => f.endsWith(".js"));
 const lines = f => readFileSync(f, "utf8").split(/\r?\n/);
 
+// language files
 const en = Object.keys((await import(pathToFileURL(join(PUB, "i18n/en.js")).href)).default);
 const es = new Set(Object.keys((await import(pathToFileURL(join(PUB, "i18n/es.js")).href)).default));
 const enSet = new Set(en);
 const DYNAMIC = ["allergen.", "cuisine.", "diet.", "rate.", "status.", "ago."];
 
-// ---- (a) used keys exist in en.js
+// every t() key exists in en.js
 let used = 0;
 for (const f of jsFiles) {
   lines(f).forEach((line, i) => {
@@ -37,7 +35,6 @@ for (const f of jsFiles) {
     for (const m of line.matchAll(/\bt\(\s*(["'])([\w.-]+)\1/g)) keys.add(m[2]);
     if (/\bt\(/.test(line)) for (const m of line.matchAll(/(["'])([a-z]+\.[\w.-]+)\1/g)) if (/^[a-z]+\.[a-z_0-9]+$/.test(m[2]) && /^[a-z]+$/.test(m[2].split(".")[0]) && en.some(k => k.split(".")[0] === m[2].split(".")[0])) keys.add(m[2]);
     for (const m of line.matchAll(/\bt\(\s*[`"']([a-z]+\.)(?:["'`]\s*\+|\$\{)/g)) {
-      // dynamic prefix: t("allergen." + x) or t(`allergen.${x}`)
       if (!en.some(k => k.startsWith(m[1]))) bad("i18n", `${rel(f)}:${i + 1} dynamic prefix "${m[1]}" has no keys in en.js`);
     }
     for (const k of keys) {
@@ -49,11 +46,11 @@ for (const f of jsFiles) {
 }
 for (const p of DYNAMIC) if (!en.some(k => k.startsWith(p))) bad("i18n", `no keys under dynamic prefix "${p}" in en.js`);
 
-// ---- (b) en.js keys have Spanish
+// every english key has a spanish one
 for (const k of en) if (!es.has(k)) bad("es", `key "${k}" is in en.js but missing from es.js`);
 for (const k of es) if (!enSet.has(k)) bad("es", `key "${k}" is in es.js but not en.js`);
 
-// ---- (c) imports resolve, named imports exported
+// imports point at real files and exports
 const exportsOf = src => {
   const names = new Set();
   for (const m of src.matchAll(/export\s+(?:async\s+)?(?:function\*?|const|let|var|class)\s+([\w$]+)/g)) names.add(m[1]);
@@ -80,7 +77,7 @@ for (const f of jsFiles) {
   }
 }
 
-// ---- (d) service worker precache list
+// service worker file list matches what's on disk
 const swPath = join(PUB, "sw.js");
 const sw = readFileSync(swPath, "utf8");
 const shell = (sw.match(/const SHELL = \[([\s\S]*?)\];/) || [, ""])[1];
@@ -100,13 +97,13 @@ for (const p of expected) if (!listedPaths.has(p)) bad("sw", `${p} exists but is
 const cacheName = (sw.match(/const CACHE = "([^"]+)"/) || [])[1];
 if (!cacheName) bad("sw", "public/sw.js has no CACHE constant");
 
-// ---- e) every browser module parses
 for (const f of jsFiles) {
+  // every browser file has to parse
   const r = spawnSync(process.execPath, ["--check", f], { encoding: "utf8" });
   if (r.status !== 0) bad("syntax", `${rel(f)} doesn't parse: ${(r.stderr.split("\n").find(l => /Error/.test(l)) || "").trim()}`);
 }
 
-// ---- summary
+// summary
 console.log(`i18n: ${used} key uses checked against ${en.length} English keys (${es.size} Spanish)`);
 console.log(`imports: ${imports} relative imports checked in ${jsFiles.length} files`);
 console.log(`sw: ${listed.length} precache entries, cache "${cacheName}"`);

@@ -1,4 +1,4 @@
-// Inline icons (Lucide-style strokes), all decorative: aria-hidden.
+// inline svg icons
 import { LS } from "./util.js";
 
 const THUMB = '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>';
@@ -65,9 +65,9 @@ export const ICONS = {
 
 export const icon = (n, cls = "") => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[n] || ""}</svg>`;
 
-// Good / Mid / Bad: thumbs by default, faces for students who'd rather not read "Mid".
+// thumbs or faces for ratings
 export const RATE_STYLES = { thumbs: ["thumbUp", "thumbMid", "thumbDown"], faces: ["smile", "meh", "frown"] };
 export const rateIcon = k => RATE_STYLES[LS.get("ll_style", "thumbs") === "faces" ? "faces" : "thumbs"][["good", "mid", "bad"].indexOf(k)];
 
-// The logo: a fork with a check, on the school's color.
+// the logo
 export const mark = (s = 30, fill = "var(--brand, #FF5A1F)") => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="18" fill="${fill}"/><g fill="var(--brand-ink, #fff)"><rect x="19" y="11" width="5" height="20" rx="2.5"/><rect x="29.5" y="11" width="5" height="20" rx="2.5"/><rect x="40" y="11" width="5" height="20" rx="2.5"/><path d="M19 27h26v2a11 11 0 0 1-11 11h-4a11 11 0 0 1-11-11z"/><rect x="29" y="36" width="6" height="18" rx="3"/></g><circle cx="47" cy="46" r="9" fill="#2B1D14"/><path d="M43 46.5l2.6 2.6 5-5.2" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;

@@ -1,31 +1,25 @@
-// Staff identity: emailed sign-in links, sessions, school membership and roles. No passwords.
-//
-//   ml/{sha(token)}              pending link         { email, purpose: "login" | "create", name?, exp }
-//   sess/{sha(token)}            staff session        { email, schools (null = every school of that email), exp }
-//   staff/{school}/{emailHash}   member of a school   { email, role, added_at, added_by, joined_at? }
-//   member/{emailHash}/{school}  index: schools an email belongs to (key only)
-//   admin/{sha(key)}             legacy shared key -> school (still honoured until retired)
-
+// staff accounts: magic links, sessions, team members. no passwords
 import { randomBytes } from "node:crypto";
 import { ROLES } from "./vocab.mjs";
 import { fail, sha, emailHash, normEmail, normCode, loadSchool, listKeys, getAll } from "./util.mjs";
 
+// how long things last
 export const LOGIN_TTL = 15 * 60 * 1000;
 export const INVITE_TTL = 7 * 24 * 3600 * 1000;
 const SESSION_TTL = 30 * 24 * 3600 * 1000;
 export const COOKIE = "ll_session";
 
-export const roleRank = r => ROLES.indexOf(r) + 1; // 0 when unknown
+// role order
+export const roleRank = r => ROLES.indexOf(r) + 1; // 0 if unknown
 
-// ---------- sign-in links ----------
-// Staff never have a password. A link goes to their inbox, works once, and opens the dashboard.
-// Sign-in and create-a-school links last 15 minutes; a teammate's invite lasts 7 days.
+// sign in links
 export async function createMagic(store, data, ttl = LOGIN_TTL) {
   const token = randomBytes(24).toString("base64url");
   await store.setJSON(`ml/${sha(token)}`, { ...data, exp: Date.now() + ttl });
   return token;
 }
 
+// look up a link
 async function readMagic(store, token) {
   if (typeof token !== "string" || token.length < 20 || token.length > 80) fail(400, "That sign-in link isn't valid. Ask for a new one.");
   const key = `ml/${sha(token)}`;
@@ -34,7 +28,7 @@ async function readMagic(store, token) {
   return { key, row };
 }
 
-// Single use: read, delete, then check expiry.
+// links only work once
 export async function consumeMagic(store, token) {
   const { key, row } = await readMagic(store, token);
   await store.delete(key);
@@ -42,7 +36,7 @@ export async function consumeMagic(store, token) {
   return row;
 }
 
-// First sign-in for an email: marks every team it's on as joined, so admins can see who has arrived.
+// mark them as signed in at least once
 export async function markJoined(store, email) {
   const eh = emailHash(email);
   for (const k of await listKeys(store, `member/${eh}/`)) {
@@ -52,19 +46,20 @@ export async function markJoined(store, email) {
   }
 }
 
-// ---------- sessions ----------
-// `schools` lists the schools this session opens; null opens every school the email belongs to .
+// sessions
 export async function startSession(store, email, schools = null) {
   const token = randomBytes(32).toString("base64url");
   await store.setJSON(`sess/${sha(token)}`, { email: normEmail(email), schools, exp: Date.now() + SESSION_TTL });
   return token;
 }
 
+// the cookie
 export function sessionCookie(token, req, maxAgeSec = SESSION_TTL / 1000) {
   const secure = new URL(req.url).protocol === "https:" ? "; Secure" : "";
   return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
 }
 
+// pull the cookie out
 export function readCookie(req, name = COOKIE) {
   const h = req.headers.get("cookie") || "";
   for (const part of h.split(";")) {
@@ -74,6 +69,7 @@ export function readCookie(req, name = COOKIE) {
   return "";
 }
 
+// who is signed in
 export async function readSession(store, req) {
   const token = readCookie(req);
   if (!token) return null;
@@ -83,12 +79,13 @@ export async function readSession(store, req) {
   return { email: row.email, token, schools: Array.isArray(row.schools) ? row.schools : null };
 }
 
+// sign out
 export async function endSession(store, req) {
   const token = readCookie(req);
   if (token) await store.delete(`sess/${sha(token)}`);
 }
 
-// ---------- membership ----------
+// team members
 export async function addMember(store, schoolId, email, role, by = "") {
   const e = normEmail(email), eh = emailHash(e);
   const existing = await store.get(`staff/${schoolId}/${eh}`, { type: "json" });
@@ -100,17 +97,19 @@ export async function addMember(store, schoolId, email, role, by = "") {
   return { id: eh, ...row };
 }
 
+// remove someone
 export async function removeMember(store, schoolId, eh) {
   await Promise.all([store.delete(`staff/${schoolId}/${eh}`), store.delete(`member/${eh}/${schoolId}`)]);
 }
 
+// everyone on a team
 export async function listMembers(store, schoolId) {
   const keys = await listKeys(store, `staff/${schoolId}/`);
   const rows = await getAll(store, keys);
   return rows.map((r, i) => ({ id: emailHash(r.email), ...r })).sort((a, b) => roleRank(b.role) - roleRank(a.role) || a.added_at.localeCompare(b.added_at));
 }
 
-// Every school an email is on the team of, with its membership row.
+// schools an email is on
 export async function membershipsFor(store, email) {
   const eh = emailHash(email);
   const keys = await listKeys(store, `member/${eh}/`);
@@ -123,24 +122,21 @@ export async function membershipsFor(store, email) {
   return out;
 }
 
-// `only`, when given, limits the answer to those school ids (a session's schools).
+// same but can limit to some schools
 export async function schoolsFor(store, email, only = null) {
   return (await membershipsFor(store, email))
     .filter(({ school }) => !only || only.includes(school.id))
     .map(({ school, staff }) => ({ school, role: staff.role }));
 }
 
-// ---------- request auth ----------
-// Who is calling, and as what role at this school? Accepts a session cookie or
-// the legacy staff key header (treated as an owner until the key is retired).
+// who is calling and can they do this
 export async function requireStaff(store, req, schoolId, minRole = "cook") {
   const school = await loadSchool(store, schoolId);
   const need = roleRank(minRole);
 
   const sess = await readSession(store, req);
   if (sess) {
-    // The cookie is sent automatically by browsers, so state-changing calls must
-    // also carry a header a cross-site form can't set.
+    // changes need our header so other sites can't trigger them
     if (!["GET", "HEAD"].includes(req.method) && !req.headers.get("x-ll")) fail(403, "Missing request header.");
     const opens = !sess.schools || sess.schools.includes(school.id);
     const staff = opens && await store.get(`staff/${school.id}/${emailHash(sess.email)}`, { type: "json" });
@@ -159,7 +155,7 @@ export async function requireStaff(store, req, schoolId, minRole = "cook") {
   fail(sess ? 403 : 401, sess ? "Your email isn't a staff member at this school." : "Please sign in.");
 }
 
-// Any signed-in staff identity at all (for /auth/me).
+// anyone signed in at all
 export async function whoAmI(store, req) {
   const sess = await readSession(store, req);
   if (sess) {

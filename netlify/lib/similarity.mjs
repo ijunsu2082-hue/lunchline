@@ -1,10 +1,7 @@
-// Matching for student suggestions, so "noodle", "noodels" and "NOOdLEs" land
-// on the same idea. Pure functions, no I/O.
-
+// matching for suggestions, so typos and plurals count as the same idea
 const STOP = new Set(["a", "an", "the", "some", "more", "please", "pls", "plz", "we", "want", "need", "can", "could", "have", "get", "add", "make", "of", "and", "for", "on", "in", "at", "to"]);
 
-// Lowercase, strip accents and punctuation, squash repeated letters ("pizzzza"),
-// drop filler words, and cut plurals so "noodles" and "noodle" agree.
+// chop plurals
 export function stem(word) {
   let w = word;
   if (w.length > 4 && w.endsWith("ies")) w = w.slice(0, -3) + "y";
@@ -13,6 +10,7 @@ export function stem(word) {
   return w;
 }
 
+// lowercase, clean up, split into words
 export function tokens(input) {
   const base = String(input || "")
     .toLowerCase()
@@ -25,12 +23,12 @@ export function tokens(input) {
   return kept.length ? kept : words;
 }
 
+// cleaned up text
 export const normalize = input => tokens(input).join(" ");
-// Word order shouldn't matter: "spicy noodles" is "noodles spicy".
+// word order doesn't matter
 export const sortedKey = input => [...tokens(input)].sort().join(" ");
 
-// Optimal string alignment distance: Levenshtein plus adjacent swaps, so a
-// typo like "noodel" is one edit away from "noodle".
+// how many edits between two words
 export function osa(a, b) {
   const la = a.length, lb = b.length;
   if (!la) return lb;
@@ -48,9 +46,10 @@ export function osa(a, b) {
   return d[la][lb];
 }
 
+// 0 to 1 how close two words are
 const ratio = (a, b) => (a || b ? 1 - osa(a, b) / Math.max(a.length, b.length) : 1);
 
-// Each word of the shorter phrase has to find a close partner in the longer one.
+// does each word have a match
 function wordCover(ta, tb) {
   const [small, big] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
   if (!small.length) return 0;
@@ -59,24 +58,24 @@ function wordCover(ta, tb) {
   return sum / small.length;
 }
 
-// 0..1. >= 0.8 reads as "the same thing"; 0.6-0.8 as "related".
+// how alike two ideas are
 export function similarity(a, b) {
   const ta = tokens(a), tb = tokens(b);
   if (!ta.length || !tb.length) return 0;
   const whole = ratio(ta.join(" "), tb.join(" "));
   const ordered = ratio(sortedKey(a), sortedKey(b));
   let score = Math.max(whole, ordered);
-  // "noodles" inside "spicy noodles": related, never an exact duplicate.
   const cover = wordCover(ta, tb);
   if (ta.length !== tb.length && cover >= 0.85) score = Math.max(score, 0.6 + 0.2 * Math.min(ta.length, tb.length) / Math.max(ta.length, tb.length));
-  // very short words are too easy to confuse ("tea" / "pea")
   if (Math.max(ta.join("").length, tb.join("").length) <= 3 && score < 1) score = Math.min(score, 0.5);
   return Math.round(score * 1000) / 1000;
 }
 
+// score cutoffs
 export const SAME = 0.8;
 export const RELATED = 0.6;
 
+// closest existing ideas
 export function findSimilar(query, ideas, { min = RELATED, limit = 3 } = {}) {
   return ideas
     .map(i => ({ idea: i, score: similarity(query, i.text) }))
@@ -85,7 +84,7 @@ export function findSimilar(query, ideas, { min = RELATED, limit = 3 } = {}) {
     .slice(0, limit);
 }
 
-// "NOOdLEs" -> "Noodles", but leave "Korean BBQ wings" and "Mac & Cheese" alone.
+// fix shouty caps but leave names alone
 export function tidyText(raw) {
   const t = String(raw || "").trim().replace(/\s+/g, " ");
   const letters = t.replace(/[^A-Za-z]/g, "");

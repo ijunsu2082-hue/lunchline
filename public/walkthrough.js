@@ -1,6 +1,4 @@
-// An animated tour of the whole project, played on a 1280 x 720 stage: a cursor moves, taps and types through
-// the real flows (scan, rate, comment, dashboard, reply, ideas, presets, school colors). Space pauses, the arrow
-// keys move between scenes, R restarts. Add ?loop=1 to replay forever (for a screen at a booth).
+// animated tour of the app on a fake stage, space pauses, arrows change scene, ?loop=1 repeats
 import { icon, mark } from "./js/icons.js";
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -9,14 +7,14 @@ const LOOP = new URLSearchParams(location.search).has("loop");
 const CANCEL = Symbol("cancel");
 let token = 0, paused = false, idx = 0, scale = 1, cx = 640, cy = 360;
 
-// ---------- fit the stage to any screen ----------
+// fit to the screen
 function fit() {
   scale = Math.min(innerWidth / 1280, innerHeight / 720);
   stage.style.transform = `scale(${scale})`;
 }
 addEventListener("resize", fit); fit();
 
-// ---------- timing and motion helpers ----------
+// timing and cursor helpers
 const sleep = ms => new Promise((res, rej) => {
   const mine = token; let left = ms;
   const tick = () => {
@@ -51,9 +49,9 @@ const say = (kicker, text) => { capK.textContent = kicker; capT.textContent = te
 const show = html => { sceneEl.innerHTML = html; cursor.hidden = true; };
 const toast = (host, msg) => { host.querySelector(".toast")?.remove(); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; host.append(t); setTimeout(() => t.remove(), 2200); };
 
-// ---------- pieces of UI ----------
+// bits of ui
 const photo = n => `/samples/${n}.jpg`;
-const qr = (() => { // a believable-looking QR code: three finder squares and a scatter of modules
+const qr = (() => { // fake qr code
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const N = 21, cells = [];
   const finder = (x, y) => x < 8 && y < 8 || x > N - 9 && y < 8 || x < 8 && y > N - 9;
@@ -81,7 +79,7 @@ const phone = (inner, left, top = 14) => `<div class="phone fade" style="left:${
 const side = on => `<div class="side"><div class="sn">${mark(24, "var(--brand)")}<span>Irvine High</span></div>${[["chart", "Insights"], ["calendar", "Menu"], ["lightbulb", "Ideas"], ["mail", "Reports"], ["school", "School"]].map(([ic, l]) => `<div class="si${l === on ? " on" : ""}" data-s="${l}">${icon(ic)}${l}</div>`).join("")}</div>`;
 const browser = (on, main, id = "main") => `<div class="browser fade"><div class="bar2"><i></i><i></i><i></i><em>lunchline.netlify.app</em></div><div class="app">${side(on)}<div class="main" id="${id}">${main}</div></div></div>`;
 
-// ---------- the scenes ----------
+// the scenes
 const SCENES = [
   { name: "Hello", async run() {
     show(`<div class="center fade"><div><div class="logo" style="font-size:44px">${mark(84, "#FF5A1F")}</div><h1 class="big">LunchLine</h1><p class="lede">Tell the kitchen what you actually ate.</p></div></div>`);
@@ -166,7 +164,7 @@ const SCENES = [
     const f = document.createElement("div"); f.className = "fade"; f.style.cssText = "font-size:12.5px;color:#5A564F;margin:-2px 0 0 54px"; f.innerHTML = "<b style='color:#131211'>You replied privately:</b> The oven was down. Fixed for Thursday.";
     $("#cm").append(f); $("#cm").style.flexWrap = "wrap"; f.style.flexBasis = "100%";
     await sleep(900);
-    // the student's phone
+    // student phone
     sceneEl.insertAdjacentHTML("beforeend", phone(`<div class="topbar"><span class="logo">${mark(24, "#FF5A1F")}</span><span class="t on">Lunch</span><span class="t">Ideas</span></div><div class="body"><p class="school">Irvine High School</p><p class="h">The menu for Friday</p>
       <div style="background:#FF5A1F;color:#fff;border-radius:16px;padding:14px"><div style="font-size:22px;font-weight:800;line-height:1.1">The kitchen replied to you</div><div style="font-size:12px;margin-top:8px;opacity:.95">You wrote “It was cold and kind of dry”<br><b>“The oven was down. Fixed for Thursday.”</b></div><span style="display:inline-block;margin-top:8px;background:#131211;border-radius:999px;font-size:11px;font-weight:800;padding:3px 10px">Only you can see this</span></div></div>`, 870, 40));
     $(".phone:last-child").style.transform = "scale(.86)"; $(".phone:last-child").style.transformOrigin = "top left";
@@ -228,7 +226,7 @@ const SCENES = [
   } },
 ];
 
-// ---------- the player ----------
+// the player
 dotsEl.innerHTML = SCENES.map((s, i) => `<button type="button" data-i="${i}" aria-label="Go to ${s.name}"></button>`).join("");
 const dots = [...dotsEl.children];
 async function play(from = 0) {

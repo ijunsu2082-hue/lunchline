@@ -1,4 +1,4 @@
-// LunchLine: boot, routing, rendering and the one click / input handler.
+// boot, routing and the click handler
 import { $, esc, normCode, LS, zoned } from "./util.js";
 import { state, school, isStaff } from "./state.js";
 import { api } from "./api.js";
@@ -31,11 +31,11 @@ const VIEWS = {
   admin: { insights: viewInsights, kitchen: viewKitchen, ideas: viewIdeasAdmin, reports: viewReports, school: viewSchool },
 };
 
-// ---------- render ----------
+// drawing the page
 function render_(focus) {
   try { renderNow(focus); }
   catch (e) {
-    // Never leave a frozen page: say what happened and offer a way out.
+    // show an error instead of freezing
     console.error(e);
     document.body.classList.remove("is-ob");
     main.className = "";
@@ -47,9 +47,9 @@ function render_(focus) {
 let wasSkeleton = false;
 function renderNow(focus) {
   const swipe = state.swipeDir; state.swipeDir = 0;
-  // the render after a loading skeleton is the one where the real cards arrive: animate them in
+  // animate real cards in after the skeleton
   const listAnim = !!state.animate || (!focus && wasSkeleton); state.animate = false;
-  // Staff screens are English; students and parents get their language.
+  // staff see english, students get their language
   setLang(state.mode === "admin" ? "en" : preferredLang());
   document.body.classList.toggle("is-ob", !!state.ob);
   document.body.dataset.mode = state.ob ? "flow" : state.mode || "welcome";
@@ -68,14 +68,13 @@ function renderNow(focus) {
     const s = state.admin.school;
     applyTheme(tab === "school" && state.draftColor ? state.draftColor : s.theme?.color);
   }
-  if (!state.today) state.today = zoned(school().tz).date; // until the server's clock says otherwise
-  const keepY = focus ? 0 : window.scrollY; // an edit refreshes the page in place; only navigating jumps to the top
+  if (!state.today) state.today = zoned(school().tz).date; // until the server says
+  const keepY = focus ? 0 : window.scrollY; // edits stay put, going to a new page jumps to the top
   const body = VIEWS[state.mode][tab]();
   wasSkeleton = body.includes('aria-busy="true"');
   main.className = state.mode === "admin" ? "wide" : "";
   main.innerHTML = state.mode === "admin" ? staffShell(body) : studentShell(body);
-  // Motion: a new page rises in; a changed list (meal, day, range) refreshes just its cards;
-  // a swipe slides the page the way your thumb moved.
+  // page animations
   const inner = main.querySelector(".stage-in");
   if (inner) {
     if (swipe) { inner.style.setProperty("--dir", String(swipe)); inner.classList.add("swipe-in", "list-in"); }
@@ -88,7 +87,7 @@ function renderNow(focus) {
 }
 setRenderer(render_);
 
-// ---------- clicks ----------
+// clicks
 const ANIMATED = new Set(["rail-meal", "s-day", "s-week", "a-day", "a-week", "a-meal", "range", "idea-view", "lang", "s-goto"]);
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]");
@@ -150,8 +149,7 @@ document.addEventListener("change", e => {
   }
 });
 
-// Swipe left / right to move between Breakfast, Snack, Lunch, Ideas and Me.
-// Ignored on the banner carousel, the day chips, form fields and when a sheet is open.
+// swipe between tabs
 let touch = null;
 document.addEventListener("touchstart", e => {
   if (!["student", "parent"].includes(state.mode) || state.ob || e.touches.length !== 1) { touch = null; return; }
@@ -176,9 +174,9 @@ window.addEventListener("hashchange", () => { if (!state.ob && state.mode) rende
 window.addEventListener("online", () => { flushQueue(); syncGrade(); });
 bindSheet();
 
-// ---------- start ----------
+// start up
 async function start() {
-  // Register first: people who arrive by scanning a QR code take an early-return path below.
+  // register the service worker first
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   setLang(preferredLang());
   const params = new URLSearchParams(location.search);
@@ -187,10 +185,10 @@ async function start() {
   const parent = normCode(params.get("parent"));
   if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 
-  // a sign-in or invite link from the inbox
+  // sign in or invite link from an email
   if (login) { await openLoginLink(login); return; }
 
-  // an existing staff session (cookie) or an old staff key
+  // already signed in staff
   let mode = LS.get("ll_mode");
   if (mode === "admin" || LS.get("ll_admin")) {
     try {
@@ -210,7 +208,7 @@ async function start() {
   const s = mode === "admin" ? state.admin?.school : mode === "parent" ? state.parent?.school : state.student?.school;
   if (s) applyTheme(s.theme?.color); else resetTheme();
 
-  // a QR code scanned by a student, or a family link
+  // student scanned a qr code
   if (join.length === 6 && state.student?.school.code !== join) {
     startFlow("student", { code: join }, { exit: mode ? "app" : "welcome" });
     obSubmit();
@@ -227,5 +225,5 @@ async function start() {
 }
 start();
 
-// handy in the console while developing
+// for the console while developing
 window.__ll = { state, render };

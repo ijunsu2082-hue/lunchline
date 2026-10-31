@@ -1,8 +1,7 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
-  # Only production (the main branch) ever builds. Deploy previews and
-  # branch deploys (e.g. development) are skipped: exit 0 = skip build.
+  # only main builds, skip previews and branch deploys
   ignore = '[ "$CONTEXT" != "production" ]'
 
 [build.environment]
@@ -17,7 +16,7 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     X-Frame-Options = "DENY"
 
-# The service worker must always be re-checked so updates roll out.
+# always recheck the service worker so updates show up
 [[headers]]
   for = "/sw.js"
   [headers.values]

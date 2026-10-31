@@ -1,11 +1,7 @@
-// Local dev server: serves public/ and runs the real API against a local
-// Netlify Blobs server stored in .netlify/dev-blobs.
-//   node scripts/dev.mjs            (today = real date)
-//   LL_TODAY=2026-10-19 node scripts/dev.mjs
-//   LL_LAN=1 node scripts/dev.mjs   (also reachable from your phone on the same wifi)
+// local dev server. LL_TODAY=2026-10-19 fakes the date, LL_LAN=1 opens it to your phone
 import http from "node:http";
-// Local settings live in .env, which git ignores. See .env.example.
-try { process.loadEnvFile(new URL("../.env", import.meta.url)); } catch { /* no .env: everything still works with defaults */ }
+// load .env
+try { process.loadEnvFile(new URL("../.env", import.meta.url)); } catch { /* no .env is fine */ }
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
@@ -15,13 +11,13 @@ import { BlobsServer } from "@netlify/blobs/server";
 import { getStore } from "@netlify/blobs";
 import { handle } from "../netlify/lib/api.mjs";
 
+// settings
 const PORT = Number(process.env.PORT || 8888);
 const HOST = process.env.LL_LAN ? "0.0.0.0" : "127.0.0.1";
 const ROOT = fileURLToPath(new URL("../public/", import.meta.url));
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".json": "application/json", ".webmanifest": "application/manifest+json", ".woff2": "font/woff2" };
 
-// Send the same security headers locally that netlify.toml sends in production, so a blocked
-// script, style or image shows up while developing instead of after deploying.
+// same security headers as production
 const SECURITY = {};
 try {
   const toml = readFileSync(fileURLToPath(new URL("../netlify.toml", import.meta.url)), "utf8");
@@ -29,13 +25,16 @@ try {
   for (const m of block.matchAll(/^\s+([A-Za-z-]+) = "([^"]+)"$/gm)) SECURITY[m[1]] = m[2];
 } catch { /* headers are optional in dev */ }
 
+// local blob store
 const blobs = new BlobsServer({ directory: process.env.LL_DATA || ".netlify/dev-blobs", token: "dev" });
 const { port } = await blobs.start();
 const edge = `http://localhost:${port}`;
 globalThis.netlifyBlobsContext = Buffer.from(JSON.stringify({ edgeURL: edge, uncachedEdgeURL: edge, siteID: "dev-site", token: "dev" })).toString("base64");
+// dev flags
 if (process.env.LL_TODAY) globalThis.__LL_TODAY = process.env.LL_TODAY;
 globalThis.__LL_DEV = true; // setup links point back at this server, not SITE_URL
 
+// api calls go to the real api code, everything else is a file
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname.startsWith("/api/")) {
@@ -55,6 +54,7 @@ const server = http.createServer(async (req, res) => {
     res.end(Buffer.from(await response.arrayBuffer()));
     return;
   }
+  // static files
   let path = normalize(join(ROOT, url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname)));
   if (!path.startsWith(ROOT)) { res.writeHead(403).end(); return; }
   try {
@@ -66,6 +66,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// port already taken
 server.on("error", e => {
   if (e.code === "EADDRINUSE") {
     console.error(`\nPort ${PORT} is already in use, probably by an older LunchLine dev server that is still running with old code.\nStop it (close its terminal, or end the node process) and run this again, or pick another port:  PORT=8899 npm run dev\n`);
@@ -74,6 +75,7 @@ server.on("error", e => {
   throw e;
 });
 
+// say where it is
 server.listen(PORT, HOST, () => {
   console.log(`LunchLine dev on http://localhost:${PORT}${globalThis.__LL_TODAY ? ` (today = ${globalThis.__LL_TODAY})` : ""}`);
   if (process.env.LL_LAN) {

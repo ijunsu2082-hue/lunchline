@@ -1,5 +1,4 @@
-// The student (and parent) app: left rail, banner carousel, day chips, a grid of
-// dish cards with round Good / Mid / Bad buttons, and a detail sheet per dish.
+// student and parent side
 import { L, $, $$, esc, cap, plural, listJoin, LS, D, shortDay, zoned, studentHome, RATE_DAYS, reEsc, reducedMotion, foodTile } from "../util.js";
 import { state, school, profile, ALLERGENS, MEALS, RATINGS, COMMENT_MAX, dayItems } from "../state.js";
 import { api, enqueue, ApiError } from "../api.js";
@@ -9,10 +8,12 @@ import { render, toast, registerActions, errorBox, skeleton, currentTab, go, ope
 import { leaveToWelcome, setMode } from "../session.js";
 import { loadIdeas } from "./ideas.js";
 
-// ---------- allergy + preference matching ----------
+// allergy and diet warnings
+// split a list into words
 const terms = s => String(s || "").toLowerCase().split(/[,;/\n]+/).map(x => x.trim()).filter(x => x.length >= 2);
 const textHas = (hay, term) => new RegExp(`(^|[^a-z])${reEsc(term)}`, "i").test(hay || "");
 
+// does this dish hit their allergies
 export function allergyHits(item, p) {
   const contains = [], may = [];
   for (const a of p.allergies || []) {
@@ -26,7 +27,7 @@ export function allergyHits(item, p) {
   }
   return { contains, may };
 }
-// Vegetarian students: flag meat (including meat sauces and broths), seafood of any kind, and egg.
+// vegetarian: flag meat, seafood and egg
 const MEAT = /\b(beef|chicken|pork|bacon|ham|turkey|sausages?|pepperoni|salami|meatballs?|meat(?!less)|lamb|steak|gyro|brisket|carnitas|hot ?dogs?|bologna|jerky|gelatin|lard|ribs?|wings?|nuggets?|tenders?|patty|patties|burgers?|bolognese|ragu)\b/i;
 const SEAFOOD = /\b(fish|salmon|tuna|shrimp|prawns?|crab|lobster|anchov\w*|seafood|clams?|oysters?|squid|calamari|tilapia|cod|sardines?|scallops?|pollock|mahi)\b/i;
 const EGG = /\beggs?\b/i;
@@ -41,6 +42,7 @@ export function vegFlags(item) {
 }
 const vegList = flags => listJoin(flags.map(k => t("veg." + k)));
 
+// cuisines they picked
 function pickedFor(item, p, hits) {
   if (hits.contains.length || hits.may.length) return false;
   if (item.cuisine && (p.cuisines || []).includes(item.cuisine)) return true;
@@ -48,12 +50,15 @@ function pickedFor(item, p, hits) {
 }
 export const cuisineLabel = it => (it.cuisine === "other" ? it.cuisine_other || "" : it.cuisine ? t("cuisine." + it.cuisine) : "");
 
+// parents can't rate
 const readOnly = () => state.mode === "parent";
+// can this day still be rated
 export const rateable = date => date <= state.today && date >= D.add(state.today, -(RATE_DAYS - 1));
 const rateUntil = date => D.add(date, RATE_DAYS - 1);
 const mealName = m => t("meal." + (MEALS.includes(m) ? m : "lunch"));
 
-// ---------- data ----------
+// loading the week
+// start on the right week
 function initStudentWeek() {
   const d = studentHome(state.today);
   state.week = D.monday(d);
@@ -61,6 +66,7 @@ function initStudentWeek() {
   state.meal = null;
 }
 
+// load a week of menus
 export async function loadWeek(mon) {
   const key = "w" + mon;
   if (state.loading.has(key)) return;
@@ -78,7 +84,7 @@ export async function loadWeek(mon) {
     state.weeks[mon] = { days: m.value.days };
     if (v.status === "fulfilled") v.value.votes.forEach(r => { state.mine[r.date + "|" + r.item_id] = r; });
     if (m.value.today !== state.today) {
-      state.today = m.value.today; // the server's clock (in the school's time zone) decides what "today" is
+      state.today = m.value.today; // the server decides what today is
       if (!state.touched) { const before = state.week; initStudentWeek(); reload = state.week !== before; }
     }
   } catch (e) {
@@ -91,6 +97,7 @@ export async function loadWeek(mon) {
   if (["student", "parent"].includes(state.mode) && !state.ob && currentTab() === "menu" && state.week === mon) render();
 }
 
+// school was deleted
 function schoolGone() {
   if (state.mode === "parent") { LS.del("ll_parent"); state.parent = null; leaveToWelcome(); return; }
   LS.del("ll_student"); state.student = null;
@@ -98,6 +105,7 @@ function schoolGone() {
   else leaveToWelcome();
 }
 
+// which meal opens first
 function defaultMeal(day) {
   if (!day) return "lunch";
   let m = "lunch";
@@ -109,7 +117,7 @@ function defaultMeal(day) {
   return m;
 }
 
-// ---------- shell: rail + stage ----------
+// left rail and stage
 export function studentShell(content) {
   const tab = currentTab(), s = school();
   const meal = state.meal || "lunch";
@@ -134,7 +142,8 @@ export function studentShell(content) {
   return `<div class="app student">${rail}<div class="stage">${top}<div class="stage-in">${content}</div></div></div>`;
 }
 
-// ---------- menu ----------
+// menu
+// week title
 function weekLabel(mon) {
   const cur = D.monday(state.today), end = D.add(mon, 4);
   const same = D.fmt(mon, { month: "short" }) === D.fmt(end, { month: "short" });
@@ -143,6 +152,7 @@ function weekLabel(mon) {
   return name ? `<strong>${esc(name)}</strong><span>${range}</span>` : `<strong>${range}</strong>`;
 }
 
+// day buttons
 export function dayChips(mon, sel, days, prefix = "s-") {
   return `<div class="week-bar">
     <button class="icon-btn" data-act="${prefix}week" data-dir="-1" aria-label="${esc(t("week.prev"))}">${icon("chevL")}</button>
@@ -161,6 +171,7 @@ export function dayChips(mon, sel, days, prefix = "s-") {
   </div>`;
 }
 
+// latest day they can rate
 function lastRateableDay() {
   for (let i = 0; i < RATE_DAYS; i++) {
     const d = D.add(state.today, -i), wk = state.weeks[D.monday(d)];
@@ -170,7 +181,8 @@ function lastRateableDay() {
   return null;
 }
 
-// ----- banner carousel -----
+// banners at the top
+// rate banner
 function rateBanner(day, date, items) {
   if (!items.length || readOnly()) return "";
   const first = items.find(i => i.photo) || items[0];
@@ -191,6 +203,7 @@ function rateBanner(day, date, items) {
   return `<article class="banner b-soon" id="bn-rate"><div class="bn-text"><p class="bn-big">${esc(t("bn.closed"))}</p><p class="bn-sub">${esc(t("bn.closedSub", { n: RATE_DAYS }))}</p>${target && target !== date ? `<button class="btn on-brand sm" data-act="s-goto" data-date="${target}">${esc(t("bn.rateOther"))}${icon("arrowR")}</button>` : ""}</div>${photo}</article>`;
 }
 
+// kitchen replied banner
 function replyBanner() {
   const mine = Object.values(state.mine).filter(r => r.kitchen_reply).sort((x, y) => (y.kitchen_reply.at || "").localeCompare(x.kitchen_reply.at || ""))[0];
   if (mine) {
@@ -208,12 +221,14 @@ function replyBanner() {
   return `<article class="banner b-reply"><div class="bn-text"><p class="bn-big">${esc(t("bn.heard"))}</p><p class="bn-title">${esc(best.it.name)}</p><p class="bn-sub">${best.it.reply_to ? `Re: “${esc(best.it.reply_to)}”<br>` : ""}“${esc(best.it.reply)}”</p></div>${best.it.photo ? `<img class="bn-img" src="${esc(best.it.photo)}" alt="" decoding="async">` : `<span class="bn-ico">${icon("megaphone")}</span>`}</article>`;
 }
 
+// suggest an idea banner
 function ideaBanner() {
   const top = Array.isArray(state.ideas) && state.ideas[0];
   if (!top || readOnly()) return "";
   return `<a class="banner b-idea" href="#ideas"><div class="bn-text"><p class="bn-big">${esc(t("bn.idea"))}</p><p class="bn-title">${esc(top.text)}</p><p class="bn-sub">${esc(t("bn.ideaSub", { n: top.count }))}</p></div><span class="bn-ico">${icon("lightbulb")}</span></a>`;
 }
 
+// allergy banner
 function allergyBanner(items) {
   const p = profile();
   if (!(p.allergies || []).length && !terms(p.allergyOther).length) return "";
@@ -221,6 +236,7 @@ function allergyBanner(items) {
   return `<article class="banner b-allergy"><div class="bn-text"><p class="bn-big">${esc(t("bn.allergy"))}</p><p class="bn-title">${esc(n ? t("bn.allergyN", { n }) : t("bn.allergyNone"))}</p><p class="bn-sub">${esc(t("bn.allergySub"))}</p></div><span class="bn-ico">${icon(n ? "alert" : "shield")}</span></article>`;
 }
 
+// banner carousel
 function carousel(day, date) {
   const items = dayItems(day);
   const meal = state.meal && day ? day[state.meal] || [] : items;
@@ -232,7 +248,7 @@ function carousel(day, date) {
   </section>`;
 }
 
-// Swap in fresh banners without re-rendering the page (keeps the cards, and their animation, intact).
+// refresh banners without redrawing the page
 hooks.ideasLoaded = () => {
   const old = $(".carousel");
   if (!old || state.mode === "admin") return;
@@ -244,6 +260,7 @@ hooks.ideasLoaded = () => {
   bindCarousel();
 };
 
+// carousel swiping
 export function bindCarousel() {
   const el = $("#banners");
   if (!el) return;
@@ -255,6 +272,7 @@ export function bindCarousel() {
   }, { passive: true });
 }
 
+// the menu page
 export function viewMenu() {
   const p = profile();
   if (!state.week) initStudentWeek();
@@ -282,7 +300,8 @@ export function viewMenu() {
     ${body}`;
 }
 
-// ---------- dish card ----------
+// dish card
+// small tags on a dish
 function dishFlags(item) {
   const p = profile(), hits = allergyHits(item, p);
   const warn = hits.contains.length > 0, caution = !warn && hits.may.length > 0;
@@ -290,11 +309,13 @@ function dishFlags(item) {
   return { hits, warn, caution, veg, picked: pickedFor(item, p, hits) && !veg.length };
 }
 
+// ideas students asked for
 function askedFor(item) {
   if (!Array.isArray(state.ideas)) return null;
   return state.ideas.find(i => i.dish && i.dish.item_id === item.id && i.dish.date === state.day) || null;
 }
 
+// one dish card
 function dishCard(item, date) {
   const f = dishFlags(item), p = profile();
   const id = item.id;
@@ -314,6 +335,7 @@ function dishCard(item, date) {
   </article>`;
 }
 
+// bottom of a card
 function footBlock(item, date) {
   const id = item.id, rec = state.mine[date + "|" + id];
   if (readOnly()) return `<span class="dc-note">${icon("eye")}${esc(t("parent.viewOnly"))}</span>`;
@@ -327,7 +349,8 @@ function footBlock(item, date) {
   </div>`;
 }
 
-// ---------- dish sheet ----------
+// dish detail sheet
+// rate buttons in the sheet
 function sheetRate(item, date) {
   const id = item.id, rec = state.mine[date + "|" + id];
   if (readOnly()) return "";
@@ -343,6 +366,7 @@ function sheetRate(item, date) {
     ${v ? commentBlock(id, rec) : ""}`;
 }
 
+// comment box
 function commentBlock(id, rec) {
   if (state.openComment.has(id)) {
     const val = state.cDraft[id] ?? rec.comment ?? "";
@@ -358,6 +382,7 @@ function commentBlock(id, rec) {
   return `<button class="link add-comment" data-act="c-open" data-id="${id}">${icon("message")}${esc(t("dish.addComment"))}</button>`;
 }
 
+// find a dish by id
 function findItem(id) {
   for (const wk of Object.values(state.weeks)) {
     const day = wk.days && wk.days[state.day];
@@ -368,6 +393,7 @@ function findItem(id) {
 }
 
 const NUTRIENTS = [["protein", "g"], ["fat", "g"], ["sat_fat", "g"], ["carbs", "g"], ["fiber", "g"], ["sodium", "mg"]];
+// nutrition facts
 function nutritionPanel(item) {
   const has = NUTRIENTS.filter(([k]) => item[k] != null);
   if (!has.length && item.calories == null) return "";
@@ -377,13 +403,14 @@ function nutritionPanel(item) {
     <p class="fine">${icon("info")}${esc(t("dish.nutritionNote"))}</p></section>`;
 }
 
-// The kitchen's answer to this student's own comment, shown with what they wrote.
+// kitchen reply to their comment
 function mineReply(rec) {
   const k = rec.kitchen_reply;
   return `<div class="reply mine">${icon("megaphone")}<div><p class="reply-k">${esc(t("dish.replyMine"))}${k.public ? "" : ` <span class="only-you">${esc(t("dish.onlyYou"))}</span>`}</p>
     <p class="reply-to">${esc(t("dish.yourComment"))} “${esc(rec.comment || "")}”</p><p>${esc(k.text)}</p></div></div>`;
 }
 
+// the dish sheet
 function sheetHTML(item) {
   const p = profile(), f = dishFlags(item), date = state.day, id = item.id;
   const mine = new Set(p.allergies || []), other = terms(p.allergyOther);
@@ -419,8 +446,10 @@ function sheetHTML(item) {
       <p class="fine">${icon("info")}${esc(t("notice.guide"))}</p>
     </div></div>`;
 }
+// which meal a dish is in
 const findMeal = item => { const day = Object.values(state.weeks).map(w => w.days?.[state.day]).find(Boolean); return (day && MEALS.find(m => (day[m] || []).some(i => i.id === item.id))) || "lunch"; };
 
+// open a dish
 function openDish(id) {
   const item = findItem(id);
   if (!item) return;
@@ -428,7 +457,8 @@ function openDish(id) {
   openSheet(sheetHTML(item), { onClose: () => { state.dishOpen = null; } });
 }
 
-// ---------- rating ----------
+// rating
+// update rating buttons
 function patchRate(id, focusSel) {
   const item = findItem(id);
   if (!item) return;
@@ -447,10 +477,12 @@ function patchRate(id, focusSel) {
 }
 
 const QUEUE_KEY = "ll_queue";
+// save a rating for later if offline
 function queueRating(row) {
   const q = LS.get(QUEUE_KEY, []).filter(r => !(r.school === row.school && r.date === row.date && r.item_id === row.item_id));
   q.push(row); LS.set(QUEUE_KEY, q);
 }
+// send saved ratings
 export async function flushQueue() {
   const q = LS.get(QUEUE_KEY, []);
   if (!q.length || (typeof navigator !== "undefined" && navigator.onLine === false)) return;
@@ -458,12 +490,13 @@ export async function flushQueue() {
   let sent = 0;
   for (const r of q) {
     try { await api("POST", "votes", r, { student: r.school }); sent++; }
-    catch (e) { if (e.status === 0) left.push(r); /* a refused rating (window closed, dish gone) is dropped */ }
+    catch (e) { if (e.status === 0) left.push(r); /* refused ratings get dropped */ }
   }
   LS.set(QUEUE_KEY, left);
   if (sent) toast(t("offline.synced", { n: sent }));
 }
 
+// rate a dish
 async function rate(id, vote) {
   const date = state.day;
   if (!rateable(date) || readOnly()) return;
@@ -493,6 +526,7 @@ async function rate(id, vote) {
   }
 }
 
+// send a comment
 async function sendComment(id) {
   const key = state.day + "|" + id, rec = state.mine[key];
   if (!rec) return;
@@ -513,7 +547,7 @@ async function sendComment(id) {
   }
 }
 
-// ---------- clicks ----------
+// clicks
 registerActions({
   lang(el) { chooseLang(el.dataset.lang); setLang(el.dataset.lang); render(); },
   "rail-meal"(el, e) {
@@ -555,12 +589,14 @@ registerActions({
   },
 });
 
+// comment typing
 export function onCommentInput(t2) {
   state.cDraft[t2.dataset.comment] = t2.value;
   const c = $("#cc-" + t2.dataset.comment);
   if (c) c.textContent = `${t2.value.length}/${COMMENT_MAX}`;
 }
 
+// redraw the open sheet
 export function refreshDishSheet() {
   if (state.dishOpen && sheetEl().open) {
     const item = findItem(state.dishOpen);

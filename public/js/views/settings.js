@@ -1,5 +1,4 @@
-// School settings: join code and QR, school color, grades and enrollment, the
-// team (add people, roles, sign-in links), activity log, and the danger zone.
+// school settings: code, color, grades, team, log, delete
 import { $, esc, plural, LS, inviteLink, parentLink, timeAgo } from "../util.js";
 import { state, school, can, GRADE_ORDER } from "../state.js";
 import { api } from "../api.js";
@@ -11,6 +10,7 @@ import { qrSvg } from "./qr.js";
 
 const GRADES = GRADE_ORDER;
 
+// load the team
 async function loadTeam() {
   if (state.loading.has("team")) return;
   state.loading.add("team");
@@ -25,10 +25,12 @@ async function loadTeam() {
   if (state.mode === "admin" && !state.ob && currentTab() === "school") render();
 }
 
+// role tag
 const roleBadge = r => `<span class="role-badge r-${r}">${esc(r)}</span>`;
+// role order
 const rank = r => ["cook", "admin", "owner"].indexOf(r);
 
-// The sign-in link just made for a teammate. It's emailed when the site has an email service, and always shown here to copy and pass on.
+// link for a new teammate, emailed and shown to copy
 function teamLinkHTML() {
   const l = state.teamLink;
   if (!l) return "";
@@ -38,10 +40,12 @@ function teamLinkHTML() {
       <button type="button" class="btn secondary" data-act="team-link-done">Done</button></div></div></div>`;
 }
 
+// color preview
 function previewStyle(color) {
   return Object.entries(themeVars(color)).map(([k, v]) => `${k}:${v}`).join(";");
 }
 
+// the school page
 export function viewSchool() {
   const a = state.admin, s = a.school;
   const color = (state.draftColor || s.theme?.color || DEFAULT_COLOR).toUpperCase();
@@ -118,7 +122,8 @@ export function viewSchool() {
   </div>`;
 }
 
-// ---------- actions ----------
+// actions
+// change the color
 function setColor(hex) {
   if (!isHex(hex)) return;
   state.draftColor = hex.toUpperCase();
@@ -183,6 +188,7 @@ registerActions({
   },
 });
 
+// color picker
 export function onColorInput(el) {
   if (el.matches("[data-color-input]")) setColor(el.value);
   if (el.matches("[data-color-hex]")) {
@@ -191,6 +197,7 @@ export function onColorInput(el) {
   }
 }
 
+// forms
 export async function submitSettingsForm(f) {
   if (f.dataset.form === "school-grades") {
     const s = school();

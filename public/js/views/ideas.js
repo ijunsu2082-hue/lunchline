@@ -1,6 +1,4 @@
-// Suggestions: a leaderboard students vote on, "did you mean" matching so
-// "noodle" / "noodels" / "NOOdLEs" become one idea, and staff tools to set a
-// status, reply, merge near-duplicates, and remove.
+// suggestions: vote, did you mean, staff tools
 import { $, esc, plural, timeAgo, D } from "../util.js";
 import { state, school, IDEA_MAX, IDEA_STATUSES } from "../state.js";
 import { api, enqueue } from "../api.js";
@@ -8,6 +6,7 @@ import { icon } from "../icons.js";
 import { t } from "../i18n.js";
 import { render, toast, registerActions, head, errorBox, skeleton, currentTab, askConfirm, openSheet, closeSheet, hooks } from "../ui.js";
 
+// load ideas
 export async function loadIdeas() {
   if (state.loading.has("ideas")) return;
   state.loading.add("ideas");
@@ -21,17 +20,19 @@ export async function loadIdeas() {
   } catch (e) { if (state.mode === mode) state.ideas = { error: e.message }; }
   state.loading.delete("ideas");
   if (state.mode && !state.ob && ["ideas", "menu", "insights"].includes(currentTab())) {
-    // On the menu only the banners and "you asked for this" tags depend on ideas. Refresh just the
-    // banners so the dish cards aren't torn down while they're animating in.
+    // only banners depend on ideas, refresh just those
     const needsCards = Array.isArray(state.ideas) && state.ideas.some(i => i.dish);
     if (currentTab() === "menu" && !needsCards && hooks.ideasLoaded) hooks.ideasLoaded(); else render();
   }
 }
 
+// status tag
 const statusChip = i => i.status && i.status !== "new" ? `<span class="status s-${i.status}">${esc(t("status." + i.status))}</span>` : "";
+// most votes first
 const sorted = list => [...list].sort((a, b) => b.count - a.count || b.created_at.localeCompare(a.created_at));
 
-// ---------- student ----------
+// student side
+// did you mean list
 function matchesHTML() {
   const ms = state.ideaMatches;
   if (!ms.length) return "";
@@ -43,6 +44,7 @@ function matchesHTML() {
   </div>`;
 }
 
+// the leaderboard
 function board(admin) {
   const ideas = state.ideas;
   if (!ideas) { loadIdeas(); return skeleton(3); }
@@ -63,6 +65,7 @@ function board(admin) {
   </li>`).join("")}</ol>`;
 }
 
+// student ideas page
 export function viewIdeasStudent() {
   return `${head("", esc(t("ideas.title")), esc(t("ideas.lede")))}
     ${board(false)}
@@ -77,6 +80,7 @@ export function viewIdeasStudent() {
     </section>`;
 }
 
+// search for similar while typing
 let simTimer, simSeq = 0;
 export function onIdeaInput(input) {
   state.ideaDraft = input.value;
@@ -96,6 +100,7 @@ export function onIdeaInput(input) {
   }, 260);
 }
 
+// post an idea
 async function postIdea() {
   const input = $("#idea-in");
   const text = input.value.trim();
@@ -120,6 +125,7 @@ async function postIdea() {
   } catch (e) { btn.disabled = false; toast(e.message, true); }
 }
 
+// vote on an idea
 async function voteIdea(id, forceOn) {
   const it = Array.isArray(state.ideas) && state.ideas.find(x => x.id === id);
   if (!it) return;
@@ -140,7 +146,8 @@ async function voteIdea(id, forceOn) {
   document.querySelector(`[data-act="idea-vote"][data-id="${id}"]`)?.focus();
 }
 
-// ---------- staff ----------
+// staff side
+// status, reply, merge, delete
 function staffControls(it) {
   return `<div class="bd-tools">
     <div class="seg mini" role="group" aria-label="Status for ${esc(it.text)}">
@@ -151,6 +158,7 @@ function staffControls(it) {
   </div>`;
 }
 
+// ideas that look the same
 function dupesCard() {
   const pairs = state.dupes || [], ideas = Array.isArray(state.ideas) ? state.ideas : [];
   const by = Object.fromEntries(ideas.map(i => [i.id, i]));
@@ -164,6 +172,7 @@ function dupesCard() {
     }).join("")}</ul></section>`;
 }
 
+// staff ideas page
 export function viewIdeasAdmin() {
   return `${head("", "What students are asking for", "These are dishes students would love to see, ranked by how many of them agree. Let them know what you're planning and why.",
     `<button class="icon-btn outlined" data-act="retry-ideas" aria-label="Refresh">${icon("refresh")}</button>`)}
@@ -171,6 +180,7 @@ export function viewIdeasAdmin() {
     ${board(true)}`;
 }
 
+// small ideas card
 export function ideasCard(ideas) {
   return `<section class="card">
     <div class="card-head"><h2>${icon("lightbulb")}Top student ideas</h2><a class="link" href="#ideas">See all</a></div>
@@ -179,6 +189,7 @@ export function ideasCard(ideas) {
   </section>`;
 }
 
+// save a change to an idea
 async function patchIdea(id, patch, msg) {
   try {
     await api("PATCH", `ideas/${id}`, { school: school().id, ...patch });
@@ -238,6 +249,7 @@ registerActions({
   },
 });
 
+// forms
 export async function submitIdeaForm(f) {
   if (f.dataset.form === "idea") return postIdea();
   const id = f.dataset.id;

@@ -1,6 +1,4 @@
-// Solves LunchLine's join puzzle off the main thread: find a number n so that
-// SHA-256("<challenge>:<n>") starts with `bits` zero bits. A phone does it in a
-// second or two; a script that wants thousands of fake devices pays for each one.
+// solves the join puzzle off the main thread
 self.onmessage = async ({ data: { challenge, bits } }) => {
   const enc = new TextEncoder();
   const zeroBits = u8 => {

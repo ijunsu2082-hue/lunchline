@@ -1,24 +1,21 @@
-// Outgoing email through Resend. With no RESEND_API_KEY the server refuses to
-// send, except in local dev (scripts/dev.mjs sets __LL_DEV) where the message is
-// printed to the console so sign-in still works with no setup.
-
+// sending emails (resend or brevo)
 import { HttpError } from "./util.mjs";
 import { inkOn } from "./logo.mjs";
 
+// make text safe for html
 export const escHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-// Which way out is configured?
-//   RESEND_API_KEY  -> Resend   (free test sender only reaches the account owner; verify a domain to email anyone)
-//   BREVO_API_KEY   -> Brevo    (free; works with one verified sender address, no domain needed)
-//   neither         -> only local dev works, where the link is printed to the console and shown on the sign-in screen
+// is an email key set up
 export const mailConfigured = () => !!(process.env.RESEND_API_KEY || process.env.BREVO_API_KEY);
 
+// who the email is from
 function sender() {
   const raw = process.env.FROM_EMAIL || "LunchLine <onboarding@resend.dev>";
   const m = raw.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
   return m ? { name: m[1] || "LunchLine", email: m[2], raw } : { name: "LunchLine", email: raw.trim(), raw: `LunchLine <${raw.trim()}>` };
 }
 
+// send the request to the email service
 async function post(url, headers, body, label) {
   let res;
   try {
@@ -33,6 +30,7 @@ async function post(url, headers, body, label) {
   }
 }
 
+// send one email
 export async function sendMail({ to, subject, html, text }) {
   const from = sender();
   if (process.env.RESEND_API_KEY) {
@@ -46,12 +44,14 @@ export async function sendMail({ to, subject, html, text }) {
   throw new HttpError(503, "This server can't send email yet. Whoever runs LunchLine needs to add an email key (see .env.example).");
 }
 
+// email look and feel
 const SITE = () => (process.env.SITE_URL || "https://lunchline.netlify.app").replace(/\/$/, "");
 const INK = "#1F1A17", ORANGE = "#FF5A1F", CREAM = "#FFF8EF";
 const HEXRE = /^#[0-9a-fA-F]{6}$/;
-// The logo is drawn on demand in the school's color (see logo.mjs), so every email carries the right one.
+// logo in the school's color
 const logoUrl = color => `${SITE()}/api/logo.png?c=${(HEXRE.test(color || "") ? color : ORANGE).slice(1).toUpperCase()}`;
 
+// shared email wrapper
 function layout(title, inner, preheader = "", color = ORANGE) {
   return `<!doctype html><html><body style="margin:0;background:${CREAM};font-family:Arial,Helvetica,sans-serif;color:${INK}">
 <span style="display:none;max-height:0;overflow:hidden">${escHtml(preheader)}</span>
@@ -65,11 +65,13 @@ function layout(title, inner, preheader = "", color = ORANGE) {
 </td></tr></table></body></html>`;
 }
 
+// the big button
 const button = (href, label, color = ORANGE) => {
   const c = HEXRE.test(color || "") ? color : ORANGE;
   return `<p style="margin:20px 0"><a href="${escHtml(href)}" style="background:${c};color:${inkOn(c)};text-decoration:none;font-weight:700;padding:13px 22px;border-radius:12px;display:inline-block">${escHtml(label)}</a></p>`;
 };
 
+// sign in / create school email
 export function magicLinkEmail({ link, purpose, schoolName, color }) {
   const create = purpose === "create";
   const title = create ? `Finish setting up ${schoolName}` : "Your LunchLine sign-in link";
@@ -84,6 +86,7 @@ export function magicLinkEmail({ link, purpose, schoolName, color }) {
   };
 }
 
+// team invite email
 export function inviteEmail({ link, schoolName, role, by, color }) {
   const title = `${by} added you to ${schoolName}`;
   return {
@@ -94,7 +97,7 @@ export function inviteEmail({ link, schoolName, role, by, color }) {
   };
 }
 
-// `report` comes from reports.mjs. Everything user-written is escaped here.
+// weekly report email
 export function reportEmail({ schoolName, link, report, color }) {
   const b = report.bullets || [];
   const title = `${schoolName}: your week in lunch`;

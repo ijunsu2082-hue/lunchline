@@ -1,3 +1,4 @@
+// dashboard math tests
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { flagVotes, computeInsights, rankDishes, confidence, MIN_GROUP } from "../netlify/lib/insights.mjs";

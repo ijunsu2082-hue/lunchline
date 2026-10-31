@@ -1,11 +1,11 @@
-// Reports: the weekly kitchen report (a short summary with the numbers beside
-// it), built every Friday afternoon or on demand.
+// weekly report page
 import { $, esc, plural, D, shortDay } from "../util.js";
 import { state, school } from "../state.js";
 import { api } from "../api.js";
 import { icon } from "../icons.js";
 import { render, toast, registerActions, head, skeleton, currentTab } from "../ui.js";
 
+// load reports
 async function loadReports() {
   if (state.loading.has("reports")) return;
   state.loading.add("reports");
@@ -16,8 +16,10 @@ async function loadReports() {
   if (state.mode === "admin" && !state.ob && currentTab() === "reports") render();
 }
 
+// a list of dishes
 const list = (items, empty) => items.length ? `<ol class="rank flat">${items.map((d, i) => `<li><span class="rank-n">${i + 1}</span><div class="rank-main"><p class="rank-t">${esc(d.name)}</p></div><p class="rank-p"><strong>${d.pct}%</strong><span>${d.n} ratings</span></p></li>`).join("")}</ol>` : `<p class="muted small">${esc(empty)}</p>`;
 
+// one report
 function reportCard(r, latest) {
   return `<article class="tile wide report${latest ? " latest" : ""}">
     <div class="card-head"><h2>${latest ? "Latest report" : "Week of " + esc(shortDay(r.from))}</h2><span class="muted small">${esc(shortDay(r.from))} – ${esc(shortDay(r.to))}${r.ai ? " · written with AI" : ""}</span></div>
@@ -28,6 +30,7 @@ function reportCard(r, latest) {
   </article>`;
 }
 
+// the page
 export function viewReports() {
   const rs = state.reports;
   const top = head("Reports", "Your week in lunch", "Each Friday we put together a plain-English summary of how the week went, with the numbers right beside it.");

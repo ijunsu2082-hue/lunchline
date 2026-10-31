@@ -1,23 +1,4 @@
-// LunchLine API: one function, routed by path. Everything lives in a single
-// Netlify Blobs store, one key per record, so writes rarely need a
-// read-modify-write on shared data.
-//
-//   school/{id}                          school record (incl. theme, grades, enrollment)
-//   code/{CODE}                          join code -> school id
-//   name/{slug}/{id}                     search index (key only)
-//   staff/{id}/{emailHash}               staff member + role        (see staff.mjs)
-//   day/{id}/{YYYY-MM-DD}                that day's breakfast + snack + lunch
-//   vote/{id}/{date}/{voter}/{item}      one rating per device per dish (open 7 days)
-//   votecache/{id}/{date}                compact ratings for a closed day (fast dashboards)
-//   profile/{id}/{voter}                 optional grade level for a device
-//   idea/{id}/{ideaId}                   student suggestion
-//   ideavote/{id}/{ideaId}/{voter}       one +1 per device per idea
-//   waste/{id}/{date}                    pounds thrown away that day
-//   report/{id}/{date}                   weekly report
-//   audit/{id}/{ts}-{rand}               who changed what
-//   photo/{id}/{photoId}                 dish photo (binary)
-//   rl/…  used/…  ml/…  sess/…           rate limits, spent challenges, setup links, sessions
-
+// the whole api, one router
 import { timingSafeEqual } from "node:crypto";
 import {
   ALLERGENS, CUISINES, DIETS, MEALS, RATINGS, ROLES, IDEA_STATUSES, RATE_DAYS, COMMENT_MAX, IDEA_MAX, REPLY_MAX,
@@ -41,14 +22,16 @@ import {
   schoolsFor, membershipsFor, requireStaff, whoAmI, roleRank, markJoined, INVITE_TTL, COOKIE,
 } from "./staff.mjs";
 
+// defaults
 const GRADE_LIST = ["K", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const DEFAULT_GRADES = ["9", "10", "11", "12"];
 const DEFAULT_COLOR = "#FF5A1F";
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
-// A page loaded before sign-in moved to passwords can still call the old email routes. Tell it to reload.
+// old pages get told to reload
 const updated = () => fail(410, "LunchLine was just updated. Reload this page to continue.", { code: "update" });
 
+// figure out which route this is
 export async function handle(req, store) {
   try {
     await ensureMigrated(store);
@@ -59,6 +42,7 @@ export async function handle(req, store) {
     const q = url.searchParams;
 
     switch (resource) {
+      // schools
       case "schools":
         if (m === "GET" && !id) return json(await findSchools(store, q));
         if (m === "GET" && id && !action) return json({ school: publicSchool(await loadSchool(store, id)) });
@@ -67,6 +51,7 @@ export async function handle(req, store) {
         if (m === "POST" && id && action === "retire-key") return json(await retireKey(store, req, id));
         break;
 
+      // signing in
       case "auth":
         if (m === "POST" && id === "request") return json(await authRequest(store, req));
         if (m === "POST" && id === "verify") return await authVerify(store, req);
@@ -74,18 +59,21 @@ export async function handle(req, store) {
         if (m === "POST" && id === "logout") { await endSession(store, req); return json({ ok: true }, 200, { "Set-Cookie": sessionCookie("", req, 0) }); }
         break;
 
-      case "session": // legacy staff key sign-in
+      // old staff key sign in
+      case "session":
         if (m === "POST" && !id) return json(await authMe(store, req));
         break;
 
+      // team members
       case "staff":
         if (m === "GET" && !id) return json(await getStaff(store, req, q));
         if (m === "POST" && !id) return json(await inviteStaff(store, req), 201);
         if (m === "POST" && id && action === "link") return json(await memberLink(store, req, id, q));
-        if (m === "PATCH" && id === "me") updated(); // old weekly-email toggle
+        if (m === "PATCH" && id === "me") updated();
         if (m === "DELETE" && id && !action) return json(await dropStaff(store, req, id, q));
         break;
 
+      // student device setup
       case "pow":
         if (m === "GET" && !id) return json(await getPow(store, req, q));
         break;
@@ -97,38 +85,46 @@ export async function handle(req, store) {
         if (m === "POST" && !id) return json(await setProfile(store, req));
         break;
 
+      // menus
       case "menu":
         if (m === "GET" && !id) return json(await getMenu(store, q));
         if (m === "PUT" && !id) return json(await putMenu(store, req));
         break;
+      // kitchen replies
       case "replies":
         if (m === "POST" && !id) return json(await postReply(store, req));
         break;
 
-      case "logo.png": { // the mark in a school's color, for emails
+      // logo for emails
+      case "logo.png": {
         const c = "#" + String(q.get("c") || "FF5A1F").replace(/[^0-9a-fA-F]/g, "").padEnd(6, "0").slice(0, 6);
         return new Response(logoPng(c), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000, immutable" } });
       }
 
+      // saved menus
       case "presets":
         if (m === "GET" && !id) return json(await listPresets(store, req, q));
         if (m === "POST" && !id) return json(await savePreset(store, req), 201);
         if (m === "DELETE" && id) return json(await deletePreset(store, req, id, q));
         break;
 
+      // ratings
       case "votes":
         if (m === "GET" && !id) return json(await getMyVotes(store, req, q));
         if (m === "POST" && !id) return json(await castVote(store, req));
         if (m === "POST" && id === "hide") return json(await hideComment(store, req));
         break;
 
+      // dashboard numbers
       case "insights":
         if (m === "GET" && !id) return json(await getInsights(store, req, q));
         break;
+      // food thrown away
       case "waste":
         if (m === "PUT" && !id) return json(await putWaste(store, req));
         break;
 
+      // suggestions
       case "ideas":
         if (m === "GET" && !id) return json(await listIdeas(store, req, q));
         if (m === "GET" && id === "similar") return json(await similarIdeas(store, q));
@@ -140,17 +136,20 @@ export async function handle(req, store) {
         if (m === "DELETE" && id && !action) return json(await deleteIdea(store, req, id, q));
         break;
 
+      // dish photos
       case "photos":
         if (m === "POST" && !id) return json(await uploadPhoto(store, req, q), 201);
         if (m === "GET" && id && action) return await getPhoto(store, id, action);
         break;
 
+      // weekly reports
       case "reports":
         if (m === "GET" && !id) return json(await getReports(store, req, q));
         if (m === "POST" && id === "build") return json(await buildReportNow(store, req));
-        if (m === "POST" && id === "send") updated(); // old "email me this week's report"
+        if (m === "POST" && id === "send") updated();
         break;
 
+      // change history
       case "audit":
         if (m === "GET" && !id) return json(await getAudit(store, req, q));
         break;
@@ -166,27 +165,29 @@ export async function handle(req, store) {
   }
 }
 
-// ---------- audit ----------
+// change history
 async function audit(store, schoolId, by, action) {
   const at = new Date().toISOString();
   await store.setJSON(`audit/${schoolId}/${at}-${randomId(4)}`, { at, by: by || "staff key", action });
 }
 
+// last 25 changes
 async function getAudit(store, req, q) {
   const { school } = await requireStaff(store, req, q.get("school"), "admin");
   const keys = (await listKeys(store, `audit/${school.id}/`)).sort().reverse().slice(0, 25);
   return { entries: await getAll(store, keys) };
 }
 
-// ---------- schools ----------
+// school info for staff
 const staffSchool = s => ({ ...publicSchool(s), enrollment: s.enrollment || 0, ...(s.sim_data ? { sim_data: true } : {}) });
 
-// `id`, `grades` and `demo` are only set by the demo seeding below.
+// setting up new schools
 export async function createSchool(store, { name, tz, email, color, id, grades, demo }) {
   name = str(name, 60);
   if (name.length < 2) fail(400, "School name must be at least 2 characters");
   tz = typeof tz === "string" && validTz(tz) ? tz : "America/Chicago";
 
+  // pick a join code nobody has
   let code;
   for (let i = 0; i < 8 && !code; i++) {
     const c = randomCode(6);
@@ -209,6 +210,7 @@ export async function createSchool(store, { name, tz, email, color, id, grades, 
   return school;
 }
 
+// search for schools
 async function findSchools(store, q) {
   if (q.has("code")) {
     const code = normCode(q.get("code"));
@@ -218,7 +220,7 @@ async function findSchools(store, q) {
     return { school: publicSchool(await loadSchool(store, ref.school)) };
   }
   const keys = await listKeys(store, "name/");
-  if (q.get("all") === "1") { // every school, A to Z, for browsing before typing
+  if (q.get("all") === "1") {
     const all = keys.map(k => k.split("/")).sort(([, a], [, b]) => a.localeCompare(b)).slice(0, 60).map(([, , id]) => `school/${id}`);
     return { schools: (await getAll(store, all)).map(publicSchool) };
   }
@@ -233,6 +235,7 @@ async function findSchools(store, q) {
   return { schools: (await getAll(store, ids)).map(publicSchool) };
 }
 
+// changing school settings
 async function updateSchool(store, req, id) {
   const { school, user } = await requireStaff(store, req, id, "admin");
   const b = await body(req);
@@ -271,6 +274,7 @@ async function updateSchool(store, req, id) {
   return { school: staffSchool(next) };
 }
 
+// turn off the old staff key
 async function retireKey(store, req, id) {
   const { school, user } = await requireStaff(store, req, id, "owner");
   if (user.via !== "email") fail(400, "Sign in with your email first, then retire the old key.");
@@ -282,6 +286,7 @@ async function retireKey(store, req, id) {
   return { retired: true };
 }
 
+// wipe everything for a school
 async function purgeSchool(store, school) {
   const members = await listMembers(store, school.id);
   const prefixes = ["day", "vote", "votecache", "profile", "idea", "ideavote", "waste", "report", "audit", "photo", "staff", "preset"];
@@ -292,6 +297,7 @@ async function purgeSchool(store, school) {
   await deleteAll(store, keys);
 }
 
+// deleting a school
 async function deleteSchool(store, req, id) {
   const { school, user } = await requireStaff(store, req, id, "owner");
   await purgeSchool(store, school);
@@ -299,11 +305,10 @@ async function deleteSchool(store, req, id) {
   return { deleted: true };
 }
 
-// ---------- one-time cleanup of the old sample schools ----------
-// Earlier versions seeded a dozen sample schools, all owned by one master email, so that one address could open
-// every one of them. Delete those, keep Irvine High School (the real one), and give Irvine its own stored menu.
+// one time cleanup of the old demo schools
 const MIGRATION = "migrate/no-demo-v1";
 const migrated = new WeakSet();
+// run the cleanup once
 export async function ensureMigrated(store) {
   if (migrated.has(store)) return;
   if (await store.get(MIGRATION)) { await fixBoscoPhotos(store); migrated.add(store); return; }
@@ -319,7 +324,7 @@ export async function ensureMigrated(store) {
   migrated.add(store);
 }
 
-// The two Bosco stick dishes used to share the Pull-Aparts photo. Give days already stored their own pictures.
+// fix the bosco stick photos
 const BOSCO_PHOTOS = { "pizza bosco sticks": "/samples/pizza-bosco-sticks.jpg", "cheesy bosco sticks": "/samples/cheesy-bosco-sticks.jpg" };
 async function fixBoscoPhotos(store) {
   if (await store.get("migrate/bosco-photos-v1")) return;
@@ -337,7 +342,7 @@ async function fixBoscoPhotos(store) {
   }
 }
 
-// Weekdays from two weeks back to eight weeks ahead that nobody has saved yet get Irvine's flyer menu.
+// fill in irvine's menu for days nobody saved
 export async function fillIrvineMenu(store, school, back = 14, ahead = 56) {
   const today = todayIn(school.tz);
   for (let n = -back; n <= ahead; n++) {
@@ -350,12 +355,10 @@ export async function fillIrvineMenu(store, school, back = 14, ahead = 56) {
   }
 }
 
-// ---------- staff login ----------
-// Local dev always links back to itself, even when .env carries the production SITE_URL:
-// a dev sign-in token only exists in the local blob store.
+// dev links point back to localhost
 const originOf = req => (!globalThis.__LL_DEV && process.env.SITE_URL) || new URL(req.url).origin;
 
-// Signed in: starts a session that opens `schools` (null = every school of this email) and returns them.
+// start a session after signing in
 async function signedIn(store, req, email, schools, created = null) {
   const mine = await schoolsFor(store, email, schools);
   const session = await startSession(store, email, schools);
@@ -366,18 +369,17 @@ async function signedIn(store, req, email, schools, created = null) {
   }, 200, { "Set-Cookie": sessionCookie(session, req) });
 }
 
+// build a sign in link
 const loginLink = async (store, req, data, ttl) => `${originOf(req)}/?login=${await createMagic(store, data, ttl)}`;
 
-// Sends a sign-in link. Where no email service is set up, only local dev gets the link back on screen;
-// a live site refuses rather than pretending an email went out.
+// send the link, or show it in dev
 async function deliver(to, msg, link) {
   if (mailConfigured()) { await sendMail({ to, ...msg }); return {}; }
   if (globalThis.__LL_DEV) { console.log(`\n--- email to ${to} ---\n${msg.subject}\n${link}\n--- end email ---\n`); return { dev_link: link }; }
   fail(503, "Sign-in emails aren't set up on this site yet.");
 }
 
-// Asks for a sign-in link, or for a link that creates a new school once the email is confirmed.
-// An email that is on no school's team is told so, rather than being sent a fake "check your email".
+// asking for a sign in link
 async function authRequest(store, req) {
   const secret = await getSecret(store);
   const b = await body(req);
@@ -396,7 +398,7 @@ async function authRequest(store, req) {
     const link = await loginLink(store, req, data);
     return { sent: true, ...(await deliver(email, magicLinkEmail({ link, purpose: "create", schoolName: name, color: data.color }), link)) };
   }
-  // Whether mail is set up is not a secret, so say so instead of pretending a link went out.
+  // say so if email isn't set up
   if (!mailConfigured() && !globalThis.__LL_DEV) fail(503, "Sign-in emails aren't set up on this site yet.");
   const mine = await membershipsFor(store, email);
   if (mine.length) {
@@ -406,7 +408,7 @@ async function authRequest(store, req) {
   fail(404, "No school has that email on its team. Check the spelling, ask your admin to add you, or use the New school tab to start one.");
 }
 
-// Uses a link: confirms the email, creates the school if that's what it was for, and starts a session.
+// using a link
 async function authVerify(store, req) {
   const secret = await getSecret(store);
   await limit(store, `verify/${ipHash(secret, clientIp(req))}`, 60, 3600, "attempts");
@@ -423,28 +425,30 @@ async function authVerify(store, req) {
   return signedIn(store, req, row.email, null, created);
 }
 
+// who am i
 async function authMe(store, req) {
   const who = await whoAmI(store, req);
   if (!who) fail(401, "Please sign in.");
   return { email: who.email, via: who.via, schools: who.schools.map(({ school, role }) => ({ school: staffSchool(school), role })) };
 }
 
-// ---------- staff management ----------
+// list the team
 async function getStaff(store, req, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "cook");
   const members = await listMembers(store, school.id);
   const me = user.email ? emailHash(user.email) : "";
-  // `ready`: they have signed in at least once.
+  // ready = signed in at least once
   return { members: members.map(m => ({ id: m.id, email: m.email, role: m.role, added_at: m.added_at, ready: !!m.joined_at, me: m.id === me })), legacy_key: !!school.admin_hash, me_role: user.role };
 }
 
-// Best effort: a failed email never blocks the admin, who still has the link to copy.
+// email if we can, don't fail if not
 async function tryEmail(to, msg) {
   if (!mailConfigured()) return false;
   try { await sendMail({ to, ...msg }); return true; }
   catch (e) { console.error("invite email failed", e.message); return false; }
 }
 
+// inviting someone
 async function inviteStaff(store, req) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "admin");
@@ -454,14 +458,13 @@ async function inviteStaff(store, req) {
   if (roleRank(role) > roleRank(user.role)) fail(403, "You can't give someone a higher role than your own.");
   const mem = await addMember(store, school.id, email, role, user.email);
   await audit(store, school.id, user.email, `added ${email} as ${role}`);
-  // The invite is a sign-in link good for a week. It is emailed when an email service is set up;
-  // either way it comes back here so the admin can copy it and pass it on.
+  // invite is a week long link
   const link = await loginLink(store, req, { email, purpose: "login" }, INVITE_TTL);
   const emailed = await tryEmail(email, inviteEmail({ link, schoolName: school.name, role, by: user.email || "Your school's admin", color: school.theme?.color }));
   return { member: { id: mem.id, email, role, ready: !!mem.joined_at }, link, emailed };
 }
 
-// A fresh sign-in link for a teammate who hasn't joined yet or lost their invite.
+// new link for a teammate
 async function memberLink(store, req, eh, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "admin");
   if (!/^[a-f0-9]{20}$/.test(eh)) fail(404, "That person isn't on your team.");
@@ -474,6 +477,7 @@ async function memberLink(store, req, eh, q) {
   return { email: target.email, link, emailed };
 }
 
+// removing someone
 async function dropStaff(store, req, eh, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "admin");
   const target = await store.get(`staff/${school.id}/${eh}`, { type: "json" });
@@ -488,7 +492,7 @@ async function dropStaff(store, req, eh, q) {
   return { removed: true };
 }
 
-// ---------- student identity: proof of work, token, profile ----------
+// student device setup: puzzle, token, grade
 async function getPow(store, req, q) {
   const school = await loadSchool(store, q.get("school"));
   const secret = await getSecret(store);
@@ -496,6 +500,7 @@ async function getPow(store, req, q) {
   return { challenge: makeChallenge(secret, school.id), bits: POW_BITS };
 }
 
+// hand out a device token
 async function issueToken(store, req) {
   const b = await body(req);
   const school = await loadSchool(store, b.school);
@@ -506,15 +511,14 @@ async function issueToken(store, req) {
   if (!powSolved(b.challenge, b.nonce)) fail(400, "That check wasn't solved correctly.");
   const spent = `used/${sha(b.challenge).slice(0, 32)}`;
   if (await store.get(spent)) fail(400, "That check was already used. Reload and try again.");
-  // A whole school (1,000+ students) can sit behind one IP at lunch, so the per-IP caps are very generous; the
-  // per-school cap stops one script from flooding a school with fake devices.
+  // whole schools share an ip, so these limits are big
   await limit(store, `tokip/${ipHash(secret, clientIp(req))}`, 5000, 3600, "new devices from this network");
   await limit(store, `toksch/${school.id}`, 8000, 3600, "new devices for this school");
   await store.set(spent, "1");
   return { token: makeVoterToken(secret, school.id, voter), voter_id: voter };
 }
 
-// Who is rating? The token says; the request body never does.
+// who is rating, from the token
 async function voterFrom(store, req, schoolId, { optional = false } = {}) {
   const secret = await getSecret(store);
   const v = readVoterToken(secret, req.headers.get("x-ll-token") || "", schoolId);
@@ -522,6 +526,7 @@ async function voterFrom(store, req, schoolId, { optional = false } = {}) {
   return v;
 }
 
+// student grade
 async function getProfile(store, req, q) {
   const school = await loadSchool(store, q.get("school"));
   const voter = await voterFrom(store, req, school.id);
@@ -529,6 +534,7 @@ async function getProfile(store, req, q) {
   return { grade: p?.grade || "" };
 }
 
+// save a grade
 async function setProfile(store, req) {
   const b = await body(req);
   const school = await loadSchool(store, b.school);
@@ -538,8 +544,8 @@ async function setProfile(store, req) {
   if (grade && grade !== "other" && !(school.grades || DEFAULT_GRADES).includes(grade)) fail(400, "That grade isn't offered at this school.");
   if (grade) await store.setJSON(`profile/${school.id}/${voter}`, { grade, updated_at: new Date().toISOString() });
   else await store.delete(`profile/${school.id}/${voter}`);
-  // Ratings still open pick up the new grade, so it applies no matter when the student set it.
   const today = todayIn(school.tz);
+  // update still open ratings too
   const dates = eachDate(addDays(today, -(RATE_DAYS - 1)), today);
   const keys = (await Promise.all(dates.map(d => listKeys(store, `vote/${school.id}/${d}/${voter}/`)))).flat();
   const rows = await getAll(store, keys);
@@ -547,14 +553,14 @@ async function setProfile(store, req) {
   return { grade };
 }
 
-// ---------- menus ----------
-// A nutrient amount: a number from 0 up to a sane maximum, or null when it's blank or nonsense.
+// nutrition number or null
 const nutrient = (v, max) => {
   if (v === "" || v == null) return null;
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 && n <= max ? Math.round(n * 10) / 10 : null;
 };
 
+// clean up one dish
 function cleanItem(raw, schoolId) {
   if (!raw || typeof raw !== "object") fail(400, "Invalid dish");
   const id = ID.test(raw.id || "") ? raw.id : randomId(10);
@@ -563,7 +569,7 @@ function cleanItem(raw, schoolId) {
   const allergens = pick(raw.allergens, ALLERGENS);
   const cuisine = CUISINES.includes(raw.cuisine) ? raw.cuisine : "";
   const cal = Number(raw.calories);
-  // An uploaded photo for this school, or one of the bundled sample photos.
+  // uploaded photo or one of ours
   const photo = typeof raw.photo === "string" && (new RegExp(`^/api/photos/${schoolId}/[a-z0-9]{6,24}$`).test(raw.photo) || /^\/samples\/[a-z0-9-]{1,60}\.jpg$/.test(raw.photo)) ? raw.photo : "";
   return {
     id, name,
@@ -585,6 +591,7 @@ function cleanItem(raw, schoolId) {
   };
 }
 
+// clean up one day
 function cleanDay(raw, schoolId) {
   if (!raw || !validDate(raw.date)) fail(400, "Each day needs a valid date");
   const day = { date: raw.date };
@@ -601,6 +608,7 @@ function cleanDay(raw, schoolId) {
   return day;
 }
 
+// read the menu
 async function getMenu(store, q) {
   const school = await loadSchool(store, q.get("school"));
   const { from, to } = range(q, 62);
@@ -612,6 +620,7 @@ async function getMenu(store, q) {
   return { days: out, today };
 }
 
+// save the menu
 async function putMenu(store, req) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "cook");
@@ -628,6 +637,7 @@ async function putMenu(store, req) {
   return { days: out };
 }
 
+// kitchen replies
 async function postReply(store, req) {
   const b = await body(req);
   const { school } = await requireStaff(store, req, b.school, "cook");
@@ -636,8 +646,7 @@ async function postReply(store, req) {
   const meal = day && MEALS.find(ml => day[ml].some(i => i.id === b.item_id));
   if (!meal) fail(404, "That dish isn't on the menu for that day.");
   const reply = cleanProfanity(str(b.text, REPLY_MAX));
-  // A reply to one student's comment (`cid`) is kept on their rating, so they see it next to what they wrote.
-  // `public` also posts it on the dish for everyone, quoting the comment; otherwise only that student sees it.
+  // a reply to a comment sits on that rating, public also goes on the dish
   let quoted = "";
   const isPublic = b.public !== false;
   if (typeof b.cid === "string" && b.cid) {
@@ -656,11 +665,11 @@ async function postReply(store, req) {
   return { reply, public: true };
 }
 
-// ---------- menu presets ----------
-// Saved menus a team can load again: one dish, one day (all meals), or one week (Monday to Friday).
+// presets: one dish, a day or a week
 const PRESET_KINDS = ["item", "day", "week"];
 const PRESET_MAX = 60;
 const stripId = i => ({ ...i, id: "" });
+// clean up a preset
 function cleanPreset(raw, schoolId) {
   const kind = raw.kind;
   if (!PRESET_KINDS.includes(kind)) fail(400, "Presets are for a dish, a day or a week.");
@@ -677,12 +686,14 @@ function cleanPreset(raw, schoolId) {
   return { kind, data: { days: days.map(asDay) } };
 }
 
+// list presets
 async function listPresets(store, req, q) {
   const { school } = await requireStaff(store, req, q.get("school"), "cook");
   const rows = await getAll(store, await listKeys(store, `preset/${school.id}/`));
   return { presets: rows.sort((a, b) => b.created_at.localeCompare(a.created_at)) };
 }
 
+// save a preset
 async function savePreset(store, req) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "cook");
@@ -697,6 +708,7 @@ async function savePreset(store, req) {
   return { preset: row };
 }
 
+// delete a preset
 async function deletePreset(store, req, id, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "cook");
   if (!ID.test(id)) fail(404, "That preset is gone.");
@@ -707,7 +719,7 @@ async function deletePreset(store, req, id, q) {
   return { deleted: true };
 }
 
-// ---------- votes ----------
+// a student's own ratings
 async function getMyVotes(store, req, q) {
   const school = await loadSchool(store, q.get("school"));
   const voter = await voterFrom(store, req, school.id);
@@ -716,6 +728,7 @@ async function getMyVotes(store, req, q) {
   return { votes: (await getAll(store, keys)).map(({ voter_id, hidden, ...row }) => row), today: todayIn(school.tz) };
 }
 
+// rating a dish
 async function castVote(store, req) {
   const b = await body(req);
   const school = await loadSchool(store, b.school);
@@ -724,9 +737,9 @@ async function castVote(store, req) {
   if (!RATINGS.includes(b.vote)) fail(400, "Vote must be good, mid, or bad");
   if (!ID.test(b.item_id || "")) fail(400, "Invalid dish id");
 
-  // A dish can be rated on the day it's served and for the 6 days after.
   const today = todayIn(school.tz);
   if (!validDate(b.date)) fail(400, "Invalid date");
+  // can't rate early or after a week
   if (b.date > today) fail(403, "You can rate this after it's served.");
   if (b.date < addDays(today, -(RATE_DAYS - 1))) fail(403, `Rating closed. Dishes can be rated for ${RATE_DAYS} days after they're served.`);
 
@@ -745,7 +758,7 @@ async function castVote(store, req) {
   const row = {
     voter_id: voter, date: b.date, meal, item_id: b.item_id, vote: b.vote, comment,
     updated_at: new Date().toISOString(), grade: profile?.grade || "",
-    // a comment staff hid stays hidden unless the student rewrites it
+    // hidden comments stay hidden unless rewritten
     hidden: !!prev && prev.comment === comment && !!prev.hidden,
     ...(prev && prev.comment === comment && prev.kitchen_reply ? { kitchen_reply: prev.kitchen_reply } : {}),
   };
@@ -754,6 +767,7 @@ async function castVote(store, req) {
   return out;
 }
 
+// hide or unhide a comment
 async function hideComment(store, req) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "cook");
@@ -770,13 +784,14 @@ async function hideComment(store, req) {
   fail(404, "That comment is gone.");
 }
 
-// ---------- insights ----------
+// short version of a vote
 const compact = (school, v) => ({
   date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment || "", updated_at: v.updated_at,
   who: sha(school.id + v.voter_id).slice(0, 12), grade: v.grade || "", hidden: !!v.hidden,
   ...(v.kitchen_reply ? { kr: { text: v.kitchen_reply.text, public: !!v.kitchen_reply.public } } : {}),
 });
 
+// votes for one day
 async function ratingRows(store, school, date, closed) {
   const cacheKey = `votecache/${school.id}/${date}`;
   if (closed) {
@@ -784,10 +799,11 @@ async function ratingRows(store, school, date, closed) {
     if (cached) return cached;
   }
   const rows = (await getAll(store, await listKeys(store, `vote/${school.id}/${date}/`))).map(v => compact(school, v));
-  if (closed) await store.setJSON(cacheKey, rows); // nothing can change on a closed day, so keep a one-read copy
+  if (closed) await store.setJSON(cacheKey, rows);
   return rows;
 }
 
+// dashboard numbers for a date range
 export async function loadStats(store, school, from, to) {
   const today = todayIn(school.tz);
   const inRange = k => { const d = k.split("/")[2]; return d >= from && d <= to; };
@@ -805,6 +821,7 @@ export async function loadStats(store, school, from, to) {
   return { stats, waste };
 }
 
+// dashboard endpoint
 async function getInsights(store, req, q) {
   const { school } = await requireStaff(store, req, q.get("school"), "cook");
   const { from, to } = range(q, 400);
@@ -814,6 +831,7 @@ async function getInsights(store, req, q) {
   return { today: todayIn(school.tz), from, to, stats, ideas, waste_log: wasteLog, school: staffSchool(school) };
 }
 
+// log food thrown away
 async function putWaste(store, req) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "cook");
@@ -826,9 +844,10 @@ async function putWaste(store, req) {
   return { waste: { date: row.date, pounds: row.pounds, note: row.note } };
 }
 
-// ---------- suggestions ----------
+// suggestions
 const ideaSim = (q, idea) => Math.max(similarity(q, idea.text), ...(idea.aliases || []).map(a => similarity(q, a)));
 
+// all ideas with vote counts
 async function ideaList(store, school, voter) {
   const [ideaKeys, voteKeys] = await Promise.all([listKeys(store, `idea/${school.id}/`), listKeys(store, `ideavote/${school.id}/`)]);
   const counts = {}, mine = new Set();
@@ -847,7 +866,7 @@ async function ideaList(store, school, voter) {
   return ideas;
 }
 
-// An idea marked "On the menu" for a date points at the dish that fulfils it.
+// link ideas to the dish on the menu
 async function attachDishes(store, school, ideas) {
   const dates = [...new Set(ideas.filter(i => i.status === "on_menu" && i.served_on).map(i => i.served_on))];
   if (!dates.length) return ideas;
@@ -861,6 +880,7 @@ async function attachDishes(store, school, ideas) {
   return ideas;
 }
 
+// list ideas
 async function listIdeas(store, req, q) {
   const school = await loadSchool(store, q.get("school"));
   const voter = await voterFrom(store, req, school.id, { optional: true });
@@ -869,6 +889,7 @@ async function listIdeas(store, req, q) {
   return { ideas: ideas.map(i => ({ ...i, fresh: i.created_at >= weekAgo })) };
 }
 
+// did you mean
 async function similarIdeas(store, q) {
   const school = await loadSchool(store, q.get("school"));
   const query = str(q.get("q"), IDEA_MAX);
@@ -883,7 +904,7 @@ async function similarIdeas(store, q) {
   return { matches };
 }
 
-// Pairs of suggestions that look like the same thing, for staff to merge.
+// ideas that look the same
 async function dupeIdeas(store, req, q) {
   const { school } = await requireStaff(store, req, q.get("school"), "cook");
   const ideas = (await ideaList(store, school, null)).slice(0, 150);
@@ -898,6 +919,7 @@ async function dupeIdeas(store, req, q) {
   return { pairs: pairs.slice(0, 20) };
 }
 
+// new idea
 async function addIdea(store, req) {
   const b = await body(req);
   const school = await loadSchool(store, b.school);
@@ -912,7 +934,7 @@ async function addIdea(store, req) {
   const existing = await ideaList(store, school, voter);
   const dup = existing.map(i => ({ i, s: ideaSim(t, i) })).filter(x => x.s >= 0.9).sort((a, b) => b.s - a.s)[0];
   if (dup) {
-    // "NOOdLEs" when "Noodles" exists: count it as a vote instead of a copy.
+    // same idea already there, count it as a vote
     if (!dup.i.voted) await store.set(`ideavote/${school.id}/${dup.i.id}/${voter}`, "1");
     return { merged: true, idea: { ...dup.i, voted: true, count: dup.i.count + (dup.i.voted ? 0 : 1) } };
   }
@@ -922,6 +944,7 @@ async function addIdea(store, req) {
   return { merged: false, idea: { id: idea.id, text: idea.text, created_at: idea.created_at, status: "new", reply: "", served_on: "", count: 1, voted: true, own: true, fresh: true } };
 }
 
+// upvote an idea
 async function voteIdea(store, req, ideaId) {
   const b = await body(req);
   const school = await loadSchool(store, b.school);
@@ -935,6 +958,7 @@ async function voteIdea(store, req, ideaId) {
   return { id: ideaId, voted: !!b.on, count };
 }
 
+// staff change an idea's status
 async function patchIdea(store, req, ideaId) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "cook");
@@ -956,6 +980,7 @@ async function patchIdea(store, req, ideaId) {
   return { id: ideaId, status: idea.status, reply: idea.reply || "", served_on: idea.served_on || "" };
 }
 
+// merge two ideas
 async function mergeIdea(store, req, fromId) {
   const b = await body(req);
   const { school, user } = await requireStaff(store, req, b.school, "cook");
@@ -973,6 +998,7 @@ async function mergeIdea(store, req, fromId) {
   return { merged: intoId, count };
 }
 
+// delete an idea
 async function deleteIdea(store, req, ideaId, q) {
   const { school, user } = await requireStaff(store, req, q.get("school"), "cook");
   if (!ID.test(ideaId)) fail(400, "Invalid idea id");
@@ -982,7 +1008,7 @@ async function deleteIdea(store, req, ideaId, q) {
   return { deleted: true };
 }
 
-// ---------- photos ----------
+// dish photos
 async function uploadPhoto(store, req, q) {
   const { school } = await requireStaff(store, req, q.get("school"), "cook");
   const type = (req.headers.get("content-type") || "").split(";")[0].trim();
@@ -995,17 +1021,17 @@ async function uploadPhoto(store, req, q) {
   return { url: `/api/photos/${school.id}/${id}` };
 }
 
+// serve a photo
 async function getPhoto(store, schoolId, photoId) {
   if (!ID.test(schoolId) || !ID.test(photoId)) fail(404, "Not found");
   const r = await store.getWithMetadata(`photo/${schoolId}/${photoId}`, { type: "arrayBuffer" });
   if (!r) fail(404, "Not found");
   return new Response(r.data, {
-    headers: { "Content-Type": r.metadata?.type || "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable" },
+    headers: { "Content-Type": r.metadata?.type || "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'" },
   });
 }
 
-// ---------- weekly reports ----------
-// Builds this week's report and stores it.
+// weekly reports
 export async function buildWeeklyReport(store, school) {
   const today = todayIn(school.tz);
   const w = weekWindow(today);
@@ -1017,12 +1043,14 @@ export async function buildWeeklyReport(store, school) {
   return report;
 }
 
+// past reports
 async function getReports(store, req, q) {
   const { school } = await requireStaff(store, req, q.get("school"), "cook");
   const keys = (await listKeys(store, `report/${school.id}/`)).sort().reverse().slice(0, 8);
   return { reports: await getAll(store, keys) };
 }
 
+// make a report right now
 async function buildReportNow(store, req) {
   const b = await body(req);
   const { school } = await requireStaff(store, req, b.school, "cook");

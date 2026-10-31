@@ -1,5 +1,4 @@
-/* The landing page. Photography does the talking; type is a serif headline over a plain sans body.
-   Two themes, switched in the footer: orange (default) and olive on bone. The logo never changes. */
+/* landing page styles */
 
 .lx { --ink: #131211; --ink-2: #47443f; --paper: #fff; --warm: #F6F3EE; --line: #E6E1D9; --h: 16; --accent: hsl(var(--h) 100% 56%); --accent-ink: hsl(var(--h) 88% 34%);
   background: var(--paper); color: var(--ink); font-family: var(--font); overflow-x: clip; }
@@ -122,7 +121,7 @@
 .lx-foot { padding: 28px 0 calc(28px + env(safe-area-inset-bottom)); color: var(--ink-2); font-size: .9rem; background: var(--paper); }
 .lx-foot-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
 
-/* scroll reveals: one calm fade, no cascades */
+/* scroll reveals */
 .lx.js-motion .lx-reveal { opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.2, .8, .2, 1), transform .9s cubic-bezier(.2, .8, .2, 1); }
 .lx.js-motion .lx-reveal.in { opacity: 1; transform: none; }
 .lx-hero-copy, .lx-hero-card { animation: lx-in 1s cubic-bezier(.2, .8, .2, 1) both; }
@@ -138,12 +137,12 @@
 /* reading progress */
 .lx-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none; }
 
-/* words arrive one by one */
+/* words show up one by one */
 .lx.js-motion .lx-split .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .14em; margin-bottom: -.14em; }
 .lx.js-motion .lx-split .w > span { display: inline-block; transform: translateY(112%); transition: transform .85s cubic-bezier(.2, .8, .2, 1) calc(var(--i) * 55ms); }
 .lx.js-motion .lx-split.in .w > span { transform: none; }
 
-/* a few ways in: from the side, zooming up, wiped open */
+/* other reveal types */
 .lx.js-motion .lx-reveal[data-fx="left"] { transform: translateX(-46px); }
 .lx.js-motion .lx-reveal[data-fx="right"] { transform: translateX(46px); }
 .lx.js-motion .lx-reveal[data-fx="zoom"] { transform: translateY(40px) scale(.94); }
@@ -154,7 +153,7 @@
 .lx-step:hover .lx-step-photo img { transform: translateY(var(--py, 0px)) scale(1.17); }
 .lx-hero-card { animation-name: lx-in; }
 
-/* the miniature app */
+/* mini phone */
 .tp { display: grid; place-items: center; }
 .tp-phone { position: relative; width: min(100%, 318px); height: 640px; border-radius: 44px; background: #131211; padding: 10px; }
 .tp-notch { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 84px; height: 22px; border-radius: 12px; background: #131211; z-index: 3; }

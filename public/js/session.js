@@ -1,9 +1,10 @@
-// Moving between "who is using the app": welcome, student, parent, staff.
+// switching between welcome, student, parent and staff
 import { LS, zoned } from "./util.js";
 import { state, MEALS } from "./state.js";
 import { applyTheme, resetTheme } from "./theme.js";
 import { render, go, TABS } from "./ui.js";
 
+// clear everything
 export function resetData() {
   Object.assign(state, {
     week: null, day: null, meal: null, touched: false, weeks: {}, mine: {}, ideas: null,
@@ -13,6 +14,7 @@ export function resetData() {
   state.openComment.clear(); state.cDraft = {};
 }
 
+// switch sides
 export function setMode(mode) {
   state.mode = mode; state.ob = null;
   LS.set("ll_mode", mode);
@@ -22,11 +24,13 @@ export function setMode(mode) {
   go(TABS[mode][0][0]);
 }
 
+// back to the start
 export function leaveToWelcome() {
   state.mode = null; LS.del("ll_mode"); resetData(); resetTheme();
   startFlow("welcome");
 }
 
+// setup and sign in flows
 export const FLOWS = {
   welcome: ["welcome"],
   student: ["school", "setup"],
@@ -36,6 +40,7 @@ export const FLOWS = {
   verify: ["verify"],
 };
 
+// start a flow
 export function startFlow(flow, data = {}, opts = {}) {
   const st = state.student;
   state.ob = {
@@ -55,11 +60,13 @@ export function startFlow(flow, data = {}, opts = {}) {
   render(true);
 }
 
+// leave a flow
 export function obExit() {
   if (state.ob.exit === "app" && state.mode) { state.ob = null; render(true); }
   else startFlow("welcome");
 }
 
+// small helpers
 export const mealLabelKey = m => ("meal." + (MEALS.includes(m) ? m : "lunch"));
 export const todayFor = tz => zoned(tz).date;
 export { MEALS };

@@ -1,24 +1,15 @@
-// Turns raw ratings into what the kitchen sees. Pure functions: the API, the
-// weekly report, and the tests all use the same numbers.
-//
-// A rating row looks like:
-//   { date, item_id, vote, comment, updated_at, who, grade, hidden }
-// `who` is a hash of the device id, never the id itself.
-
+// turns ratings into dashboard numbers
 import { MEALS } from "./vocab.mjs";
 
-export const MIN_GROUP = 5; // a grade only gets its own numbers once this many students are in it
+// counting helpers
+export const MIN_GROUP = 5; // min students before a grade shows
 
 const T = () => ({ good: 0, mid: 0, bad: 0, total: 0 });
 const add = (t, v) => { t[v]++; t.total++; };
 export const pctGood = t => (t.total ? Math.round((100 * t.good) / t.total) : 0);
 export const pctBad = t => (t.total ? Math.round((100 * t.bad) / t.total) : 0);
 
-// ---------- honest-vote checks ----------
-// Marks rows that look scripted. They're left out of every headline number and
-// counted so staff can see how many were set aside.
-//   burst:   12+ ratings from one device inside 10 seconds
-//   uniform: 12+ ratings from one device and every one is the same
+// mark votes that look like a script
 export function flagVotes(rows, { burstCount = 12, burstSeconds = 10, uniformCount = 12 } = {}) {
   const byWho = new Map();
   for (const r of rows) {
@@ -39,14 +30,16 @@ export function flagVotes(rows, { burstCount = 12, burstSeconds = 10, uniformCou
   return rows;
 }
 
+// how sure are we
 export function confidence(raters) {
   return raters >= 10 ? "high" : raters >= 4 ? "medium" : "low";
 }
 
-// Rank with a small prior so 3-for-3 doesn't outrank 12-for-13.
+// ranking that doesn't overrate tiny samples
 const goodScore = t => (t.good + 1) / (t.total + 2);
 const badScore = t => (t.bad + 1) / (t.total + 2);
 
+// best and worst dishes
 export function rankDishes(dishes) {
   const byGood = [...dishes].sort((a, b) => goodScore(b.t) - goodScore(a.t) || b.t.total - a.t.total);
   const k = Math.min(5, Math.ceil(dishes.length / 2));
@@ -58,9 +51,12 @@ export function rankDishes(dishes) {
   return { loved, needs };
 }
 
+// cuisine name
 const cuisineKey = it => (it.cuisine === "other" ? (it.cuisine_other || "other").toLowerCase() : it.cuisine || "");
 
+// all the dashboard numbers
 export function computeInsights({ days, votes, waste = [], enrollment = 0, today = "" }) {
+  // look up each dish by date and id
   const meta = {};
   for (const day of Object.values(days)) for (const meal of MEALS) for (const it of day[meal] || []) meta[day.date + "|" + it.id] = { it, date: day.date, meal };
 
@@ -70,9 +66,10 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
   const comments = [], hiddenComments = [];
   let flagged = 0;
 
+  // tally every vote
   for (const v of votes) {
     const m = meta[v.date + "|" + v.item_id];
-    if (!m) continue; // dish was deleted from the menu
+    if (!m) continue; // dish got deleted
     if (v.flag) { flagged++; continue; }
     add(total, v.vote); who.add(v.who);
     add(byDate[v.date] ||= T(), v.vote);
@@ -94,29 +91,30 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
     if (v.comment && v.hidden) hiddenComments.push({ cid: v.who, date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment, updated_at: v.updated_at, name: m.it.name, meal: m.meal });
     if (v.comment && !v.hidden) comments.push({ cid: v.who, date: v.date, item_id: v.item_id, vote: v.vote, comment: v.comment, updated_at: v.updated_at, name: m.it.name, meal: m.meal, ...(v.kr ? { kr: v.kr } : {}) });
   }
-  for (const v of votes) { // flagged rows still count against their dish's confidence
+  for (const v of votes) { // flagged ones still lower confidence
     if (!v.flag) continue;
     const m = meta[v.date + "|" + v.item_id];
     const d = m && byDish[m.it.name.trim().toLowerCase()];
     if (d) d.flagged++;
   }
+  // newest comments first
   comments.sort((a, b) => b.date.localeCompare(a.date) || b.updated_at.localeCompare(a.updated_at));
   hiddenComments.sort((a, b) => b.date.localeCompare(a.date) || b.updated_at.localeCompare(a.updated_at));
 
+  // one row per dish
   const dishes = Object.values(byDish).map(d => ({
     key: d.key, name: d.name, t: d.t, meals: [...d.meals], photo: d.photo, last: d.last,
     raters: d.who.size, confidence: confidence(d.who.size), flagged: d.flagged,
   }));
   const { loved, needs } = rankDishes(dishes);
 
-  // Per-grade numbers appear only for groups big enough not to point at anyone.
+  // per grade numbers, only for big enough groups
   const grades = Object.keys(byGrade).sort((a, b) => (parseInt(a, 10) || 99) - (parseInt(b, 10) || 99)).map(g => {
     const students = gradeWho[g].size;
     if (students < MIN_GROUP) return { grade: g, students, ok: false };
     const list = Object.values(byGradeDish[g]).filter(d => d.t.total >= 3);
     const best = [...list].sort((a, b) => goodScore(b.t) - goodScore(a.t) || b.t.total - a.t.total)[0];
     const worst = [...list].sort((a, b) => badScore(b.t) - badScore(a.t) || b.t.total - a.t.total)[0];
-    // only call something a favorite or a problem when the numbers say so
     return {
       grade: g, students, ok: true, t: byGrade[g],
       best: best && pctGood(best.t) >= 50 ? { name: best.name, pct: pctGood(best.t), n: best.t.total } : null,
@@ -124,6 +122,7 @@ export function computeInsights({ days, votes, waste = [], enrollment = 0, today
     };
   });
 
+  // food thrown away
   const poundsByDate = {};
   let pounds = 0;
   for (const w of waste) { poundsByDate[w.date] = w.pounds; pounds += w.pounds; }

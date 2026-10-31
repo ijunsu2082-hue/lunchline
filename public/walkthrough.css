@@ -1,4 +1,4 @@
-/* The animated walkthrough. A 1280 x 720 stage scaled to fit any screen; everything inside is drawn by walkthrough.js. */
+/* walkthrough page */
 @font-face { font-family: "Public Sans"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/fonts/public-sans-latin-wght-normal.woff2") format("woff2"); }
 :root { --ink: #131211; --ink-2: #5A564F; --line: #E6E1D9; --warm: #F6F3EE; --brand: #FF5A1F; --good: #1F9D57; --mid: #98948C; --bad: #D63B33; color-scheme: light; }
 * { box-sizing: border-box; }
@@ -10,7 +10,7 @@ button { font: inherit; cursor: pointer; }
 .fade { animation: fade .6s ease both; }
 @keyframes fade { from { opacity: 0; transform: translateY(14px); } }
 
-/* captions + controls */
+/* captions and controls */
 #cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 56px 26px; background: linear-gradient(0deg, rgba(255, 255, 255, .98) 60%, rgba(255, 255, 255, 0)); z-index: 30; pointer-events: none; }
 #cap p { margin: 0; font-size: 26px; line-height: 1.3; font-weight: 650; letter-spacing: -.01em; max-width: 960px; transition: opacity .35s; }
 #cap small { display: block; font-size: 14px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); margin-bottom: 6px; }
@@ -71,7 +71,7 @@ button { font: inherit; cursor: pointer; }
 @keyframes blink { 50% { opacity: 0; } }
 .btnb { display: block; width: 100%; margin-top: 10px; padding: 12px; border-radius: 999px; background: var(--ink); color: #fff; text-align: center; font-weight: 800; font-size: 13px; }
 
-/* poster + scan */
+/* poster and scan */
 .poster { position: absolute; width: 300px; height: 390px; border-radius: 16px; border: 8px solid var(--brand); background: #fff; padding: 18px; text-align: center; box-shadow: 0 24px 50px -20px rgba(0, 0, 0, .3); }
 .poster h4 { margin: 8px 0 6px; font-size: 22px; letter-spacing: -.02em; }
 .poster p { margin: 6px 0; font-size: 13px; color: var(--ink-2); }
@@ -79,7 +79,7 @@ button { font: inherit; cursor: pointer; }
 .scanline { position: absolute; left: 10px; right: 10px; height: 3px; background: var(--brand); box-shadow: 0 0 14px var(--brand); animation: scan 1.4s ease-in-out infinite alternate; }
 @keyframes scan { from { top: 20px; } to { top: 540px; } }
 
-/* browser + dashboard */
+/* browser and dashboard */
 .browser { position: absolute; left: 56px; top: 70px; width: 1168px; height: 520px; border-radius: 14px; border: 1px solid var(--line); background: var(--warm); overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .35); }
 .browser .bar2 { height: 34px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 7px; padding: 0 14px; }
 .browser .bar2 i { width: 10px; height: 10px; border-radius: 50%; background: #D9D4CA; }
