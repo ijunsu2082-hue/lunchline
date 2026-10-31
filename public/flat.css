@@ -1,5 +1,4 @@
-/* LunchLine, flat layer. White paper, black ink, hairlines, and the logo's orange used sparingly
-   (active tab, today, links, focus). Loaded after styles.css, so it wins; nothing here is decoration. */
+/* flat look: white, black and a little orange */
 
 :root {
   color-scheme: light;
@@ -55,7 +54,7 @@ dialog.modal { border-radius: 8px; }
 dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 .ds-x { border-radius: 6px; box-shadow: none; }
 
-/* join and sign-in screens: a plain white page */
+/* join and sign in screens */
 .fl { background: #fff; color: var(--ink); }
 .fl-blobs { display: none; }
 .fl-top { padding-bottom: 0; }
@@ -76,7 +75,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 .sent-card .i { color: var(--ink); }
 .dev-note { border-radius: 6px; }
 
-/* student app: a top bar instead of a side rail, and a plain page */
+/* student app, top bar */
 .app.student { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; max-width: 760px; box-shadow: none; border-radius: 0; margin: 0 auto; background: #fff; }
 @media (min-width: 720px) { .app.student { margin: 0 auto; min-height: 100dvh; border-radius: 0; } }
 .rail { position: sticky; top: 0; z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 4px; overflow-x: auto; overflow-y: hidden; background: #fff; border-bottom: 1px solid var(--line); padding: max(8px, env(safe-area-inset-top)) 12px 0; }
@@ -133,7 +132,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 .dc-noimg, .rank-img.ph, .thumb.ph { background: var(--bg-2); }
 .dc-noimg .emo { filter: none; }
 
-/* staff: a white sidebar, flat panels */
+/* staff sidebar and panels */
 .side { background: #fff; color: var(--ink); border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); }
 @media (min-width: 900px) { .side { border-top: 0; border-right: 1px solid var(--line); } }
 .side .side-i { color: var(--ink-2); border-radius: 6px; }
@@ -157,7 +156,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 @media (hover: hover) { .btn:hover:not(:disabled), .pick:hover, .toggle:hover, .chip-btn:hover, .result:hover, .edit-row:hover, .bd:hover { transform: none; } }
 .stitch-logo { display: none; }
 
-/* ===== v2: type, polish ===== */
+/* type and polish */
 @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/fonts/fraunces-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122; }
 @font-face { font-family: "Fraunces"; font-style: italic; font-weight: 100 900; font-display: swap; src: url("/fonts/fraunces-latin-wght-italic.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122; }
 :root { --display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif; --warm: #F6F3EE; }
@@ -169,7 +168,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 .meal-t { font-size: 1.5rem; }
 .ds-name { font-size: 2rem; line-height: 1.05; }
 
-/* softer, rounder controls to match the landing page */
+/* rounder controls */
 .btn, .btn.lg { border-radius: 999px; }
 .btn.sm, .btn.xs { border-radius: 999px; }
 .input { border-radius: 10px; }
@@ -180,7 +179,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); backdrop-filter: none; }
 dialog.sheet { border-radius: 22px 22px 0 0; } @media (min-width: 720px) { dialog.sheet { border-radius: 20px; } }
 dialog.modal { border-radius: 16px; }
 
-/* student: a frosted top bar, bigger photos that move a little */
+/* student top bar and photos */
 .rail { background: rgba(255, 255, 255, .88); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); }
 .dc-photo { border-radius: 12px; overflow: hidden; box-shadow: 0 1px 0 var(--line); }
 .dc-photo img { transition: transform .9s cubic-bezier(.2, .8, .2, 1); }
@@ -192,7 +191,7 @@ dialog.modal { border-radius: 16px; }
 .day[aria-pressed="true"] { background: #131211; }
 .dc-flag, .dc-badge { border-radius: 999px; }
 
-/* staff: warm paper behind white panels */
+/* staff background */
 body[data-mode="admin"] { background: var(--warm); }
 body[data-mode="admin"] .tile, body[data-mode="admin"] .card, body[data-mode="admin"] .bd, body[data-mode="admin"] .edit-row { background: #fff; border-color: #EAE5DC; }
 .side { background: #fff; }
@@ -203,7 +202,7 @@ body[data-mode="admin"] .tile, body[data-mode="admin"] .card, body[data-mode="ad
 .toast { width: max-content; }
 body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211; color: #fff; }
 
-/* ideas: a plain ranked list, one row per idea, the vote on the right */
+/* ideas list */
 .board { gap: 0; margin-top: 18px; border-top: 1px solid var(--line); }
 .board .bd, body[data-mode="admin"] .board .bd { background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 18px 2px; align-items: start; gap: 14px; }
 .board .bd-rank { width: 22px; height: auto; background: none; color: var(--ink-2); font-weight: 600; font-size: .95rem; display: block; padding-top: 3px; text-align: left; }
@@ -231,7 +230,7 @@ body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211;
 .reply-to { font-size: .88rem; color: var(--ink-2); margin: 2px 0 6px; font-style: normal; }
 .reply-to::before { content: ""; }
 
-/* student top bar: everything fits at phone width, school name wraps instead of cutting off */
+/* top bar fits on phones */
 .st-school { white-space: normal; overflow: visible; text-overflow: clip; }
 @media (max-width: 480px) {
   .rail { padding-left: 8px; padding-right: 8px; gap: 0; }
@@ -241,7 +240,7 @@ body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211;
   .rail-t { font-size: .88rem; }
   .rail-me { margin-left: 2px; flex: none; }
 }
-/* staff: a single day's waste isn't a full-width block */
+/* waste tile */
 .spark span { max-width: 28px; }
 .spark { gap: 6px; }
 .board.compact .bd { padding: 10px 2px; align-items: center; }
@@ -249,7 +248,7 @@ body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211;
 .board.compact { margin-top: 0; }
 @media (min-width: 560px) { .dish-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-/* phone widths: segmented controls stay on one row, idea tools don't balloon */
+/* phone widths */
 @media (max-width: 520px) {
   .seg { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .seg::-webkit-scrollbar { display: none; }
@@ -271,10 +270,10 @@ body[data-mode="admin"] .tile.hero { background: #131211; border-color: #131211;
   .bd-tools .btn.ghost.sm { padding: 0 8px; }
 }
 
-/* school name: room for descenders (the g in "High") */
+/* room for descenders in the school name */
 .st-school { line-height: 1.2; padding-bottom: .08em; }
 
-/* kitchen replies to a comment: who sees it, and what it answers */
+/* kitchen replies */
 .feed-r { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: .88rem; color: var(--ink-2); }
 .feed-r .i { width: 14px; height: 14px; margin-top: 3px; flex: none; }
 .feed-r strong { color: var(--ink); font-weight: 650; }
@@ -305,20 +304,20 @@ label.pick { cursor: pointer; }
 label.pick:has(input:checked) { background: #131211; color: #fff; border-color: #131211; }
 label.pick:has(input:focus-visible) { outline: 3px solid var(--brand); outline-offset: 2px; }
 
-/* small number box: room for descenders, no spinner arrows */
+/* small number box */
 .input.sm { min-height: 44px; padding: 10px 14px; line-height: 1.4; }
 .waste-form .input { width: 170px; }
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .hidden-comments { margin-top: 14px; }
 .muted-feed { opacity: .75; margin-top: 8px; }
-/* ideas: number, text and vote line up on the middle */
+/* ideas row alignment */
 .board .bd, body[data-mode="admin"] .board .bd { align-items: center; }
 .board .bd-rank { padding-top: 0; }
 .sim-note { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--ink-2); margin: 6px 0 0; }
 .sim-note .i { width: 14px; height: 14px; flex: none; }
 
-/* dashboard: fold buttons, time-frame form, grouped charts */
+/* dashboard folds and grouping */
 .head-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .head-tools .seg { margin: 0; }
 .fold-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line-2, #CFCAC1); background: #fff; display: grid; place-items: center; cursor: pointer; flex: none; }
@@ -334,7 +333,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 @media (min-width: 900px) { .tile.waste .spark-box { grid-column: 2; grid-row: 1 / span 3; } }
 @media (max-width: 899px) { .spark-box { justify-items: stretch; } }
 
-/* food thrown away: bars with pounds on top, an average line and labeled axes */
+/* waste chart */
 .tile.waste { display: block; }
 .waste-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px 24px; }
 .waste-top .waste-form { margin-top: 0; }

@@ -1,5 +1,4 @@
-// Menu presets: save a dish, a day or a week once, then load it again onto any days you like.
-// Presets belong to the school, so everyone on the team sees the same list.
+// presets: save a dish, day or week and load it later
 import { $, esc, D, cap } from "../util.js";
 import { state, school, MEALS } from "../state.js";
 import { api } from "../api.js";
@@ -8,19 +7,25 @@ import { render, toast, registerActions, openSheet, closeSheet, askConfirm } fro
 
 const KINDS = [["week", "Weeks"], ["day", "Days"], ["item", "Dishes"]];
 const mealName = cap;
+// dishes in a day
 const dayCount = d => MEALS.reduce((n, m) => n + (d?.[m] || []).length, 0);
+// one line about a preset
 const summary = p => p.kind === "item" ? [p.data.calories ? `${p.data.calories} cal` : "", p.data.diet?.join(", ")].filter(Boolean).join(" · ") || "One dish"
   : p.kind === "day" ? `${dayCount(p.data)} dishes` : `${p.data.days.length} days, ${p.data.days.reduce((n, d) => n + dayCount(d), 0)} dishes`;
 
+// load presets
 async function loadPresets() {
   state.presets = (await api("GET", `presets?school=${school().id}`)).presets;
   return state.presets;
 }
 
+// days in the week on screen
 const currentWeekDays = () => state.aWeeks[state.aWeek]?.days || {};
+// drop replies and ids
 const stripReplies = items => (items || []).map(i => ({ ...i, id: "", reply: "", reply_to: "" }));
 
-// ---------- the list ----------
+// the list
+// preset list
 function listHTML(presets) {
   const rows = kind => presets.filter(p => p.kind === kind).map(p => `<li class="preset">
       <div class="preset-main"><p class="preset-n">${esc(p.name)}</p><p class="preset-s">${esc(summary(p))}</p></div>
@@ -45,13 +50,15 @@ function listHTML(presets) {
   </div>`;
 }
 
+// open the presets sheet
 async function openPresets() {
   openSheet(`<div class="sheet-form"><h2 id="sheet-title">Menu presets</h2><p class="muted">Loading…</p></div>`);
   try { openSheet(listHTML(await loadPresets())); }
   catch (e) { closeSheet(); toast(e.message, true); }
 }
 
-// ---------- saving ----------
+// saving
+// name a new preset
 function nameForm(kind, data, suggestion) {
   state.presetDraft = { kind, data };
   openSheet(`<form class="sheet-form" data-form="preset-save">
@@ -64,12 +71,14 @@ function nameForm(kind, data, suggestion) {
   $("#preset-name")?.select();
 }
 
-export function savePresetFromEditor(item) { // the dish editor's "Save dish as preset"
+// save a dish as a preset
+export function savePresetFromEditor(item) {
   const { id, reply, reply_to, ...rest } = item;
   nameForm("item", rest, item.name);
 }
 
-// ---------- loading ----------
+// loading
+// pick days to load into
 function loadForm(p) {
   const days = D.weekdays(state.aWeek), sel = state.aDay;
   const dayPick = p.kind === "day" ? `<fieldset class="reply-vis"><legend>Which days?</legend><div class="chips-pick">${days.map(d => `<label class="pick"><input type="checkbox" class="sr-only" name="pday" value="${d}"${d === sel ? " checked" : ""}><span>${esc(D.fmt(d, { weekday: "short" }))} ${+d.slice(8)}</span></label>`).join("")}</div></fieldset>` : "";
@@ -88,20 +97,21 @@ function loadForm(p) {
   </form>`);
 }
 
+// load a preset
 async function applyPreset(f) {
   const p = (state.presets || []).find(x => x.id === f.dataset.id);
   if (!p) return;
   const mode = f.querySelector('input[name="pl-mode"]:checked')?.value || "add";
   const weeks = +($("#pl-weeks")?.value || 1);
   const known = state.aWeeks;
-  // The days already stored for a date: from this week's cache when we have it, otherwise fetched.
+  // days already saved for a date
   const existing = async date => {
     const mon = D.monday(date);
     if (known[mon]?.days) return known[mon].days[date];
     const m = await api("GET", `menu?school=${school().id}&from=${date}&to=${date}`);
     return m.days[date];
   };
-  const targets = []; // [{ date, source }]
+  const targets = []; // dates and where they come from
   if (p.kind === "item") {
     const date = state.aDay, meal = $("#pl-meal").value, cur = (await existing(date)) || {};
     const day = { date, ...Object.fromEntries(MEALS.map(m => [m, (cur[m] || []).map(i => ({ ...i }))])) };
@@ -150,6 +160,7 @@ registerActions({
   },
 });
 
+// forms
 export async function submitPresetForm(f) {
   if (f.dataset.form === "preset-load") return applyPreset(f);
   const name = $("#preset-name").value.trim(), { kind, data } = state.presetDraft;

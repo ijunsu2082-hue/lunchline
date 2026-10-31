@@ -1,4 +1,4 @@
-// English: the source of truth. Add a key here first, then translate it in es.js.
+// english strings, add a key here first then in es.js
 export default {
   "ago.now": "just now", "ago.m": "m ago", "ago.h": "h ago", "ago.d": "d ago",
 

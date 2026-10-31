@@ -1,13 +1,8 @@
-// Irvine High School's weekly menu (from the school flyer and district nutrition sheet), Monday to Friday.
-// Each day is { breakfast, snack, lunch }.
-// Every dish has a photo in public/samples/ (credits in CREDITS.md);
-// never add a dish without one.
-// The packaged snacks are real products; their calories, ingredients, and
-// allergens come from the labels. Everything else is a typical school-lunch
-// version of the dish, so its ingredients and allergens are illustrative.
+// irvine menu: flyer dishes plus the district nutrition sheet
 const CRUST = "Crust (enriched wheat flour, whole wheat flour, water, soybean oil, yeast, sugar, salt), tomato sauce (tomato paste, water, garlic, oregano, basil), low-moisture part-skim mozzarella cheese (milk, cultures, salt, enzymes)";
+// a few older sample dishes with photos
 const DISH = {
-  // ----- breakfast (pancakes ... muffin) and snacks (fruitCup ... oatBar) -----
+  // breakfast and snacks
   pancakes: { name: "Pancakes", photo: "/samples/pancakes.jpg", desc: "Stack of whole-grain pancakes with syrup and a pat of butter.", cuisine: "american", diet: ["vegetarian"], calories: 350,
     ingredients: "Whole wheat flour, enriched wheat flour, milk, eggs, sugar, soybean oil, baking powder, salt, vanilla. Served with pancake syrup and butter.",
     allergens: ["gluten", "dairy", "eggs"], may: ["soy"] },
@@ -39,7 +34,7 @@ const DISH = {
     ingredients: "Wheat flour (whole wheat flour, enriched wheat flour [wheat flour, niacin, reduced iron, thiamine mononitrate, riboflavin, folic acid]), sugar, oats, chocolate chips (sugar, chocolate liquor, cocoa butter, dextrose, soy lecithin, vanilla flavor), eggs, soybean oil, invert sugar, canola oil, sugarcane molasses. 2% or less of: whey, natural flavor, baking soda, inulin, baking powder (sodium acid pyrophosphate, sodium bicarbonate, corn starch, monocalcium phosphate), xanthan gum, salt, soy lecithin",
     allergens: ["gluten", "eggs", "dairy", "soy"] },
 
-  // ----- lunch -----
+  // lunch
   tenders: { name: "Chicken Tenders & Fries", photo: "/samples/chicken-tenders.jpg", desc: "Crispy breaded chicken tenders with seasoned fries and ranch.", cuisine: "american", calories: 620,
     ingredients: "Chicken breast, breading (enriched wheat flour, whole wheat flour, salt, spices, paprika), soybean oil, potatoes, ranch dressing (soybean oil, buttermilk, egg yolk, vinegar, garlic, onion, herbs)",
     allergens: ["gluten", "soy", "dairy", "eggs"], may_other: "Fries are cooked in a shared fryer" },
@@ -82,24 +77,20 @@ const DISH = {
 };
 
 
-// ---------- the school cafeteria's real menu ----------
-// Source: a school district's "Nutritional Information, High School, 2026-2027" sheet. Calories,
-// nutrients and allergens below are copied from it, one row per dish (the row used is noted where the
-// menu name and the sheet's name differ). The sheet itself says it "may not be accurate" and that
-// cross-contact can't be guaranteed, which LunchLine repeats wherever allergens are shown.
-// Ingredient lists aren't on the sheet, so dishes say to ask nutrition services.
 
-// "Wheat, milk, soy may contain egg" -> { contains: [gluten, dairy, soy], may: [eggs] }
+// allergen words on the sheet turn into our allergen names
 const ALG = [[/wheat|gluten/i, "gluten"], [/milk|cheese/i, "dairy"], [/soy/i, "soy"], [/egg/i, "eggs"], [/peanut/i, "peanuts"], [/fish/i, "fish"], [/sesame/i, "sesame"], [/pine ?nut|tree nut/i, "tree_nuts"]];
+// pull allergens out of the sheet text
 function allergens(text) {
   const [has, maybe = ""] = String(text || "").split(/may contain/i);
   const keys = t => [...new Set(ALG.filter(([re]) => re.test(t)).map(([, k]) => k))];
   const contains = keys(has);
   return { contains, may: keys(maybe).filter(k => !contains.includes(k)) };
 }
+// sheet has no ingredient lists
 const NO_INGREDIENTS = "The full ingredient list isn't on the nutrition sheet. Ask nutrition services.";
 
-// n = [calories, protein g, fat g, saturated fat g, carbs g, fiber g, sodium mg]; null where the sheet is blank.
+// one dish from the sheet
 function m(name, o) {
   const [cal, protein, fat, sat, carbs, fiber, sodium] = o.n || [];
   const a = allergens(o.a);
@@ -111,9 +102,7 @@ function m(name, o) {
   };
 }
 
-// The nutrition sheet, used only to look up the numbers for dishes on the menu. Every row, in order: [section, name, calories, protein g, fat g, sat fat g, carbs g, fiber g, sodium mg, allergens].
-// A blank on the sheet is null. Two entries with typos on the sheet are corrected here ("What" for Wheat, "fires" for fries),
-// and one protein figure that was printed as 464.958 g is left blank.
+// the nutrition sheet. blank means the sheet left it blank
 const SHEET = [
   ["Entree", "Alfredo Chicken and Pasta", 388.5, 25.727, 11.0, 5.0, 46.0, 6.0, 510.0, "Wheat, milk"],
   ["Entree", "Alfredo Pasta - spicy pink alfredo", 443.9, 22.89, 14.0, 7.5, 57.0, 5.8, 1049.0, "Wheat, milk"],
@@ -400,7 +389,7 @@ const SHEET = [
   ["Other", "Syrup 1.5 oz portions", 120.0, null, 0.0, 0.0, 34.0, 0.0, 0.0, ""],
 ];
 
-// Photos we have for a handful of dishes. Everything else gets a food icon.
+// dishes we have photos for
 const PHOTOS = [
   [/pancake/i, "pancakes"], [/french toast/i, "frenchToast"], [/muffin blueberry/i, "muffin"], [/breakfast burrito 10" egg and cheese/i, "burrito"],
   [/yogurt parfait - berries/i, "parfait"], [/banana bread/i, "bananaBread"], [/benefit bar/i, "oatBar"], [/donut/i, "donuts"],
@@ -409,6 +398,7 @@ const PHOTOS = [
   [/salad, caesar chicken/i, "caesar"], [/teriyaki chicken and rice bowl/i, "teriyaki"], [/cheeseburger - bacon/i, "burger"],
   [/wrap - caesar$/i, "wrap"], [/^taco beef/i, "tacos"], [/pick up stix orange/i, "orangeChicken"], [/fresh fruit/i, "fruitCup"],
 ];
+// guess the cuisine from the name
 const CUISINE = [
   [/alfredo|pasta|pizza|lasagna|calzone|ziti|spaghetti|raviol|flatbread|bosco|meatball|parmesan|marinara|beefaroni|pesto/i, "italian"],
   [/burrito|taco|quesadilla|enchilada|chilaquiles|fajita|fiesta|salsa|nacho|flauquito|chili|tortilla chips/i, "mexican"],
@@ -416,7 +406,9 @@ const CUISINE = [
   [/teriyaki|edamame|korean/i, "japanese"], [/masala|curry/i, "indian"],
   [/fruit|apple|banana|orange|pear|peach|grape|raisin|tangerine|watermelon|pineapple|carrot|cucumber|tomato|salad|green beans|peas|corn cup|yogurt|vegan/i, "healthy"],
 ];
+// first match wins
 const guess = (name, list, dflt) => { for (const [re, v] of list) if (re.test(name)) return v; return dflt; };
+// turn a sheet row into a dish
 function dish([section, name, cal, protein, fat, sat, carbs, fiber, sodium, alg]) {
   const a = allergens(alg);
   const photoKey = (PHOTOS.find(([re]) => re.test(name)) || [])[1];
@@ -429,13 +421,11 @@ function dish([section, name, cal, protein, fat, sat, carbs, fiber, sodium, alg]
     calories: cal, protein, fat, sat_fat: sat, carbs, fiber, sodium, allergens: a.contains, may: a.may, may_other: /pick up stix/i.test(name) ? "The sheet warns of cross-contact with other items and seeds." : "",
   };
 }
-// ---------- Irvine High School: snack and lunch menu, week of October 19, 2026 ----------
-// The menu below is the cafeteria's own flyer. Where a dish on the flyer matches a row of the nutrition
-// sheet, it carries that row's numbers; where it doesn't (or the flyer says "a variety of"), the numbers
-// are left blank and the card says to ask nutrition services. Nothing is guessed.
+// find a sheet row
 const row = re => SHEET.find(r => re.test(r[1]));
+// dish with no sheet numbers
 const blank = name => ({ name, photo: "", desc: "", ingredients: NO_INGREDIENTS, cuisine: guess(name, CUISINE, "american"), diet: [], calories: null, protein: null, fat: null, sat_fat: null, carbs: null, fiber: null, sodium: null, allergens: [], may: [], may_other: "Allergens and nutrition aren't on the sheet for this dish. Ask nutrition services." });
-// item("Name on flyer", sheet row regex or null, { photo, desc, diet })
+// a flyer dish, with sheet numbers if we can match it
 function item(name, re, o = {}) {
   const r = re && row(re);
   const d = r ? { ...dish(r), name } : blank(name);
@@ -446,11 +436,13 @@ function item(name, re, o = {}) {
   if (o.cuisine) d.cuisine = o.cuisine;
   return d;
 }
+// bagel
 const bagel = (() => {
   const b = row(/^Bagel 3 oz/), c = row(/^Cream Cheese/), d = dish(b), x = dish(c);
   return { ...d, name: "Bagel with Cream Cheese", photo: "/samples/bagel-cream-cheese.jpg", calories: b[2] + c[2], protein: b[3] + c[3], fat: b[4] + c[4], sat_fat: b[5] + c[5], carbs: b[6] + c[6], fiber: b[7] + c[7], sodium: b[8] + c[8], allergens: [...new Set([...d.allergens, ...x.allergens])], diet: ["vegetarian"] };
 })();
 
+// breakfast hot
 const HOT = [
   item("Breakfast Burritos", /^Breakfast Burrito 10" egg and cheese/, { photo: "burrito", desc: "10-inch egg and cheese burrito.", diet: ["vegetarian"] }),
   item("Breakfast Bowls", /^Breakfast Bowl egg cheese potato$/, { img:"breakfast-bowl", desc: "Egg, cheese and potato bowl.", diet: ["vegetarian"] }),
@@ -461,6 +453,7 @@ const HOT = [
   item("Mini Pancakes", /^Mini Pancakes/, { photo: "pancakes", diet: ["vegetarian"] }),
   item("Mini Cinnis", /^Mini Cinnis/, { img:"mini-cinnis", diet: ["vegetarian"] }),
 ];
+// quick picks
 const QUICK = [
   item("Yogurt Parfaits", /^Yogurt Parfait - berries/, { photo: "parfait", cuisine: "healthy", diet: ["vegetarian"] }),
   item("Chobani Yogurt Cups", null, { img:"chobani-yogurt-cup", cuisine: "healthy", diet: ["vegetarian"] }),
@@ -469,6 +462,7 @@ const QUICK = [
   item("PB&J Uncrustables", /^Uncrustables 2\.6/, { img:"pb-and-j", diet: ["vegetarian"] }),
   item("Oatmeal or Banana Benefit Bars", /^Benefit Bar/, { photo: "oatBar", diet: ["vegetarian"] }),
 ];
+// bakery
 const BAKERY = [
   item("Donut Holes", null, { img:"donut-holes", diet: ["vegetarian"] }),
   item("Mini Powdered Donuts", /^Donut whole grain/, { photo: "donuts", diet: ["vegetarian"] }),
@@ -479,6 +473,7 @@ const BAKERY = [
   item("Snack Packs (variety)", null, { img: "snack-crackers" }),
 ];
 
+// lunch entrees
 const FEATURED = [
   [item("Pesto Alfredo Cheese Ravioli Bowl", null, { img:"ravioli-bowl", cuisine: "italian", diet: ["vegetarian"] })],
   [item("Teriyaki Chicken & Rice Bowl", /^Teriyaki Chicken and Rice Bowl Minh/, { photo: "teriyaki", cuisine: "japanese" })],
@@ -486,6 +481,7 @@ const FEATURED = [
   [item("Beef Vindaloo Bowl", null, { img:"beef-vindaloo", cuisine: "indian", diet: ["spicy"] }), item("Masala Aloo Matar Bowl", null, { img:"aloo-matar", cuisine: "indian", diet: ["vegetarian"] })],
   [item("Turkey Taco Spaghetti Pasta Bowl", null, { img:"taco-spaghetti", cuisine: "mexican" })],
 ];
+// daily favorites
 const FAVORITES = [
   item("Papa John's Pizza (Cheese)", /^Pizza Papa John Cheese/, { photo: "cheesePizza", cuisine: "italian", diet: ["vegetarian"] }),
   item("Papa John's Pizza (Pepperoni)", /^Pizza Papa John Pepperoni/, { photo: "pepperoniPizza", cuisine: "italian" }),
@@ -500,8 +496,7 @@ const FAVORITES = [
   item("PB&J Uncrustables (Grape/Strawberry)", /^Uncrustables 5\.3/, { img:"pb-and-j", diet: ["vegetarian"] }),
 ];
 
-// One week, Monday to Friday. Breakfast offers all three morning categories; snack is the quick picks and
-// bakery. Lunch is that day's featured entree or entrees plus the daily favorites. Later weeks repeat it.
+// monday to friday, repeats every week
 export const SAMPLE_PLAN = FEATURED.map(featured => ({
   breakfast: [...HOT, ...QUICK, ...BAKERY],
   snack: [...QUICK, ...BAKERY],

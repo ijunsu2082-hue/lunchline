@@ -1,5 +1,4 @@
-// An in-memory stand-in for a Netlify Blobs store, plus a tiny request helper.
-
+// fake blob store for tests
 export function memStore() {
   const m = new Map();
   const dec = new TextDecoder();
@@ -23,9 +22,10 @@ export function memStore() {
   };
 }
 
+// test client
 export const ORIGIN = "http://localhost:8888";
 
-// Drives the real handler like a browser would, keeping cookies between calls.
+// acts like a browser, keeps cookies
 export function client(handle, store, { ip = "1.2.3.4" } = {}) {
   let cookie = "";
   return async function call(method, path, body, { token, key, raw, headers = {} } = {}) {

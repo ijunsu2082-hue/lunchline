@@ -1,5 +1,5 @@
-// Español. Any key missing here falls back to English (see js/i18n.js).
-// A native speaker should review this before it goes in front of students.
+// spanish strings, missing ones fall back to english
+// still needs a native speaker to check it
 export default {
   "ago.now": "ahora", "ago.m": " min", "ago.h": " h", "ago.d": " d",
 

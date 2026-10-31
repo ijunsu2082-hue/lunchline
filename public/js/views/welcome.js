@@ -1,6 +1,4 @@
-// The landing page. Real food photography, a serif headline, and plain talk.
-// Styles: landing.css. Motion: startWelcomeMotion (scroll reveals, word-by-word headings, parallax, photo strips
-// you can drag, count-up), all calm or off for reduced motion. 
+// landing page
 import { esc, $, $$, reducedMotion } from "../util.js";
 import { icon, mark } from "../icons.js";
 import { tourHTML, bindTour } from "./tour.js";
@@ -9,6 +7,7 @@ const photo = (name, alt = "") => `<img src="/samples/${name}.jpg" alt="${esc(al
 
 const ROW_ONE = ["teriyaki-chicken-bowl", "cheese-pizza", "breakfast-burrito", "buffalo-chicken", "blueberry-muffin", "beef-tacos", "orange-chicken-rice", "yogurt-parfait"];
 const ROW_TWO = ["pancakes", "beef-vindaloo", "pepperoni-pizza", "caesar-salad", "ravioli-bowl", "banana-bread", "chicken-tenders", "aloo-matar"];
+// a row of food photos
 const strip = names => `<div class="lx-track">${[...names, ...names].map((n, i) => `<figure${i >= names.length ? ' aria-hidden="true"' : ""}>${photo(n)}</figure>`).join("")}</div>`;
 
 const STEPS = [
@@ -17,6 +16,7 @@ const STEPS = [
   { photo: "orange-chicken-rice", t: "The kitchen answers on the dish.", p: "The cooks read your comments, fix what's wrong, and reply right under the dish." },
 ];
 
+// the page html
 export function welcomeHTML() {
   return `<div class="lx">
     <header class="lx-nav" id="lx-nav">
@@ -118,14 +118,15 @@ export function welcomeHTML() {
   </div>`;
 }
 
-// Scroll-linked touches. Skipped for reduced motion, where everything simply shows.
+// scroll effects, off for reduced motion
+// unused now
 export const toggleDemoPause = () => false;
 export function startWelcomeMotion() {
   const root = $(".lx");
   if (!root) return;
   bindTour(root);
 
-  // nav shadow and the reading-progress line
+  // nav shadow and progress line
   const nav = $("#lx-nav"), bar = $(".lx-progress", root);
   const onScroll = () => {
     nav && nav.classList.toggle("stuck", window.scrollY > 12);
@@ -139,7 +140,7 @@ export function startWelcomeMotion() {
   startStrips(root, still);
   if (still || !("IntersectionObserver" in window)) return;
 
-  // headings arrive word by word
+  // headings show up word by word
   $$(".lx-split", root).forEach(h => {
     const label = h.textContent.trim();
     let i = 0;
@@ -170,7 +171,7 @@ export function startWelcomeMotion() {
   $$(".lx-reveal, .lx-split, .lx-step, [data-count]", root).forEach(el => io.observe(el));
   requestAnimationFrame(() => $$(".lx-hero .lx-split", root).forEach(el => el.classList.add("in")));
 
-  // photos drift a little as you scroll
+  // photos drift while scrolling
   const drift = $$("[data-parallax]", root);
   let tick = false;
   const move = () => {
@@ -186,7 +187,7 @@ export function startWelcomeMotion() {
   move();
 }
 
-// The photo rows drift on their own and can be dragged or swiped; they wrap around forever.
+// photo rows scroll on their own and can be dragged
 function startStrips(root, still) {
   $$("[data-strip]", root).forEach(strip => {
     const dir = Number(strip.dataset.dir) || 1, speed = .35;
@@ -196,7 +197,7 @@ function startStrips(root, still) {
     const hold = () => { paused = true; clearTimeout(resume); resume = setTimeout(() => { paused = false; }, 2200); };
     ["pointerdown", "touchstart", "wheel", "keydown", "focusin"].forEach(ev => strip.addEventListener(ev, hold, { passive: true }));
     strip.addEventListener("scroll", () => { const h = half(); if (!h) return; if (strip.scrollLeft >= h) strip.scrollLeft -= h; else if (strip.scrollLeft <= 0) strip.scrollLeft += h; }, { passive: true });
-    // mouse dragging (touch already scrolls natively)
+    // mouse dragging, touch already scrolls
     let down = false, x0 = 0, s0 = 0;
     strip.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") return; down = true; x0 = e.clientX; s0 = strip.scrollLeft; strip.classList.add("drag"); });
     window.addEventListener("pointermove", e => { if (down) strip.scrollLeft = s0 - (e.clientX - x0); });
@@ -212,6 +213,7 @@ function startStrips(root, still) {
   });
 }
 
+// count numbers up
 function countUp(el) {
   const num = $(".num", el), to = +el.dataset.count;
   if (!num || el.dataset.done) return;

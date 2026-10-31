@@ -1,19 +1,19 @@
-// Talking to the server. Staff are identified by a session cookie (set when
-// they follow their email link); students by a signed device token that's issued
-// after a small proof-of-work puzzle and kept on the phone.
+// talking to the server
 import { LS } from "./util.js";
 import { state } from "./state.js";
 
+// errors from the server
 export class ApiError extends Error {
   constructor(msg, status, code) { super(msg); this.status = status; this.code = code; }
 }
 
-// ---------- device tokens ----------
-const tokens = LS.get("ll_tokens", {}); // schoolId -> token
+// device tokens
+const tokens = LS.get("ll_tokens", {}); // school -> token
 const pending = {};
 
+// solve the puzzle
 function solveInline(challenge, bits) {
-  // Fallback when Web Workers aren't available. Yields now and then so the page stays alive.
+  // no web workers, solve it here
   return new Promise((resolve, reject) => {
     const enc = new TextEncoder();
     let n = 0;
@@ -42,6 +42,7 @@ function solvePow(challenge, bits) {
   });
 }
 
+// get a device token
 export function ensureToken(schoolId, force = false) {
   if (!force && tokens[schoolId]) return Promise.resolve(tokens[schoolId]);
   if (pending[schoolId]) return pending[schoolId];
@@ -55,10 +56,11 @@ export function ensureToken(schoolId, force = false) {
   })().finally(() => { delete pending[schoolId]; });
   return pending[schoolId];
 }
+// drop a token
 export const forgetToken = schoolId => { delete tokens[schoolId]; LS.set("ll_tokens", tokens); };
 
-// ---------- requests ----------
-// opts: { student: schoolId } sends the device token; { raw, type } sends a file.
+// requests
+// opts: student sends the device token, raw sends a file
 export async function api(method, path, data, opts = {}) {
   const run = async retry => {
     const headers = { "X-LL": "1" };
@@ -83,7 +85,7 @@ export async function api(method, path, data, opts = {}) {
   return run(false);
 }
 
-// Requests for the same key run one after another, so the last tap always wins.
+// same key runs one at a time so the last tap wins
 const queues = {};
 export function enqueue(id, fn) {
   const p = (queues[id] || Promise.resolve()).then(fn, fn);

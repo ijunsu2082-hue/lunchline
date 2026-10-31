@@ -1,17 +1,19 @@
+// api tests
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { memStore, client } from "./helpers.mjs";
 
-process.env.POW_BITS = "6"; // keep the puzzle instant in tests; read when the module loads
-globalThis.__LL_DEV = true; // setup links point back at the request's own origin
+process.env.POW_BITS = "6"; // easy puzzle for tests
+globalThis.__LL_DEV = true; // dev mode so links come back
 globalThis.__LL_TODAY = "2026-10-21";
-console.log = () => {}; // keep the server's own logging out of the test output
+console.log = () => {}; // keep test output quiet
 const { handle } = await import("../netlify/lib/api.mjs");
 
+// small helpers
 const tokenOf = link => new URL(link).searchParams.get("login");
 
-// Magic-link sign-up: ask for a link (local dev hands it back), then use it.
+// sign up with a magic link
 async function createSchoolAs(c, email, name, extra = {}) {
   const req = await c("POST", "auth/request", { mode: "create", email, name, tz: "America/Chicago", ...extra });
   assert.equal(req.status, 200, JSON.stringify(req.body));
@@ -23,9 +25,12 @@ async function signInAs(c, email) {
   return req.body.dev_link ? c("POST", "auth/verify", { token: tokenOf(req.body.dev_link) }) : null;
 }
 
+// fixed date
 const TODAY = "2026-10-21";
+// quick dish
 const dish = (id, name, extra = {}) => ({ id, name, allergens: [], may: [], diet: [], ...extra });
 
+// solve the puzzle
 function solve(challenge, bits) {
   for (let n = 0; ; n++) {
     const h = createHash("sha256").update(`${challenge}:${n}`).digest();
@@ -35,6 +40,7 @@ function solve(challenge, bits) {
   }
 }
 
+// a school with staff and a menu
 async function setup() {
   const store = memStore();
   const staff = client(handle, store, { ip: "9.9.9.9" });
@@ -100,7 +106,7 @@ test("without an email service a live site refuses to pretend, and only local de
 test("sign-in links are rate limited per email", async () => {
   const { store } = await setup();
   const results = [];
-  // setting the school up used one of the five requests this email gets per 15 minutes
+  // setup used one of the 5 requests
   for (let i = 0; i < 5; i++) results.push((await client(handle, store, { ip: `3.3.3.${i}` })("POST", "auth/request", { email: "cook@school.edu" })).status);
   assert.deepEqual(results.slice(0, 4), Array(4).fill(200));
   assert.equal(results[4], 429);
@@ -121,7 +127,7 @@ test("an invite is a sign-in link, and a sign-in opens every school the email is
   assert.equal((await x("GET", `staff?school=${school.id}`)).status, 200);
   assert.equal((await x("POST", "auth/verify", { token: tokenOf(inv.body.link) })).status, 400, "an invite works once");
   assert.equal((await staff("GET", `staff?school=${school.id}`)).body.members.find(m => m.email === "x@other.edu").ready, true, "joined once they sign in");
-  // removed from the team before using the link: nothing to open
+  // removed before using the link
   const again = await staff("POST", "staff", { school: school.id, email: "gone@school.edu", role: "cook" });
   const gone = (await staff("GET", `staff?school=${school.id}`)).body.members.find(m => m.email === "gone@school.edu");
   await staff("DELETE", `staff/${gone.id}?school=${school.id}`);
@@ -133,7 +139,7 @@ test("staff routes need a session, and a cookie alone isn't enough to change thi
   const anon = client(handle, store);
   assert.equal((await anon("GET", `insights?school=${school.id}&from=${TODAY}&to=${TODAY}`)).status, 401);
   assert.equal((await anon("PUT", "menu", { school: school.id, days: [{ date: TODAY, lunch: [dish("bbbbbb1", "X")] }] })).status, 401);
-  // a forged cross-site POST carries the cookie but not the x-ll header
+  // fake cross site post: cookie but no header
   const cookie = [...store._m.keys()].find(k => k.startsWith("sess/"));
   assert.ok(cookie);
   const sess = (await staff("GET", "auth/me")).body;
@@ -157,7 +163,7 @@ test("only a device with a valid token can rate; the body can't pick the voter",
   const keys = [...store._m.keys()].filter(k => k.startsWith(`vote/${school.id}/`));
   assert.equal(keys.length, 1);
   assert.ok(keys[0].includes("device-aaaa-0001"), "the vote is stored under the token's device, not the body's");
-  // a token for another school doesn't work here
+  // token from another school
   const other = client(handle, store);
   const v2 = await createSchoolAs(other, "x@y.edu", "Other School");
   const pow = await other("GET", `pow?school=${v2.body.created.id}`);
@@ -195,13 +201,13 @@ test("grade level sticks to the student and reaches the kitchen only in groups",
   for (let i = 0; i < 6; i++) kids.push(await device(`device-grade-${String(i).padStart(4, "0")}`));
   const bad = await kids[0].call("POST", "profile", { school: school.id, grade: "3" }, { token: kids[0].token });
   assert.equal(bad.status, 400, "a grade the school doesn't serve is refused");
-  // five 10th graders vote, one 11th grader votes
+  // five 10th graders, one 11th
   for (let i = 0; i < 5; i++) {
     await kids[i].call("POST", "profile", { school: school.id, grade: "10" }, { token: kids[i].token });
     await kids[i].call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa2", vote: "bad" }, { token: kids[i].token });
   }
   await kids[5].call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa2", vote: "bad" }, { token: kids[5].token });
-  // grade set AFTER voting still counts
+  // grade set after voting still counts
   await kids[5].call("POST", "profile", { school: school.id, grade: "11" }, { token: kids[5].token });
   const ins = (await staff("GET", `insights?school=${school.id}&from=${TODAY}&to=${TODAY}`)).body;
   assert.equal(ins.stats.total.total, 6);
@@ -232,7 +238,7 @@ test("duplicate suggestions merge into one idea", async () => {
   assert.equal(list.length, 2);
   assert.equal(list[0].text, "Noodles");
   assert.equal(list[0].count, 2);
-  // staff can merge related ideas and set a status
+  // staff merge and set a status
   const merged = await staff("POST", `ideas/${spicy.body.idea.id}/merge`, { school: school.id, into: first.body.idea.id });
   assert.equal(merged.body.count, 3);
   await staff("PATCH", `ideas/${first.body.idea.id}`, { school: school.id, status: "planned", reply: "Trying it in November" });
@@ -263,13 +269,13 @@ test("roles: cooks can edit menus but not manage people; nobody can promote past
   assert.equal((await cook("POST", "staff", { school: school.id, email: "x@y.edu", role: "cook" })).status, 403);
   assert.equal((await cook("PATCH", `schools/${school.id}`, { enrollment: 10 })).status, 403);
   assert.equal((await cook("DELETE", `schools/${school.id}`)).status, 403);
-  // an admin can invite cooks but not owners
+  // admins can invite cooks but not owners
   const invA = await staff("POST", "staff", { school: school.id, email: "admin@school.edu", role: "admin" });
   const admin = client(handle, store, { ip: "6.6.6.6" });
   assert.equal((await admin("POST", "auth/verify", { token: tokenOf(invA.body.link) })).status, 200);
   assert.equal((await admin("POST", "staff", { school: school.id, email: "z@y.edu", role: "owner" })).status, 403);
   assert.equal((await admin("POST", "staff", { school: school.id, email: "z@y.edu", role: "cook" })).status, 201);
-  // sign-in links: admins can make them for their level and below, cooks can't make any
+  // who can make sign in links
   const members = (await staff("GET", `staff?school=${school.id}`)).body.members;
   const idOf = e => members.find(m => m.email === e).id;
   assert.equal((await cook("POST", `staff/${idOf("z@y.edu")}/link?school=${school.id}`)).status, 403);
@@ -277,7 +283,7 @@ test("roles: cooks can edit menus but not manage people; nobody can promote past
   const reset = await admin("POST", `staff/${idOf("cook2@school.edu")}/link?school=${school.id}`);
   assert.equal(reset.status, 200);
   assert.equal((await cook("POST", "auth/verify", { token: tokenOf(reset.body.link) })).status, 200);
-  // the last owner can't be removed
+  // can't remove the last owner
   const owner = members.find(m => m.role === "owner");
   assert.equal((await staff("DELETE", `staff/${owner.id}?school=${school.id}`)).status, 400);
 });
@@ -372,7 +378,7 @@ test("a school full of students behind one wifi address isn't locked out", async
   const { school, store } = await setup();
   let joined = 0;
   for (let i = 0; i < 60; i++) {
-    const c = client(handle, store, { ip: "203.0.113.7" }); // everyone on the same network
+    const c = client(handle, store, { ip: "203.0.113.7" }); // everyone on one wifi
     const pow = await c("GET", `pow?school=${school.id}`);
     const t = await c("POST", "token", { school: school.id, voter_id: `device-wifi-${String(i).padStart(4, "0")}`, challenge: pow.body.challenge, nonce: solve(pow.body.challenge, pow.body.bits) });
     if (t.status === 201) joined++;
@@ -428,7 +434,7 @@ test("the old sample schools are removed once, and Irvine High keeps its own men
   const menu = (await anon("GET", `menu?school=${irvine.id}&from=2026-10-19&to=2026-10-25`)).body.days;
   assert.deepEqual(Object.keys(menu).sort(), ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"]);
   assert.ok((await anon("GET", `menu?school=${real.id}&from=2026-10-19&to=2026-10-25`)).body.days && Object.keys((await anon("GET", `menu?school=${real.id}&from=2026-10-19&to=2026-10-25`)).body.days).length === 0, "a real school gets nothing it didn't enter");
-  // the master email now opens only its own school
+  // old master email only opens its own school
   const owner = client(handle, store, { ip: "6.1.1.1" });
   const link = (await owner("POST", "auth/request", { email: "ajaysriramsankar@gmail.com" })).body.dev_link;
   const me = await owner("POST", "auth/verify", { token: tokenOf(link) });
@@ -456,7 +462,7 @@ test("a reply can go to one student privately or to everyone, always showing the
   const posted = (await kid.call("GET", `menu?school=${school.id}&from=${TODAY}&to=${TODAY}`)).body.days[TODAY].lunch.find(d => d.id === "aaaaaa1");
   assert.equal(posted.reply, "We're fixing the oven.");
   assert.equal(posted.reply_to, "cold and dry", "the public reply shows what it answers");
-  // rating again without changing the comment keeps the reply
+  // same comment keeps the reply
   await kid.call("POST", "votes", { school: school.id, date: TODAY, item_id: "aaaaaa1", vote: "mid", comment: "cold and dry" }, { token: kid.token });
   assert.equal((await kid.call("GET", `votes?school=${school.id}&from=${TODAY}&to=${TODAY}`, undefined, { token: kid.token })).body.votes[0].kitchen_reply.text, "We're fixing the oven.");
   assert.equal((await staff("POST", "replies", { school: school.id, date: TODAY, item_id: "aaaaaa1", text: "x", cid: "nope00000000" })).status, 404);

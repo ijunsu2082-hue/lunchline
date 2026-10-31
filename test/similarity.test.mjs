@@ -1,3 +1,4 @@
+// idea matching tests
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { similarity, normalize, findSimilar, tidyText, SAME, RELATED, osa } from "../netlify/lib/similarity.mjs";

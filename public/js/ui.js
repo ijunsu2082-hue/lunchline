@@ -1,18 +1,17 @@
-// Shared UI plumbing: rendering hook, routing, toasts, sheets, confirm dialogs,
-// and the registry views use to handle clicks.
+// shared ui bits: render hook, tabs, toasts, sheets, confirm box
 import { $, esc } from "./util.js";
 import { state } from "./state.js";
 import { icon } from "./icons.js";
 
-// Views register small callbacks here so one module can ask another to refresh part of the page.
+// views leave callbacks here so they can refresh each other
 export const hooks = {};
 
-// ---------- render hook (main.js supplies the real one) ----------
+// render hook
 let renderer = () => {};
 export const setRenderer = fn => { renderer = fn; };
 export const render = focus => renderer(focus);
 
-// ---------- routing ----------
+// tabs
 export const TABS = {
   student: [["menu", "Menu", "utensils"], ["ideas", "Ideas", "lightbulb"], ["me", "Me", "user"]],
   parent: [["menu", "Menu", "utensils"]],
@@ -27,12 +26,12 @@ export function go(tab) {
   else location.hash = tab;
 }
 
-// ---------- click registry ----------
+// click handlers
 const actions = {};
 export const registerActions = obj => Object.assign(actions, obj);
 export const getAction = name => actions[name];
 
-// ---------- toast ----------
+// toasts
 let toastTimer;
 export function toast(msg, isError = false, action = null) {
   const el = $("#toast");
@@ -42,7 +41,7 @@ export function toast(msg, isError = false, action = null) {
   toastTimer = setTimeout(() => { el.className = "toast"; }, isError ? 4800 : action ? 5200 : 2800);
 }
 
-// ---------- bottom sheet / side sheet ----------
+// sheets
 export const sheetEl = () => $("#sheet");
 export function openSheet(html, { onClose } = {}) {
   const s = sheetEl();
@@ -58,13 +57,11 @@ export function closeSheet() {
 export function bindSheet() {
   const s = sheetEl();
   s.addEventListener("close", () => { s.innerHTML = ""; const f = s._onClose; s._onClose = null; if (f) f(); });
-  // tapping the dimmed area closes it
+  // click outside closes it
   s.addEventListener("click", e => { if (e.target === s) s.close(); });
 }
 
-// ---------- confirm dialog (replaces confirm() / prompt()) ----------
-// askConfirm({ title, body, ok, danger, phrase }) -> Promise<boolean>.
-// With `phrase`, the person must type it to enable the button.
+// confirm box instead of confirm()
 export function askConfirm({ title, body = "", ok = "Confirm", cancel = "Cancel", danger = false, phrase = "" }) {
   const dlg = $("#modal");
   return new Promise(resolve => {
@@ -89,7 +86,7 @@ export function askConfirm({ title, body = "", ok = "Confirm", cancel = "Cancel"
   });
 }
 
-// ---------- small shared pieces ----------
+// small shared pieces
 export const errorBox = (msg, act) => `<div class="empty"><p>${esc(msg)}</p><button class="btn secondary" data-act="${act}">${icon("refresh")}Try again</button></div>`;
 export const skeleton = (n, cls = "") => `<div class="skel-list ${cls}" aria-busy="true"><span class="sr-only">Loading</span>${'<div class="skel"></div>'.repeat(n)}</div>`;
 

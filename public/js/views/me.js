@@ -1,5 +1,4 @@
-// The student's own page: grade, allergies, food they like, button style,
-// language, and leaving the school. Everything here lives on this device.
+// student's page: grade, allergies, likes, language, leave
 import { esc, cap, listJoin, LS, inviteLink, parentLink, copyText } from "../util.js";
 import { state, school } from "../state.js";
 import { icon } from "../icons.js";
@@ -7,8 +6,10 @@ import { t, LANGS, chooseLang, setLang } from "../i18n.js";
 import { render, toast, registerActions, head, askConfirm } from "../ui.js";
 import { startFlow, leaveToWelcome, setMode } from "../session.js";
 
+// split into words
 const terms = s => String(s || "").toLowerCase().split(/[,;/\n]+/).map(x => x.trim()).filter(x => x.length >= 2);
 
+// the page
 export function viewMe() {
   const st = state.student, s = st.school;
   const allergies = [...st.allergies.map(a => t("allergen." + a)), ...terms(st.allergyOther).map(cap)];

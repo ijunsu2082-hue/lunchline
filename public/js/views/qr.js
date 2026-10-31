@@ -1,12 +1,11 @@
-// QR codes and printable posters. The code is drawn right here as inline SVG
-// with a vendored MIT library, so nothing about your school is sent to a QR service.
+// qr codes and posters, drawn here so nothing goes to a qr service
 import qrcode from "../../vendor/qrcode.mjs";
 import { esc, inviteLink, parentLink } from "../util.js";
 import { icon, mark } from "../icons.js";
 import { openSheet, registerActions, toast } from "../ui.js";
 import { state } from "../state.js";
 
-// Returns an <svg> string. `quiet` is the blank border, in modules.
+// returns svg text
 export function qrSvg(text, { fg = "#20150D", bg = "#FFFFFF", quiet = 2, label = "QR code" } = {}) {
   const qr = qrcode(0, "M");
   qr.addData(text);
@@ -24,7 +23,7 @@ export function qrSvg(text, { fg = "#20150D", bg = "#FFFFFF", quiet = 2, label =
   return `<svg class="qr" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path d="${path}" fill="${fg}"/></svg>`;
 }
 
-// What the poster says, in both languages so one sheet works on the tray line.
+// poster words, english and spanish
 const POSTERS = {
   letter: {
     name: "Tray-line poster", sub: "Letter size, one per lunch line",
@@ -59,6 +58,7 @@ const POSTERS = {
   },
 };
 
+// open the poster sheet
 export function openPosterSheet(kind = "letter") {
   const s = state.admin.school, P = POSTERS[kind];
   openSheet(`<div class="poster-sheet">

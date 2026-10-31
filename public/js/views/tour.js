@@ -1,5 +1,4 @@
-// A working miniature of the student app for the landing page: rate dishes, flag an allergy or vegetarian,
-// vote on ideas, suggest one. It runs entirely in the page; nothing is saved or sent.
+// little working app on the landing page, nothing is saved
 import { esc } from "../util.js";
 import { icon, mark } from "../icons.js";
 
@@ -12,6 +11,7 @@ const DISHES = [
 const IDEAS = [["Orange chicken with fried rice", 142], ["Birria tacos", 118], ["More vegetarian bowls", 97]];
 const FLAGS = [["veg", "Vegetarian"], ["Eggs", "Egg allergy"], ["Dairy", "Dairy allergy"]];
 
+// phone html
 export function tourHTML() {
   return `<div class="tp" data-tour>
     <div class="tp-phone">
@@ -22,6 +22,7 @@ export function tourHTML() {
   </div>`;
 }
 
+// make it work
 export function bindTour(root) {
   const el = root.querySelector("[data-tour]");
   if (!el) return;

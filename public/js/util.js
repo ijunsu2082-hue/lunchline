@@ -1,4 +1,4 @@
-// Small helpers shared by every view.
+// small helpers
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -9,7 +9,8 @@ export const pct = t => (t && t.total ? Math.round((100 * t.good) / t.total) : 0
 export const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 export const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 
-// The page language. i18n.js sets it; dates and lists read it.
+// page language, dates read it
+// language
 export const L = { lang: "en" };
 const locale = () => (L.lang === "es" ? "es-US" : "en-US");
 
@@ -20,12 +21,14 @@ export const listJoin = a => {
   return a.slice(0, -1).join(", ") + and + a[a.length - 1];
 };
 
+// localStorage, safely
 export const LS = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: the page still works, it just forgets */ } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode, it just forgets */ } },
   del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
 };
 
+// date helpers
 export const D = {
   add(d, n) { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); },
   dow: d => new Date(d + "T00:00:00Z").getUTCDay(),
@@ -37,6 +40,7 @@ export const D = {
 };
 export const shortDay = d => D.fmt(d, { weekday: "short", month: "short", day: "numeric" });
 
+// date in the school's timezone
 export function zoned(tz) {
   try {
     const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
@@ -47,11 +51,12 @@ export function zoned(tz) {
     return { date: `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`, hour: n.getHours(), minute: n.getMinutes() };
   }
 }
-// Staff plan ahead: on a weekend, open the coming week. Students rate what they ate: on a weekend, open Friday.
+// weekends: staff see next week, students see friday
 export const staffHome = today => (D.isWeekend(today) ? D.add(D.monday(today), 7) : today);
 export const studentHome = today => (D.isWeekend(today) ? D.add(D.monday(today), 4) : today);
-export const RATE_DAYS = 7; // matches the server
+export const RATE_DAYS = 7; // same as the server
 
+// '5 min ago'
 export function timeAgo(iso, t) {
   const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
   const w = t || (k => ({ now: "just now", m: "m ago", h: "h ago", d: "d ago" })[k]);
@@ -62,11 +67,13 @@ export function timeAgo(iso, t) {
   return d < 7 ? `${d}${w("d")}` : new Date(iso).toLocaleDateString(locale(), { month: "short", day: "numeric" });
 }
 
+// random id
 export function newId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("");
 }
 
+// copy to clipboard
 export async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch {
     const t = document.createElement("textarea");
@@ -79,11 +86,13 @@ export async function copyText(text) {
   }
 }
 
+// user wants less motion
 export const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+// join links
 export const inviteLink = code => `${location.origin}/?join=${code}`;
 export const parentLink = code => `${location.origin}/?parent=${code}`;
 
-// A friendly picture for a dish with no photo. First match wins.
+// emoji for dishes without a photo
 const EMOJI = [
   [/bagel/, "🥯"], [/juice/, "🧃"], [/milk/, "🥛"], [/yogurt|parfait/, "🥣"], [/cereal|oat/, "🥣"], [/pancake|waffle|french toast/, "🥞"],
   [/muffin|honey bun|donut/, "🧁"], [/bread|toast/, "🍞"], [/pb&j|uncrust|sandwich|sub\b/, "🥪"], [/burrito|wrap/, "🌯"], [/taco/, "🌮"],

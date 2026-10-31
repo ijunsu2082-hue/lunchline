@@ -1,8 +1,6 @@
-// School colors. Staff pick one color; everything else (text on it, a darker
-// shade for text on cream, a lighter one for dark mode, the dark rail) is worked
-// out here so contrast stays readable whatever they choose.
+// school colors: work out text and dark mode colors from one color
 
-// Common school colors, grouped so a staff member can find theirs fast.
+// common school colors
 export const PRESET_GROUPS = [
   ["Reds", [["Scarlet", "#E03A3E"], ["Cardinal", "#C8102E"], ["Crimson", "#A6192E"], ["Maroon", "#7A1F2B"], ["Burgundy", "#5E1224"]]],
   ["Oranges & golds", [["Orange", "#FF5A1F"], ["Burnt orange", "#BF5700"], ["Gold", "#E0A100"], ["Old gold", "#B3995D"], ["Yellow", "#F2C500"]]],
@@ -18,11 +16,13 @@ export const DEFAULT_COLOR = "#FF5A1F";
 const CREAM = "#FFF6EA", DARK = "#261B14", INK = "#20150D";
 export const isHex = s => /^#[0-9a-fA-F]{6}$/.test(s || "");
 
+// color math
 const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 export const contrast = (a, b) => { const x = lum(rgb(a)), y = lum(rgb(b)); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
+// hsl conversion
 function toHsl([r, g, b]) {
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
@@ -39,13 +39,14 @@ function fromHsl(h, s, l) {
   return "#" + [f(0), f(8), f(4)].map(v => v.toString(16).padStart(2, "0")).join("");
 }
 
-// Move a color's lightness until it reads on `bg`.
+// nudge a color until it's readable
 function readableOn(hex, bg, min, dir) {
   let [h, s, l] = toHsl(rgb(hex));
   for (let i = 0; i < 60 && contrast(fromHsl(h, s, l), bg) < min; i++) l = Math.min(0.97, Math.max(0.05, l + dir * 0.015));
   return fromHsl(h, s, l);
 }
 
+// css variables for a color
 export function themeVars(color) {
   const c = isHex(color) ? color.toUpperCase() : DEFAULT_COLOR;
   const [h, s] = toHsl(rgb(c));
@@ -59,8 +60,7 @@ export function themeVars(color) {
   };
 }
 
-// The brand color is fixed (the logo's orange). Schools no longer pick their own, so any color on a
-// school record is ignored.
+// brand color is fixed now, school colors are ignored
 export function applyTheme() {
   const root = document.documentElement;
   const vars = themeVars(DEFAULT_COLOR);

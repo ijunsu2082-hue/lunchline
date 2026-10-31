@@ -1,6 +1,4 @@
-// Onboarding and sign-in: a student joining a school (scan, then one quick
-// optional screen), a parent opening the menu, and staff signing in with a
-// password, creating a school, or picking a password from a setup link.
+// setup and sign in flows
 import { $, esc, normCode, LS, D, zoned } from "../util.js";
 import { state, ALLERGENS, GRADE_ORDER } from "../state.js";
 import { api, ensureToken } from "../api.js";
@@ -14,10 +12,10 @@ import { welcomeHTML } from "./welcome.js";
 const STAFF_FLOWS = ["signin", "create", "verify"];
 const validEmail = s => /.+@.+\..+/.test(s.trim());
 
-// ---------- shells ----------
+// page shells
 const blobs = '<svg class="fl-blobs" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-20 210c60-70 120-30 170-80s40-110 120-120 130 60 150 20v250H-20z" fill="rgba(255,255,255,.05)"/><path d="M240 320c10-70 70-90 120-70s60 70 60 70z" fill="rgba(255,255,255,.07)"/></svg>';
 
-// Students and families can switch language right on the join screens.
+// language switch on join screens
 function langSlot(ob) {
   if (STAFF_FLOWS.includes(ob.flow)) return '<span class="icon-btn ghost-space"></span>';
   const cur = document.documentElement.lang || "en";
@@ -25,6 +23,7 @@ function langSlot(ob) {
   return `<button type="button" class="chip-btn" data-act="lang" data-lang="${other[0]}" lang="${other[0]}" aria-label="${other[1]}">${icon("globe")}<span>${other[0].toUpperCase()}</span></button>`;
 }
 
+// top bar
 function topBar(ob, noBack) {
   return `<div class="fl-top">${noBack
     ? '<span class="icon-btn ghost-space"></span>'
@@ -32,7 +31,7 @@ function topBar(ob, noBack) {
     <span class="fl-brand">${mark(26)}<span>LunchLine</span></span>${langSlot(ob)}</div>`;
 }
 
-// A dark leather-colored top with a stitched panel, and a cream card for the form.
+// top bar and the form card
 function shell({ ob, title, lede, hero, body, foot, noBack, tabs }) {
   return `<div class="fl${tabs ? " has-tabs" : ""}">
     ${blobs}
@@ -53,16 +52,19 @@ function shell({ ob, title, lede, hero, body, foot, noBack, tabs }) {
 
 const cta = (label, ready, busy) => `<button class="btn primary lg block" type="submit" id="ob-cta"${ready && !busy ? "" : " disabled"}>${busy ? esc(t("common.oneMoment")) : esc(label) + icon("arrowR")}</button>`;
 
+// school header
 const heroSchool = d => d.school
   ? `<p class="stitch-k">${esc(t("setup.welcomeTo"))}</p><p class="stitch-name">${esc(d.school.name)}</p>`
   : `<div class="stitch-logo">${mark(54)}</div><p class="stitch-name">LunchLine</p><p class="stitch-k">${esc(t("join.tagline"))}</p>`;
 
-// ---------- chips ----------
+// chips
+// vegetarian chip
 function vegBlock(d) {
   return `<h2 class="fl-h2">${esc(t("setup.vegetarian.q"))}</h2><p class="help">${esc(t("setup.vegetarian.why"))}</p>
   <div class="chips-pick veg-pick"><button type="button" class="pick" data-act="ob-veg" aria-pressed="${!!d.vegetarian}">${icon("check")}${esc(t("setup.vegetarian"))}</button></div>`;
 }
 
+// allergy chips
 function allergyChips(d) {
   return `<div class="chips-pick" role="group" aria-label="${esc(t("setup.allergies"))}">
     ${ALLERGENS.map(k => `<button type="button" class="pick" data-act="ob-opt" data-kind="allergies" data-key="${k}" aria-pressed="${d.allergies.includes(k)}">${icon("check")}${esc(t("allergen." + k))}</button>`).join("")}
@@ -74,6 +76,7 @@ function allergyChips(d) {
   </div>`;
 }
 
+// grade chips
 function gradeChips(d) {
   const grades = (d.school?.grades?.length ? d.school.grades : ["9", "10", "11", "12"]);
   return `<div class="chips-pick grades" role="group" aria-label="${esc(t("setup.grade"))}">
@@ -82,6 +85,7 @@ function gradeChips(d) {
   </div>`;
 }
 
+// cuisine chips
 function cuisineChips(d) {
   return `<div class="chips-pick" role="group">
     ${["american", "italian", "mexican", "korean", "chinese", "japanese", "indian", "mediterranean", "healthy"].map(k => `<button type="button" class="pick" data-act="ob-opt" data-kind="cuisines" data-key="${k}" aria-pressed="${d.cuisines.includes(k)}">${icon("check")}${esc(t("cuisine." + k))}</button>`).join("")}
@@ -90,6 +94,7 @@ function cuisineChips(d) {
 
 const resultList = (list, which) => `<ul class="result-list">${list.map((s, i) => `<li><button type="button" class="result" data-act="ob-pick" data-list="${which}" data-i="${i}"><span class="result-t">${esc(s.name)}</span>${icon("chevR")}</button></li>`).join("")}</ul>`;
 
+// search results
 function resultsHTML(d) {
   if (d.q.trim().length < 2) return d.all?.length ? `<p class="help">${esc(t("join.allSchools"))}</p>${resultList(d.all, "all")}` : "";
   if (d.results === null) return `<p class="help">${esc(t("common.searching"))}</p>`;
@@ -97,7 +102,7 @@ function resultsHTML(d) {
   return resultList(d.results, "results");
 }
 
-// Every school, for picking from before typing anything. Loaded once per flow.
+// all schools list, loaded once
 async function loadAllSchools() {
   const d = state.ob?.d;
   if (!d || d.all) return;
@@ -107,7 +112,7 @@ async function loadAllSchools() {
   if (box && state.ob?.d === d && d.q.trim().length < 2) box.innerHTML = resultsHTML(d);
 }
 
-// ---------- steps ----------
+// steps
 const STEPS = {
   school(d, ob) {
     const parent = ob.flow === "parent";
@@ -172,7 +177,7 @@ const STEPS = {
       cta: "Email me a link", ready: d.schoolName.trim().length >= 2 && validEmail(d.email),
     };
   },
-  // Reached from an emailed link (?login=...).
+  // from an emailed link
   verify(d) {
     return {
       title: d.verifyFailed ? "That link didn't work" : "Signing you in",
@@ -183,7 +188,7 @@ const STEPS = {
   },
 };
 
-// After a link is requested: say where it went, and in local development offer the link right here.
+// check your email screen
 function sentView(d) {
   return {
     title: "Check your email",
@@ -195,10 +200,11 @@ function sentView(d) {
   };
 }
 
-// The colors schools reach for most; the full set lives in School settings.
+// common school colors
 const QUICK_COLORS = PRESET_GROUPS.flatMap(([, l]) => l).filter(([n]) => ["Scarlet", "Cardinal", "Maroon", "Orange", "Gold", "Kelly green", "Forest", "Hunter", "Teal", "Sky", "Royal", "Navy", "Purple", "Pink", "Black"].includes(n));
 
-// ---------- render ----------
+// render
+// draw the current step
 export function renderOb() {
   const ob = state.ob, step = ob.steps[ob.i];
   if (step === "welcome") return welcomeHTML();
@@ -213,24 +219,28 @@ export function renderOb() {
   return shell({ ob, title: S.title, lede: S.lede, hero, body: S.body, foot, noBack: S.noBack, tabs });
 }
 
+// update the button
 export function refreshCta() {
   const ob = state.ob, btn = $("#ob-cta");
   if (!ob || !btn || ob.busy) return;
   const S = STEPS[ob.steps[ob.i]](ob.d, ob);
   btn.disabled = !S.ready;
 }
+// show an error
 export function obError(msg) {
   if (!state.ob) return;
   state.ob.err = msg;
   const el = $("#ob-err");
   if (el) el.textContent = msg;
 }
+// busy state
 function obBusy(on) {
   state.ob.busy = on;
   const btn = $("#ob-cta");
   if (!btn) return;
   if (on) { btn.disabled = true; btn.textContent = t("common.oneMoment"); } else render();
 }
+// go to the next step
 function obNext() {
   const ob = state.ob;
   ob.err = "";
@@ -242,6 +252,7 @@ function obNext() {
   } else obFinish();
 }
 
+// submit a step
 export async function obSubmit() {
   const ob = state.ob, d = ob.d, step = ob.steps[ob.i];
   if (ob.busy) return;
@@ -253,7 +264,7 @@ export async function obSubmit() {
       d.school = (await api("GET", "schools?code=" + encodeURIComponent(normCode(d.code)))).school;
       applyTheme(d.school.theme?.color);
       ob.busy = false;
-      if (ob.flow === "student") ensureToken(d.school.id).catch(() => {}); // solve the join puzzle while they pick their grade
+      if (ob.flow === "student") ensureToken(d.school.id).catch(() => {}); // start the puzzle while they pick a grade
       obNext();
     } catch (e) { ob.busy = false; render(); obError(e.message); }
     return;
@@ -266,7 +277,8 @@ export async function obSubmit() {
   obNext();
 }
 
-// ---------- finishing ----------
+// finishing
+// save the grade
 export async function syncGrade() {
   const st = state.student;
   if (!st || !st.school || st.gradeSynced === (st.grade || "")) return;
@@ -274,9 +286,10 @@ export async function syncGrade() {
     await api("POST", "profile", { school: st.school.id, grade: st.grade || "" }, { student: st.school.id });
     st.gradeSynced = st.grade || "";
     LS.set("ll_student", st);
-  } catch { /* retried next time the app opens */ }
+  } catch { /* try again next time */ }
 }
 
+// build a profile
 function profileFrom(d, base = {}) {
   return {
     ...base,
@@ -290,6 +303,7 @@ function profileFrom(d, base = {}) {
   };
 }
 
+// finish joining
 export function obFinish() {
   const { flow, d } = state.ob;
   if (flow === "parent") {
@@ -314,12 +328,14 @@ export function obFinish() {
   syncGrade();
 }
 
-// ---------- staff sign-in ----------
+// staff sign in
+// which school to open
 function pickSchool(schools, created) {
   const want = created?.id || LS.get("ll_admin_school");
   return schools.find(s => s.school.id === want) || schools[0];
 }
 
+// enter the staff side
 export async function enterAdmin(out, via = "email") {
   const chosen = pickSchool(out.schools, out.created);
   state.admin = { via: out.via || via, email: out.email || "", schools: out.schools, school: chosen.school, role: chosen.role };
@@ -327,7 +343,7 @@ export async function enterAdmin(out, via = "email") {
   setMode("admin");
 }
 
-// Asks the server to email a sign-in link (or a create-school link), then shows the "check your email" view.
+// ask for a link
 async function requestLink() {
   const ob = state.ob, d = ob.d, create = ob.flow === "create";
   obBusy(true); obError("");
@@ -340,7 +356,7 @@ async function requestLink() {
   } catch (e) { ob.busy = false; render(); obError(e.message); }
 }
 
-// Opened from an emailed link (?login=...): confirm it, then open the staff view.
+// open a link from an email
 export async function openLoginLink(token) {
   startFlow("verify");
   try {
@@ -353,7 +369,7 @@ export async function openLoginLink(token) {
   }
 }
 
-// ---------- clicks ----------
+// clicks
 registerActions({
   "resend-link"() { state.ob.d.sentTo = ""; requestLink(); },
   "change-email"() { state.ob.d.sentTo = ""; state.ob.d.devLink = ""; render(true); },
@@ -419,6 +435,7 @@ registerActions({
 });
 
 let searchTimer, searchSeq = 0;
+// school search box
 export function searchSchools() {
   const d = state.ob.d, q = d.q.trim();
   clearTimeout(searchTimer);

@@ -1,5 +1,4 @@
-// Staff menu editor: pick a day, add or edit dishes (photo, allergens, diet,
-// calories) and leave students a note on any dish.
+// menu editor: days, dishes, photos, notes
 import { $, esc, cap, listJoin, D, staffHome, foodTile } from "../util.js";
 import { state, school, ALLERGENS, CUISINES, DIETS, MEALS } from "../state.js";
 import { api } from "../api.js";
@@ -10,15 +9,19 @@ import { dayChips } from "./student.js";
 import { adminGone } from "./staff.js";
 import { savePresetFromEditor } from "./presets.js";
 
+// split into words
 const terms = s => String(s || "").toLowerCase().split(/[,;/\n]+/).map(x => x.trim()).filter(x => x.length >= 2);
 const mealName = m => cap(m);
+// empty day
 const emptyDay = date => ({ date, ...Object.fromEntries(MEALS.map(m => [m, []])) });
 
+// start on the right week
 function initAdminWeek() {
   const d = staffHome(state.today);
   state.aWeek = D.monday(d); state.aDay = d;
 }
 
+// load a week
 async function loadAdminWeek(mon) {
   const key = "a" + mon;
   if (state.loading.has(key)) return;
@@ -35,9 +38,11 @@ async function loadAdminWeek(mon) {
   if (state.mode === "admin" && !state.ob && currentTab() === "kitchen" && state.aWeek === mon) render();
 }
 
+// meal switch
 const mealSeg = (day, sel) => `<div class="seg" role="group" aria-label="Meal">${MEALS.map(k =>
   `<button data-act="a-meal" data-meal="${k}" aria-pressed="${k === sel}">${mealName(k)}<span class="seg-n">${day ? (day[k] || []).length : 0}</span></button>`).join("")}</div>`;
 
+// the menu page
 export function viewKitchen() {
   if (!state.today) { loadAdminWeek(D.monday(new Date().toISOString().slice(0, 10))); return head("Menu", "Menu", "") + skeleton(3); }
   if (!state.aWeek) initAdminWeek();
@@ -71,6 +76,7 @@ export function viewKitchen() {
     ${body}`;
 }
 
+// save a day
 async function saveAdminDay(date, day) {
   const res = await api("PUT", "menu", { school: school().id, days: [day] });
   const wk = state.aWeeks[D.monday(date)];
@@ -81,6 +87,7 @@ async function saveAdminDay(date, day) {
   state.insights = null;
 }
 
+// copy a day to another
 async function copyDay() {
   const wk = state.aWeeks[state.aWeek], src = wk?.days[state.aDay];
   if (!src) return;
@@ -96,9 +103,10 @@ async function copyDay() {
   } catch (e) { toast(e.message, true); }
 }
 
-// ---------- editor sheet ----------
+// dish editor
 const BLANK = { name: "", desc: "", ingredients: "", allergens: [], allergens_other: "", may: [], may_other: "", diet: [], cuisine: "", cuisine_other: "", calories: null, protein: null, fat: null, sat_fat: null, carbs: null, fiber: null, sodium: null, photo: "", reply: "" };
 
+// open the editor
 function openEditor(id) {
   const wk = state.aWeeks[state.aWeek], day = (wk && wk.days[state.aDay]) || emptyDay(state.aDay);
   const found = id && (day[state.aMeal] || []).find(i => i.id === id);
@@ -107,11 +115,13 @@ function openEditor(id) {
   if (!found && matchMedia("(hover: hover)").matches) $("#ed-name")?.focus(); else $("#ed-close")?.focus();
 }
 
+// toggle chips
 const chipToggles = (field, entries, selected) => `<div class="toggles">${entries.map(([k, l]) =>
   `<button type="button" class="toggle" data-act="ed-chip" data-field="${field}" data-key="${k}" aria-pressed="${selected.includes(k)}">${esc(l)}</button>`).join("")}</div>`;
 
 const NUTRI = [["protein", "Protein", "g"], ["fat", "Fat", "g"], ["sat_fat", "Saturated fat", "g"], ["carbs", "Carbs", "g"], ["fiber", "Fiber", "g"], ["sodium", "Sodium", "mg"]];
 
+// editor html
 function editorHTML() {
   const e = state.edit, it = e.item;
   const A = ALLERGENS.map(a => [a, t("allergen." + a)]);
@@ -156,6 +166,7 @@ function editorHTML() {
   </form>`;
 }
 
+// photo picker
 function photoFieldHTML() {
   const e = state.edit, it = e.item;
   const input = `<input type="file" id="ed-file" accept="image/*" class="sr-only" data-photo-input>`;
@@ -168,6 +179,7 @@ function photoFieldHTML() {
   return `${input}<label for="ed-file" class="photo-drop">${icon("camera")}<span class="photo-drop-t"><strong>Add a photo</strong><span>Students see it with the dish</span></span></label>`;
 }
 
+// make photos smaller before upload
 async function shrinkImage(file) {
   const url = URL.createObjectURL(file);
   try {
@@ -184,6 +196,7 @@ async function shrinkImage(file) {
   } finally { URL.revokeObjectURL(url); }
 }
 
+// upload a photo
 export async function uploadPhoto(file) {
   const e = state.edit;
   if (!e || !file) return;
@@ -199,6 +212,7 @@ export async function uploadPhoto(file) {
   $("#ed-photo-box").innerHTML = photoFieldHTML(); $("#ed-save").disabled = false;
 }
 
+// save the dish
 export async function saveEditor() {
   const e = state.edit;
   if (!e || e.busy || e.uploading) return;
@@ -225,6 +239,7 @@ export async function saveEditor() {
   }
 }
 
+// delete the dish
 async function deleteDish() {
   const e = state.edit;
   if (!e || !e.id || e.busy) return;
@@ -237,12 +252,14 @@ async function deleteDish() {
   catch (err) { e.busy = false; const el = $("#ed-err"); if (el) el.textContent = err.message; }
 }
 
+// typing in the editor
 export function onEditorInput(target) {
   state.edit.item[target.dataset.ed] = target.value;
   if (target.dataset.ed === "cuisine") $("#ed-co-wrap").hidden = target.value !== "other";
   const err = $("#ed-err"); if (err) err.textContent = "";
 }
 
+// copy lunch to snack
 async function snackSame() {
   const wk = state.aWeeks[state.aWeek], day = wk?.days[state.aDay];
   if (!day || !day.breakfast.length) return;
@@ -272,7 +289,7 @@ registerActions({
     const list = it[f], i = list.indexOf(k);
     if (i >= 0) list.splice(i, 1); else list.push(k);
     el.setAttribute("aria-pressed", String(i < 0));
-    // An allergen is either "contains" or "may contain", never both.
+    // contains or may contain, not both
     const other = f === "allergens" ? "may" : f === "may" ? "allergens" : null;
     if (other && i < 0 && it[other].includes(k)) {
       it[other] = it[other].filter(x => x !== k);
